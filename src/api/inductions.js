@@ -10,7 +10,12 @@ import {
   syncSiteInductionRecordsFromProgress,
   upsertContractorSiteInduction,
 } from './contractorInductions';
-import { contractorDataListIncompleteInductions, getRequestingAdminId } from './contractorData';
+import {
+  contractorDataListByCompany,
+  contractorDataListIncompleteInductions,
+  getRequestingAdminId,
+  isAdminSessionActive,
+} from './contractorData';
 
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
@@ -1183,15 +1188,24 @@ export async function getContractorInductionsForCompany(companyId) {
       });
     }
 
-    // Get all contractors from the company (paginated past PostgREST 1000-row cap)
-    const contractors = await fetchAllPaginated((from, to) =>
-      supabase
-        .from('contractors')
-        .select('id, name, email, phone, service_ids, induction_expiry')
-        .eq('company_id', companyId)
-        .order('name', { ascending: true })
-        .range(from, to)
-    );
+    let contractors = [];
+    if (getRequestingAdminId() || isAdminSessionActive()) {
+      try {
+        contractors = await contractorDataListByCompany(companyId);
+      } catch (edgeError) {
+        console.warn('getContractorInductionsForCompany edge failed, fallback:', edgeError?.message);
+      }
+    }
+    if (!contractors?.length) {
+      contractors = await fetchAllPaginated((from, to) =>
+        supabase
+          .from('contractors')
+          .select('id, name, email, phone, service_ids, induction_expiry')
+          .eq('company_id', companyId)
+          .order('name', { ascending: true })
+          .range(from, to),
+      );
+    }
 
     // For each contractor, get their completed inductions
     // Use safePromiseAll for better error handling - partial success even if some queries fail
