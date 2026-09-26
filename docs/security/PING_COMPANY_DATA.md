@@ -26,7 +26,7 @@ Invoke-RestMethod -Method Post -Uri $uri `
 ```json
 {
   "success": true,
-  "version": "2026-09-26-v2",
+  "version": "2026-09-26-v5",
   "serviceRoleConfigured": true
 }
 ```

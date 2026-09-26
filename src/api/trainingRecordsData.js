@@ -1,5 +1,5 @@
 /**
- * Training record rows via Edge Function (service role) after anon lock-down on `training_records`.
+ * Training record rows via `company-data` Edge (service role) after anon lock-down on `training_records`.
  */
 
 import { supabase } from '../supabaseClient';
@@ -11,14 +11,12 @@ export function preferTrainingRecordsEdgeForAdmin() {
   return Boolean(getRequestingAdminId() || isAdminSessionActive());
 }
 
-async function invokeTrainingRecordsData(payload) {
+async function invokeCompanyData(payload) {
   if (!supabase) {
     return { data: null, error: { message: 'Supabase client is not configured' } };
   }
 
-  const { data, error } = await supabase.functions.invoke('training-records-data', {
-    body: payload,
-  });
+  const { data, error } = await supabase.functions.invoke('company-data', { body: payload });
 
   if (error) {
     let responseBody = data;
@@ -26,7 +24,7 @@ async function invokeTrainingRecordsData(payload) {
       try {
         responseBody = await error.context.json();
       } catch (parseError) {
-        console.warn('Could not parse training-records-data error body:', parseError);
+        console.warn('Could not parse company-data error body:', parseError);
       }
     }
     if (responseBody && typeof responseBody === 'object') {
@@ -39,7 +37,7 @@ async function invokeTrainingRecordsData(payload) {
 }
 
 async function invokeOrThrow(payload, fallbackMessage) {
-  const { data: result, error: invokeError } = await invokeTrainingRecordsData(payload);
+  const { data: result, error: invokeError } = await invokeCompanyData(payload);
   if (invokeError) {
     throw new Error(invokeError.message || fallbackMessage);
   }
@@ -52,7 +50,7 @@ async function invokeOrThrow(payload, fallbackMessage) {
 export async function trainingRecordsDataListByCompany(companyId, requestingAdminId) {
   const adminId = requestingAdminId || getRequestingAdminId();
   const result = await invokeOrThrow(
-    { action: 'listByCompany', companyId, requestingAdminId: adminId },
+    { action: 'listTrainingRecordsByCompany', companyId, requestingAdminId: adminId },
     'Failed to load training records',
   );
   return result.data || [];
@@ -61,7 +59,7 @@ export async function trainingRecordsDataListByCompany(companyId, requestingAdmi
 export async function trainingRecordsDataListByContractor(contractorId, requestingAdminId) {
   const adminId = requestingAdminId || getRequestingAdminId();
   const result = await invokeOrThrow(
-    { action: 'listByContractor', contractorId, requestingAdminId: adminId },
+    { action: 'listTrainingRecordsByContractor', contractorId, requestingAdminId: adminId },
     'Failed to load training records',
   );
   return result.data || [];
@@ -70,7 +68,7 @@ export async function trainingRecordsDataListByContractor(contractorId, requesti
 export async function trainingRecordsDataGet(recordId, requestingAdminId) {
   const adminId = requestingAdminId || getRequestingAdminId();
   const result = await invokeOrThrow(
-    { action: 'get', recordId, requestingAdminId: adminId },
+    { action: 'getTrainingRecord', recordId, requestingAdminId: adminId },
     'Failed to load training record',
   );
   return result.data || null;
@@ -79,7 +77,7 @@ export async function trainingRecordsDataGet(recordId, requestingAdminId) {
 export async function trainingRecordsDataUpdate(recordId, updates, requestingAdminId) {
   const adminId = requestingAdminId || getRequestingAdminId();
   const result = await invokeOrThrow(
-    { action: 'update', recordId, updates, requestingAdminId: adminId },
+    { action: 'updateTrainingRecord', recordId, updates, requestingAdminId: adminId },
     'Failed to update training record',
   );
   return result.data || null;
@@ -88,7 +86,7 @@ export async function trainingRecordsDataUpdate(recordId, updates, requestingAdm
 export async function trainingRecordsDataDelete(recordId, requestingAdminId) {
   const adminId = requestingAdminId || getRequestingAdminId();
   await invokeOrThrow(
-    { action: 'delete', recordId, requestingAdminId: adminId },
+    { action: 'deleteTrainingRecord', recordId, requestingAdminId: adminId },
     'Failed to delete training record',
   );
 }
@@ -102,7 +100,7 @@ export async function trainingRecordsDataApprove(
   const adminId = requestingAdminId || getRequestingAdminId();
   const result = await invokeOrThrow(
     {
-      action: 'approve',
+      action: 'approveTrainingRecord',
       recordId,
       approvedByName,
       businessUnitName,
@@ -122,7 +120,7 @@ export async function trainingRecordsDataApproveAllPending(
   const adminId = requestingAdminId || getRequestingAdminId();
   const result = await invokeOrThrow(
     {
-      action: 'approveAllPending',
+      action: 'approveAllPendingTrainingRecords',
       companyId,
       approvedByName,
       businessUnitName,

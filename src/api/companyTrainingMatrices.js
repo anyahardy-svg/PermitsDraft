@@ -457,7 +457,7 @@ export async function approveCompanyTrainingMatrix(matrixId, approvedByName, bus
 
     await updateCompanyTrainingMatricesCounters(existing.company_id);
 
-    const enriched = await enrichMatricesWithContractors([data]);
+    const enriched = await enrichMatricesWithContractors([data], existing.company_id);
     return { success: true, data: enriched[0] };
   } catch (error) {
     console.error('Approve company training matrix error:', error);
