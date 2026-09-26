@@ -78,6 +78,14 @@ export async function companyDataSearchForKiosk(query, limit = 50) {
   return result.data || [];
 }
 
+export async function companyDataListForKiosk() {
+  const result = await invokeOrThrow(
+    { action: 'listForKiosk' },
+    'Failed to load companies',
+  );
+  return result.data || [];
+}
+
 export async function companyDataGet(companyId, requestingAdminId) {
   const adminId = requestingAdminId || getRequestingAdminId();
   const result = await invokeOrThrow(
