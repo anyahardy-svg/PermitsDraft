@@ -9,5 +9,10 @@ assert.match(apiSource, /sign_ins/);
 assert.match(apiSource, /business_unit_id/);
 assert.match(signInsSource, /kiosk-check-in/);
 assert.match(signInsSource, /resolvedBusinessUnitId/);
+assert.match(signInsSource, /Always prefer Vercel service-role check-in/);
+assert.match(
+  fs.readFileSync(path.join(__dirname, '..', 'src', 'api', 'contractorData.js'), 'utf8'),
+  /Orphan adminData/,
+);
 
 console.log('kiosk check-in api tests passed');

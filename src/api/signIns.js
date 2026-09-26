@@ -7,7 +7,7 @@ import { supabase } from '../supabaseClient';
 import { getContractorSiteInduction } from './contractorInductions';
 import { getSiteInductionExpiry, getSiteInductionStatus } from '../utils/siteInductionStatus';
 import { notifySignIn } from './signInNotifications';
-import { getRequestingAdminId } from './contractorData';
+import { isAdminSessionActive } from './contractorData';
 import { getCompany } from './companies';
 
 // ============================================================================
@@ -83,28 +83,34 @@ export async function checkInContractor(
       };
     }
 
-    // Kiosk has no admin JWT — use Vercel service-role API after contractors RLS lock-down.
-    if (!getRequestingAdminId()) {
-      try {
-        const apiResult = await checkInContractorViaApi({
-          contractorId,
-          siteId,
-          businessUnitId: resolvedBusinessUnitId,
-          flagData,
-          rtData,
-          visitingPersonName,
-          contractorPhone,
-        });
-        if (apiResult?.success) {
-          return mapKioskCheckInApiResult(apiResult);
-        }
+    const kioskApiPayload = {
+      contractorId,
+      siteId,
+      businessUnitId: resolvedBusinessUnitId,
+      flagData,
+      rtData,
+      visitingPersonName,
+      contractorPhone,
+    };
+
+    // Always prefer Vercel service-role check-in (works for kiosk after contractors RLS lock-down).
+    try {
+      const apiResult = await checkInContractorViaApi(kioskApiPayload);
+      if (apiResult?.success) {
+        return mapKioskCheckInApiResult(apiResult);
+      }
+      if (!isAdminSessionActive()) {
         return { success: false, error: apiResult?.error || 'Check-in failed' };
-      } catch (apiError) {
+      }
+    } catch (apiError) {
+      if (!isAdminSessionActive()) {
         console.error('❌ Kiosk check-in API error:', apiError.message);
         return { success: false, error: apiError.message || 'Check-in failed' };
       }
+      console.warn('Kiosk check-in API failed; trying legacy admin PostgREST path:', apiError.message);
     }
 
+    // Legacy path: only when an admin is actively signed in and the API is unavailable.
     // Get contractor details
     const { data: contractor, error: contractorError } = await supabase
       .from('contractors')
