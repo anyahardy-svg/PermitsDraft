@@ -3167,55 +3167,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         // Load permits
         const permitsData = await listPermits();
         setPermits(permitsData);
-        
-        // Load companies
-        try {
-          const companiesData = await listCompanies();
-          setCompanies(companiesData);
-        
-          // Initialize empty training records statuses
-          setTrainingRecordsStatuses({});
-          setTrainingMatricesStatuses({});
-        
-          // Load training records statuses in background (non-blocking)
-          setTimeout(() => {
-            (async () => {
-              try {
-                const statusResults = await getCompanyTrainingRecordsStatusBatch(
-                  companiesData.map(c => c.id)
-                );
-                setTrainingRecordsStatuses(
-                  Object.fromEntries(
-                    Object.entries(statusResults).map(([companyId, result]) => [
-                      companyId,
-                      result?.status || 'none',
-                    ])
-                  )
-                );
 
-                const matrixStatusResults = await getCompanyTrainingMatricesStatusBatch(
-                  companiesData.map(c => c.id)
-                );
-                setTrainingMatricesStatuses(
-                  Object.fromEntries(
-                    Object.entries(matrixStatusResults).map(([companyId, result]) => [
-                      companyId,
-                      result?.status || 'none',
-                    ])
-                  )
-                );
-                if (process.env.NODE_ENV === 'development') {
-                  console.log('✅ All training records statuses loaded (batch query)');
-                }
-              } catch (error) {
-                console.error('❌ Error loading training records statuses:', error);
-              }
-            })();
-          }, 500);
-        } catch (companiesError) {
-          console.error('❌ Error loading companies:', companiesError);
-          setCompanies([]);
-        }
+        // Companies / contractors load when admin session is active (see effect below).
+        // Post-RLS lock-down, anon cannot read those tables via PostgREST.
         
         // Load services from database
         const servicesData = await listAllServices();
@@ -3251,17 +3205,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           // Keep the default mock data, don't overwrite with empty array
         }
         
-        // Load contractors LAST (after mappings are ready)
-        try {
-          const contractorsData = await listContractors();
-          console.log('✅ Contractors loaded from database:', contractorsData?.length || 0);
-          window._contractorsCache = contractorsData;
-          setContractors(contractorsData);
-        } catch (contractorsError) {
-          console.error('❌ Error loading contractors:', contractorsError);
-          setContractors([]);
-        }
-        
         // Load pending join requests count
         const joinRequestsResult = await getAllPendingJoinRequests();
         if (joinRequestsResult.success) {
@@ -3287,6 +3230,86 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     };
     loadData();
   }, []);
+
+  // Companies + contractors require admin session + Edge after RLS lock-down on those tables.
+  useEffect(() => {
+    if (!adminSessionActive || !loggedInAdmin?.id) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadAdminRoster = async () => {
+      try {
+        const companiesData = await listCompanies();
+        if (cancelled) {
+          return;
+        }
+        setCompanies(companiesData);
+        setTrainingRecordsStatuses({});
+        setTrainingMatricesStatuses({});
+
+        setTimeout(() => {
+          if (cancelled) {
+            return;
+          }
+          (async () => {
+            try {
+              const statusResults = await getCompanyTrainingRecordsStatusBatch(
+                companiesData.map((c) => c.id),
+              );
+              if (!cancelled) {
+                setTrainingRecordsStatuses(
+                  Object.fromEntries(
+                    Object.entries(statusResults).map(([companyId, result]) => [
+                      companyId,
+                      result?.status || 'none',
+                    ]),
+                  ),
+                );
+              }
+
+              const matrixStatusResults = await getCompanyTrainingMatricesStatusBatch(
+                companiesData.map((c) => c.id),
+              );
+              if (!cancelled) {
+                setTrainingMatricesStatuses(
+                  Object.fromEntries(
+                    Object.entries(matrixStatusResults).map(([companyId, result]) => [
+                      companyId,
+                      result?.status || 'none',
+                    ]),
+                  ),
+                );
+              }
+            } catch (error) {
+              console.error('❌ Error loading training records statuses:', error);
+            }
+          })();
+        }, 500);
+
+        const contractorsData = await listContractors();
+        if (cancelled) {
+          return;
+        }
+        console.log('✅ Contractors loaded for admin:', contractorsData?.length || 0);
+        window._contractorsCache = contractorsData;
+        setContractors(contractorsData);
+      } catch (error) {
+        console.error('❌ Error loading companies/contractors for admin:', error);
+        if (!cancelled) {
+          setCompanies([]);
+          setContractors([]);
+        }
+      }
+    };
+
+    loadAdminRoster();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [adminSessionActive, loggedInAdmin?.id]);
 
   // Auto-populate permit form site when entering from kiosk
   useEffect(() => {

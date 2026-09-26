@@ -90,7 +90,10 @@ export function formatInductionExpiry(expiryRaw) {
 function getSiteInductionRecords(contractor) {
   const siteInductionMap = contractor?.site_inductions || contractor?.siteInductions;
   if (siteInductionMap && Object.keys(siteInductionMap).length > 0) {
-    return Object.values(siteInductionMap);
+    return Object.entries(siteInductionMap).map(([mapSiteId, record]) => ({
+      ...(record || {}),
+      site_id: record?.site_id || record?.siteId || mapSiteId,
+    }));
   }
 
   return contractor?.site_induction_records || contractor?.siteInductionRecords || [];

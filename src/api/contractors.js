@@ -30,7 +30,17 @@ async function withContractorDataFallback(edgeFn, directFn, { label = 'contracto
     return await edgeFn();
   } catch (edgeError) {
     console.warn(`⚠️ ${label} edge failed, using direct PostgREST fallback:`, edgeError?.message || edgeError);
-    return await directFn();
+    try {
+      return await directFn();
+    } catch (directError) {
+      const directMsg = directError?.message || String(directError);
+      if (/permission denied|42501/i.test(directMsg)) {
+        throw new Error(
+          `${label}: Edge failed (${edgeError?.message || edgeError}). Table is locked down — sign in as admin and ensure contractor-data is deployed.`,
+        );
+      }
+      throw directError;
+    }
   }
 }
 

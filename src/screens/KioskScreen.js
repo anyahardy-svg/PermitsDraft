@@ -522,18 +522,23 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   }, [permitsLoading, currentScreen, siteId, currentContractor?.companyId]);
 
   const loadBusinessUnitSitesIfNeeded = async () => {
-    if (!businessUnitId || allSites.length > 1) {
-      return;
+    if (!businessUnitId) {
+      return allSites;
+    }
+    if (allSites.length > 1) {
+      return allSites;
     }
 
     try {
       const businessUnitSites = await getSitesByBusinessUnits([businessUnitId]);
       if (businessUnitSites.length > 0) {
         setAllSites(businessUnitSites);
+        return businessUnitSites;
       }
     } catch (error) {
       console.warn('Could not load business unit sites for kiosk:', error.message);
     }
+    return allSites;
   };
 
   const handleContractorSearch = (text) => {
@@ -701,7 +706,24 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     });
   };
 
-  const applyContractorInductionUi = (contractorForStatus) => {
+  const resolveSiteName = async (siteIdForLookup, sitesForLookup) => {
+    if (!siteIdForLookup) {
+      return '';
+    }
+    const fromList = (sitesForLookup || []).find((s) => s.id === siteIdForLookup);
+    if (fromList?.name) {
+      return fromList.name;
+    }
+    try {
+      const site = await getSite(siteIdForLookup);
+      return site?.name || siteIdForLookup;
+    } catch (error) {
+      console.warn('Could not resolve site name for kiosk:', siteIdForLookup, error.message);
+      return siteIdForLookup;
+    }
+  };
+
+  const applyContractorInductionUi = async (contractorForStatus, sitesForLookup = allSites) => {
     console.log('🔍 Contractor selected:', contractorForStatus.name);
     console.log('   Services:', contractorForStatus.services);
     console.log('   Site IDs:', contractorForStatus.site_ids);
@@ -726,15 +748,18 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         console.log('✗ Not inducted at this site');
       }
 
-      const otherSites = getOtherInductedSites(contractorForStatus, siteId).map((record) => {
-        const matchedSite = allSites.find((s) => s.id === record.site_id);
-        return {
-          site_id: record.site_id,
-          name: matchedSite?.name || record.site_id,
-          expires_at: record.expires_at,
-          status: record.status,
-        };
-      });
+      const otherSiteRecords = getOtherInductedSites(contractorForStatus, siteId);
+      const otherSites = await Promise.all(
+        otherSiteRecords.map(async (record) => {
+          const name = await resolveSiteName(record.site_id, sitesForLookup);
+          return {
+            site_id: record.site_id,
+            name,
+            expires_at: record.expires_at,
+            status: record.status,
+          };
+        }),
+      );
       console.log('🌍 Other inducted sites:', otherSites.map((site) => site.name));
 
       setAllContractorInductions(otherSites);
@@ -746,15 +771,15 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     }
   };
 
-  const applyContractorSelection = (contractorForStatus) => {
+  const applyContractorSelection = async (contractorForStatus) => {
     selectedContractorIdRef.current = contractorForStatus?.id || null;
-    void loadBusinessUnitSitesIfNeeded();
+    const sitesForLookup = await loadBusinessUnitSitesIfNeeded();
     setSelectedContractor(contractorForStatus);
     setContractorSearch(contractorForStatus.name || '');
     setFilteredContractors([]);
     setContractorPhone(formatPhoneForDisplay(contractorForStatus.phone));
     setContractorPhoneError('');
-    applyContractorInductionUi(contractorForStatus);
+    await applyContractorInductionUi(contractorForStatus, sitesForLookup);
   };
 
   const refreshContractorInductionInBackground = async (contractorId, requestId) => {
@@ -768,7 +793,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
       if (selectedContractorIdRef.current === contractorId) {
         setSelectedContractor(refreshedContractor);
-        applyContractorInductionUi(refreshedContractor);
+        const sitesForLookup = await loadBusinessUnitSitesIfNeeded();
+        await applyContractorInductionUi(refreshedContractor, sitesForLookup);
       }
     } catch (refreshError) {
       console.warn('Could not refresh contractor induction status:', refreshError.message);
@@ -1539,7 +1565,10 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                         {allContractorInductions.map((induction, idx) => {
                           const expiryDate = new Date(induction.expires_at).toLocaleDateString('en-NZ');
                           const isExpired = induction.expires_at && new Date(induction.expires_at) < new Date();
-                          const siteName = allSites.find(s => s.id === induction.site_id)?.name || induction.site_id;
+                          const siteName =
+                            induction.name ||
+                            allSites.find((s) => s.id === induction.site_id)?.name ||
+                            induction.site_id;
                           return (
                             <Text key={idx} style={{ 
                               fontSize: 12, 
