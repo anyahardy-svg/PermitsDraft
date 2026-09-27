@@ -421,8 +421,8 @@ export const findContractorInCompany = (contractors, { companyId, email, name, p
   return null;
 };
 
-/** Same rules as contractor-data `findForInduction` (email or phone; not name-only). */
-export function matchesInductionDuplicateProfile(contractor, { companyId, email, name, phone }) {
+/** Same rules as contractor-data `findForInduction`: same company, name, and email. */
+export function matchesInductionDuplicateProfile(contractor, { companyId, email, name }) {
   const contractorCompanyId = contractor?.companyId || contractor?.company_id;
   if (!companyId || contractorCompanyId !== companyId) {
     return false;
@@ -432,52 +432,30 @@ export function matchesInductionDuplicateProfile(contractor, { companyId, email,
   const rowEmail = String(contractor?.email || '').trim().toLowerCase();
   const emailMatch = Boolean(emailNorm && rowEmail && rowEmail === emailNorm);
 
-  const phoneNorm = normalizePhoneForMatch(phone);
-  const rowPhone = normalizePhoneForMatch(contractor?.phone);
-  const phoneMatch = Boolean(phoneNorm && rowPhone && rowPhone === phoneNorm);
-
   const nameNorm = normalizeNameForMatch(name);
   const rowName = normalizeNameForMatch(contractor?.name);
   const nameMatch = Boolean(nameNorm && rowName && rowName === nameNorm);
 
-  if (emailMatch) return true;
-  if (phoneMatch) return true;
-  if (nameMatch && (emailMatch || phoneMatch)) return true;
-  return false;
+  return emailMatch && nameMatch;
 }
 
-const findExistingContractorForInductionDirect = async ({ companyId, email, name, phone }) => {
+const findExistingContractorForInductionDirect = async ({ companyId, email, name }) => {
   const emailTrim = String(email || '').trim();
-  const phoneNorm = normalizePhoneForMatch(phone);
-  const candidates = [];
-
-  if (emailTrim) {
-    const { data, error } = await supabase
-      .from('contractors')
-      .select('*')
-      .eq('company_id', companyId)
-      .ilike('email', emailTrim);
-    if (error) throw error;
-    candidates.push(...(data || []));
+  const nameTrim = String(name || '').trim();
+  if (!emailTrim || !nameTrim) {
+    return null;
   }
 
-  if (candidates.length === 0 && phoneNorm.length >= 7) {
-    const tail = phoneNorm.slice(-8);
-    const { data, error } = await supabase
-      .from('contractors')
-      .select('*')
-      .eq('company_id', companyId)
-      .ilike('phone', `%${tail}%`);
-    if (error) throw error;
-    candidates.push(...(data || []));
-  }
+  const { data, error } = await supabase
+    .from('contractors')
+    .select('*')
+    .eq('company_id', companyId)
+    .ilike('email', emailTrim);
+  if (error) throw error;
 
-  const seen = new Set();
-  for (const row of candidates) {
-    if (!row?.id || seen.has(row.id)) continue;
-    seen.add(row.id);
+  for (const row of data || []) {
     const asApp = transformContractor(row);
-    if (matchesInductionDuplicateProfile(asApp, { companyId, email, name, phone })) {
+    if (matchesInductionDuplicateProfile(asApp, { companyId, email: emailTrim, name: nameTrim })) {
       return asApp;
     }
   }
@@ -486,15 +464,15 @@ const findExistingContractorForInductionDirect = async ({ companyId, email, name
 
 /**
  * Before creating a contractor from the "New contractor" induction path, detect an existing row
- * for the same company with the same email or phone.
+ * for the same company with the same name and email.
  */
-export async function findExistingContractorForInduction({ companyId, email, name, phone }) {
+export async function findExistingContractorForInduction({ companyId, email, name }) {
   if (!companyId) return null;
   const emailTrim = String(email || '').trim();
-  const phoneTrim = String(phone || '').trim();
-  if (!emailTrim && !phoneTrim) return null;
+  const nameTrim = String(name || '').trim();
+  if (!emailTrim || !nameTrim) return null;
 
-  const criteria = { companyId, email: emailTrim, name, phone: phoneTrim };
+  const criteria = { companyId, email: emailTrim, name: nameTrim };
 
   try {
     const rows = await withContractorDataFallback(

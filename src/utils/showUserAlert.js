@@ -10,7 +10,9 @@ export function showUserAlert(title, message, buttons) {
     if (Array.isArray(buttons) && buttons.length > 1 && typeof window.confirm === 'function') {
       const cancel = buttons.find((b) => b.style === 'cancel');
       const action = buttons.find((b) => b.style !== 'cancel') || buttons[0];
-      const prompt = action?.text ? `${body}\n\nPress OK for "${action.text}".` : body;
+      const prompt = action?.text
+        ? `${body}\n\n• Cancel — ${cancel?.text || 'go back'}\n• OK — ${action.text}`
+        : body;
       if (window.confirm(prompt)) {
         action?.onPress?.();
       } else {

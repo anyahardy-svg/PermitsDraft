@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v4";
+const VERSION = "2026-03-23-v5";
 const IN_QUERY_BATCH_SIZE = 200;
 const PAGE_SIZE = 1000;
 
@@ -306,7 +306,6 @@ function contractorMatchesInductionDuplicate(
   companyId: string,
   email: string,
   name: string,
-  phone: string,
 ) {
   if (String(row.company_id ?? "") !== companyId) {
     return false;
@@ -316,18 +315,11 @@ function contractorMatchesInductionDuplicate(
   const rowEmail = String(row.email ?? "").trim().toLowerCase();
   const emailMatch = Boolean(emailNorm && rowEmail && rowEmail === emailNorm);
 
-  const phoneNorm = normalizePhoneForMatch(phone);
-  const rowPhone = normalizePhoneForMatch(String(row.phone ?? ""));
-  const phoneMatch = Boolean(phoneNorm && rowPhone && rowPhone === phoneNorm);
-
   const nameNorm = normalizeNameForMatch(name);
   const rowName = normalizeNameForMatch(String(row.name ?? ""));
   const nameMatch = Boolean(nameNorm && rowName && rowName === nameNorm);
 
-  if (emailMatch) return true;
-  if (phoneMatch) return true;
-  if (nameMatch && (emailMatch || phoneMatch)) return true;
-  return false;
+  return emailMatch && nameMatch;
 }
 
 async function findForInductionInternal(
@@ -335,7 +327,6 @@ async function findForInductionInternal(
   companyId: string,
   email: string,
   name: string,
-  phone: string,
 ) {
   const companyIdStr = String(companyId ?? "");
   if (!companyIdStr) {
@@ -349,7 +340,7 @@ async function findForInductionInternal(
     for (const row of rows ?? []) {
       const id = String(row.id ?? "");
       if (!id || seen.has(id)) continue;
-      if (contractorMatchesInductionDuplicate(row, companyIdStr, email, name, phone)) {
+      if (contractorMatchesInductionDuplicate(row, companyIdStr, email, name)) {
         seen.add(id);
         matches.push(row);
       }
@@ -364,30 +355,6 @@ async function findForInductionInternal(
       .select("*")
       .eq("company_id", companyIdStr)
       .ilike("email", pattern);
-    if (error) throw error;
-    tryAdd(data);
-  }
-
-  const phoneNorm = normalizePhoneForMatch(phone);
-  if (matches.length === 0 && phoneNorm.length >= 7) {
-    const tail = phoneNorm.slice(-8);
-    const { data, error } = await supabase
-      .from("contractors")
-      .select("*")
-      .eq("company_id", companyIdStr)
-      .ilike("phone", `%${escapeIlikePattern(tail)}%`);
-    if (error) throw error;
-    tryAdd(data);
-  }
-
-  if (matches.length === 0 && name.trim() && (emailTrim || phoneNorm)) {
-    const namePattern = `%${escapeIlikePattern(name.trim())}%`;
-    const { data, error } = await supabase
-      .from("contractors")
-      .select("*")
-      .eq("company_id", companyIdStr)
-      .ilike("name", namePattern)
-      .limit(25);
     if (error) throw error;
     tryAdd(data);
   }
@@ -609,17 +576,16 @@ Deno.serve(async (req) => {
       const companyId = String(body.companyId ?? "");
       const email = String(body.email ?? "");
       const name = String(body.name ?? "");
-      const phone = String(body.phone ?? "");
       if (!companyId) {
         return jsonResponse({ success: false, error: "Missing company id" }, 400);
       }
-      if (!email.trim() && !phone.trim()) {
+      if (!email.trim() || !name.trim()) {
         return jsonResponse(
-          { success: false, error: "Email or phone is required to check for an existing profile" },
+          { success: false, error: "Name and email are required to check for an existing profile" },
           400,
         );
       }
-      const rows = await findForInductionInternal(supabase, companyId, email, name, phone);
+      const rows = await findForInductionInternal(supabase, companyId, email, name);
       return jsonResponse({ success: true, data: rows, version: VERSION });
     }
 
