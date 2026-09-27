@@ -1,0 +1,57 @@
+/**
+ * Column detection for company CSV import/export.
+ * Approver email columns must not be treated as the company email column.
+ */
+
+export function isApproverEmailHeader(header) {
+  const h = String(header || '').toLowerCase();
+  return (
+    h === 'assigned_manager_email'
+    || h === 'operational_approver_email'
+    || h === 'assigned_hs_email'
+    || h === 'regional_hs_email'
+    || (h.includes('assigned') && h.includes('manager') && h.includes('email'))
+    || (h.includes('operational') && h.includes('approver') && h.includes('email'))
+    || (h.includes('assigned') && (h.includes('hs') || h.includes('h&s')) && h.includes('email'))
+    || (h.includes('regional') && (h.includes('hs') || h.includes('h&s')) && h.includes('email'))
+  );
+}
+
+export function findCompanyEmailColumnIndex(headerValues) {
+  const headers = (headerValues || []).map((value) => String(value || '').toLowerCase());
+
+  const explicitIdx = headers.findIndex((header) => (
+    header === 'email'
+    || header === 'company_email'
+    || header === 'company email'
+  ));
+  if (explicitIdx >= 0) {
+    return explicitIdx;
+  }
+
+  return headers.findIndex((header) => (
+    header.includes('email')
+    && !header.includes('contact')
+    && !isApproverEmailHeader(header)
+  ));
+}
+
+export function findAssignedManagerEmailColumnIndex(headerValues) {
+  const headers = (headerValues || []).map((value) => String(value || '').toLowerCase());
+  return headers.findIndex((header) => (
+    header === 'assigned_manager_email'
+    || header === 'operational_approver_email'
+    || (header.includes('assigned') && header.includes('manager') && header.includes('email'))
+    || (header.includes('operational') && header.includes('approver') && header.includes('email'))
+  ));
+}
+
+export function findAssignedHsEmailColumnIndex(headerValues) {
+  const headers = (headerValues || []).map((value) => String(value || '').toLowerCase());
+  return headers.findIndex((header) => (
+    header === 'assigned_hs_email'
+    || header === 'regional_hs_email'
+    || (header.includes('assigned') && (header.includes('hs') || header.includes('h&s')) && header.includes('email'))
+    || (header.includes('regional') && (header.includes('hs') || header.includes('h&s')) && header.includes('email'))
+  ));
+}

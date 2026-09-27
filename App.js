@@ -76,6 +76,11 @@ import {
   getDefaultAccreditationDeadline,
   resolveAccreditationDisplayStatus,
 } from './src/utils/accreditation';
+import {
+  findAssignedHsEmailColumnIndex,
+  findAssignedManagerEmailColumnIndex,
+  findCompanyEmailColumnIndex,
+} from './src/utils/companyCsvImport';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
 import JseaAdminScreen from './src/screens/JseaAdminScreen';
 import JseaEditorScreen from './src/screens/JseaEditorScreen';
@@ -10649,7 +10654,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
 
             const nameIdx = headerValues.findIndex(h => h.includes('name'));
-            const emailIdx = headerValues.findIndex(h => h.includes('email') && !h.includes('contact'));
+            const emailIdx = findCompanyEmailColumnIndex(headerValues);
             const businessUnitIdx = headerValues.findIndex(h => h.includes('business'));
             const contactNameIdx = headerValues.findIndex(h => h.includes('contact') && h.includes('name') && !h.includes('surname'));
             const contactSurnameIdx = headerValues.findIndex(h => h.includes('contact') && h.includes('surname'));
@@ -10664,18 +10669,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const address1Idx = headerValues.findIndex(h => h.includes('address') && h.includes('1'));
             const addressCityIdx = headerValues.findIndex(h => h.includes('address') && h.includes('city'));
             const addressPostcodeIdx = headerValues.findIndex(h => h.includes('address') && h.includes('postcode'));
-            const assignedManagerEmailIdx = headerValues.findIndex(h =>
-              h === 'assigned_manager_email'
-              || h === 'operational_approver_email'
-              || (h.includes('assigned') && h.includes('manager') && h.includes('email'))
-              || (h.includes('operational') && h.includes('approver') && h.includes('email'))
-            );
-            const assignedHsEmailIdx = headerValues.findIndex(h =>
-              h === 'assigned_hs_email'
-              || h === 'regional_hs_email'
-              || (h.includes('assigned') && (h.includes('hs') || h.includes('h&s')) && h.includes('email'))
-              || (h.includes('regional') && (h.includes('hs') || h.includes('h&s')) && h.includes('email'))
-            );
+            const assignedManagerEmailIdx = findAssignedManagerEmailColumnIndex(headerValues);
+            const assignedHsEmailIdx = findAssignedHsEmailColumnIndex(headerValues);
 
             let adminsForImport = companyAdminUsers || [];
             if (!adminsForImport.length) {
@@ -10786,7 +10781,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 if (existingCompany) {
                   // Update existing company
                   const updateData = {};
-                  if (email) updateData.email = email;
+                  if (emailIdx >= 0 && email) updateData.email = email;
                   if (businessUnitIds.length > 0) updateData.business_unit_ids = businessUnitIds;
                   if (contactName) updateData.contact_name = contactName;
                   if (contactSurname) updateData.contact_surname = contactSurname;
