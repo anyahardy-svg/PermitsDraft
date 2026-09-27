@@ -40,6 +40,7 @@ export function findAssignedManagerEmailColumnIndex(headerValues) {
   const headers = (headerValues || []).map((value) => String(value || '').toLowerCase());
   return headers.findIndex((header) => (
     header === 'assigned_manager_email'
+    || header === 'assigned_manager-email'
     || header === 'operational_approver_email'
     || (header.includes('assigned') && header.includes('manager') && header.includes('email'))
     || (header.includes('operational') && header.includes('approver') && header.includes('email'))
@@ -50,8 +51,11 @@ export function findAssignedHsEmailColumnIndex(headerValues) {
   const headers = (headerValues || []).map((value) => String(value || '').toLowerCase());
   return headers.findIndex((header) => (
     header === 'assigned_hs_email'
+    || header === 'assigned_hs-email'
+    || header === 'assigned_hs_manager'
     || header === 'regional_hs_email'
     || (header.includes('assigned') && (header.includes('hs') || header.includes('h&s')) && header.includes('email'))
+    || (header.includes('assigned') && (header.includes('hs') || header.includes('h&s')) && header.includes('manager'))
     || (header.includes('regional') && (header.includes('hs') || header.includes('h&s')) && header.includes('email'))
   ));
 }

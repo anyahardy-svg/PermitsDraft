@@ -47,4 +47,18 @@ assert.strictEqual(findAssignedHsEmailColumnIndex(approverOnlyHeaders), 2);
 const reorderedHeaders = ['name', 'assigned_manager_email', 'email', 'assigned_hs_email'];
 assert.strictEqual(findCompanyEmailColumnIndex(reorderedHeaders), 2);
 
+const userHeaders = [
+  'name',
+  'email',
+  'business_units',
+  'contact_name',
+  'contact_surname',
+  'contact_email',
+  'contact_phone',
+  'assigned_manager-email',
+  'assigned_hs_manager',
+];
+assert.strictEqual(findAssignedManagerEmailColumnIndex(userHeaders), 7);
+assert.strictEqual(findAssignedHsEmailColumnIndex(userHeaders), 8);
+
 console.log('companyCsvImport tests passed');
