@@ -1560,8 +1560,11 @@ export default function ContractorInductionScreen({
         {renderHeader('Contractor Induction', standalone ? onBackToSelection || onCancel : onCancel, standalone ? '←' : '✕')}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, justifyContent: 'center' }}>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 24 }}>
-            Are you a returning contractor or new?
+          <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 8 }}>
+            Which situation applies to you?
+          </Text>
+          <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 24, lineHeight: 20 }}>
+            Choose the option that best matches you. Picking the wrong one can create a duplicate profile.
           </Text>
 
           <TouchableOpacity 
@@ -1585,8 +1588,10 @@ export default function ContractorInductionScreen({
             }}
             style={{ backgroundColor: '#E0E7FF', borderRadius: 12, padding: 20, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#3B82F6' }}
           >
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#3B82F6', marginBottom: 8 }}>+ New Contractor</Text>
-            <Text style={{ fontSize: 13, color: '#6B7280' }}>I'm completing my induction for the first time</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#3B82F6', marginBottom: 6, lineHeight: 22 }}>
+              I have never been inducted to a site before
+            </Text>
+            <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '600' }}>New contractor</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -1603,8 +1608,10 @@ export default function ContractorInductionScreen({
             }}
             style={{ backgroundColor: '#F0FDF4', borderRadius: 12, padding: 20, borderLeftWidth: 4, borderLeftColor: '#10B981' }}
           >
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#10B981', marginBottom: 8 }}>↩️ Returning Contractor</Text>
-            <Text style={{ fontSize: 13, color: '#6B7280' }}>I need to redo my induction</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#10B981', marginBottom: 6, lineHeight: 22 }}>
+              My induction expired and I need to redo it
+            </Text>
+            <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '600' }}>Returning contractor</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -1617,8 +1624,10 @@ export default function ContractorInductionScreen({
             }}
             style={{ backgroundColor: '#FEF3C7', borderRadius: 12, padding: 20, marginTop: 16, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}
           >
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#D97706', marginBottom: 8 }}>⏸️ Resume Saved Induction</Text>
-            <Text style={{ fontSize: 13, color: '#6B7280' }}>Complete my induction in progress</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#D97706', marginBottom: 6, lineHeight: 22 }}>
+              I started an induction, but didn&apos;t finish it yet
+            </Text>
+            <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '600' }}>Resume saved induction</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -1637,8 +1646,10 @@ export default function ContractorInductionScreen({
             }}
             style={{ backgroundColor: '#F3E8FF', borderRadius: 12, padding: 20, marginTop: 16, borderLeftWidth: 4, borderLeftColor: '#A855F7' }}
           >
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#A855F7', marginBottom: 8 }}>📚 Add Parts to Existing Induction</Text>
-            <Text style={{ fontSize: 13, color: '#6B7280' }}>Add missing induction sections to my profile</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#A855F7', marginBottom: 6, lineHeight: 22 }}>
+              I have a valid induction, but need to add a site or specific part (e.g. Hot Work)
+            </Text>
+            <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '600' }}>Add parts to existing induction</Text>
           </TouchableOpacity>
 
           {showContractorDropdown && (
