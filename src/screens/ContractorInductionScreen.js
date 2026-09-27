@@ -51,7 +51,7 @@ import {
 } from '../utils/inductionAnswerValidation';
 import { sanitizePhoneInput, validateContractorPhone, normalizePhoneForSave } from '../utils/contractorPhone';
 import { validateContractorFullName } from '../utils/contractorName';
-import { promptUserConfirm, showUserAlert } from '../utils/showUserAlert';
+import { showUserAlert } from '../utils/showUserAlert';
 
 /**
  * ContractorInductionScreen - Simplified for single inductions table
@@ -940,6 +940,28 @@ export default function ContractorInductionScreen({
     });
   };
 
+  const resetToInductionTypeChooser = () => {
+    setIsNewContractor(null);
+    setStep('info');
+    setShowCompanyDropdown(false);
+    setCompanySearchText('');
+    setValidationErrors({});
+    setLoadSavedAnswersOnOpen(false);
+    setContractorInfo({
+      id: '',
+      name: '',
+      email: '',
+      phone: '',
+      companyId: '',
+      selectedBusinessUnitIds: [],
+      selectedSiteIds: [],
+      service_ids: [],
+    });
+    if (onBackToSelection) {
+      onBackToSelection();
+    }
+  };
+
   const handleLoadIncompleteInductions = async () => {
     setResumeFilterName('');
     setIsNewContractor('choose-contractor-for-resume');
@@ -1274,28 +1296,12 @@ export default function ContractorInductionScreen({
 
         if (duplicate?.id) {
           setLoading(false);
-          const useExisting = await promptUserConfirm(
+          showUserAlert(
             'Profile already exists',
-            `We already have "${duplicate.name}" at this company with the same name and email. You do not need a second profile.\n\nIf you were mid-induction, go back and choose "Resume saved induction" instead.\n\nOtherwise you can continue here as that person — next you will pick services, then your induction modules (same as a new signup, but on your existing record).`,
-            {
-              cancelText: 'Go back and change path',
-              confirmText: 'Continue as this person (services → inductions)',
-            },
+            `We already have "${duplicate.name}" at this company with the same name and email. You cannot create another profile here.\n\n• Still doing an induction? Choose "Resume saved induction"\n• Induction expired or need a full redo? Choose "Returning contractor"\n• Valid induction but need Hot Work or another site? Choose "Add parts"`,
+            [{ text: 'Back to induction options', onPress: resetToInductionTypeChooser }],
           );
-          if (!useExisting) {
-            return;
-          }
-          setLoading(true);
-          contractorId = duplicate.id;
-          setIsNewContractor(false);
-          setContractorInfo((prev) => ({
-            ...prev,
-            id: duplicate.id,
-            name: duplicate.name || formattedName,
-            email: duplicate.email || prev.email,
-            phone: duplicate.phone || prev.phone,
-          }));
-          console.log('♻️ Using existing contractor (duplicate guard):', contractorId);
+          return;
         } else {
           console.log('📝 Creating new contractor...');
           const newContractor = await createContractor({
