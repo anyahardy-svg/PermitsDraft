@@ -32,6 +32,7 @@ import {
   listContractors,
   listContractorsForKiosk,
   createContractor,
+  findExistingContractorForInduction,
   getContractor,
   updateContractor,
 } from '../api/contractors';
@@ -1258,33 +1259,72 @@ export default function ContractorInductionScreen({
       console.log('🚀 Continuing to service selection for BUs:', selectedBUs);
       setLoading(true);
       
-      // If new contractor, create them first
       let contractorId = contractorInfo.id;
+      let justCreatedNewContractor = false;
+      const formattedName = formatNameToTitleCase(contractorInfo.name);
+      const phoneToSave = normalizePhoneForSave(contractorInfo.phone);
+
       if (isNewContractor && !contractorId) {
-        console.log('📝 Creating new contractor...');
-        const formattedName = formatNameToTitleCase(contractorInfo.name);
-        const phoneToSave = normalizePhoneForSave(contractorInfo.phone);
-        const newContractor = await createContractor({
+        const duplicate = await findExistingContractorForInduction({
+          companyId: contractorInfo.companyId,
+          email: contractorInfo.email,
+          name: formattedName,
+          phone: phoneToSave,
+        });
+
+        if (duplicate?.id) {
+          setLoading(false);
+          const useExisting = await new Promise((resolve) => {
+            Alert.alert(
+              'Profile already exists',
+              `"${duplicate.name}" is already registered for this company with the same email or phone number. Creating another profile would be a duplicate.\n\nUse "Resume saved induction" or "Returning contractor" if that is you, or continue with your existing profile below.`,
+              [
+                { text: 'Go back', style: 'cancel', onPress: () => resolve(false) },
+                { text: 'Use existing profile', onPress: () => resolve(true) },
+              ],
+            );
+          });
+          if (!useExisting) {
+            return;
+          }
+          setLoading(true);
+          contractorId = duplicate.id;
+          setIsNewContractor(false);
+          setContractorInfo((prev) => ({
+            ...prev,
+            id: duplicate.id,
+            name: duplicate.name || formattedName,
+            email: duplicate.email || prev.email,
+            phone: duplicate.phone || prev.phone,
+          }));
+          console.log('♻️ Using existing contractor (duplicate guard):', contractorId);
+        } else {
+          console.log('📝 Creating new contractor...');
+          const newContractor = await createContractor({
+            name: formattedName,
+            email: contractorInfo.email,
+            phone: phoneToSave,
+            company_id: contractorInfo.companyId,
+            business_unit_ids: selectedBUs,
+            site_ids: selectedSites,
+            service_ids: [],
+          });
+          if (!newContractor?.id) {
+            throw new Error('Failed to create contractor record');
+          }
+          contractorId = newContractor.id;
+          justCreatedNewContractor = true;
+          setContractorInfo((prev) => ({ ...prev, id: contractorId, name: formattedName }));
+          console.log('✅ Contractor created:', contractorId);
+        }
+      }
+
+      if (contractorId && !justCreatedNewContractor) {
+        console.log('♻️ Updating existing contractor:', contractorId);
+        await updateContractor(contractorId, {
           name: formattedName,
           email: contractorInfo.email,
           phone: phoneToSave,
-          company_id: contractorInfo.companyId,
-          business_unit_ids: selectedBUs,
-          site_ids: selectedSites,
-          service_ids: [],
-        });
-        if (!newContractor?.id) {
-          throw new Error('Failed to create contractor record');
-        }
-        contractorId = newContractor.id;
-        setContractorInfo({ ...contractorInfo, id: contractorId, name: formattedName });
-        console.log('✅ Contractor created:', contractorId);
-      } else {
-        console.log('♻️ Using existing contractor:', contractorId);
-        await updateContractor(contractorId, {
-          name: formatNameToTitleCase(contractorInfo.name),
-          email: contractorInfo.email,
-          phone: normalizePhoneForSave(contractorInfo.phone),
           company_id: contractorInfo.companyId,
           business_unit_ids: selectedBUs,
           site_ids: selectedSites,
@@ -1625,7 +1665,7 @@ export default function ContractorInductionScreen({
             style={{ backgroundColor: '#FEF3C7', borderRadius: 12, padding: 20, marginTop: 16, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}
           >
             <Text style={{ fontSize: 16, fontWeight: '700', color: '#D97706', marginBottom: 6, lineHeight: 22 }}>
-              I started an induction, but didn&apos;t finish it yet
+              I started an induction, but didn't finish it yet
             </Text>
             <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '600' }}>Resume saved induction</Text>
           </TouchableOpacity>
