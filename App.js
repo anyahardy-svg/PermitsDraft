@@ -3469,9 +3469,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Accreditation Invitation States
   const [showInvitationModal, setShowInvitationModal] = useState(false);
   const [selectedCompanyForInvitation, setSelectedCompanyForInvitation] = useState(null);
-  const [invitationForm, setInvitationForm] = useState({ email: '', deadline: '' });
+  const [invitationForm, setInvitationForm] = useState({
+    email: '',
+    deadline: '',
+    contractor_type: 'D',
+    assignedManagerId: '',
+    assignedHsPersonId: '',
+  });
   const [sendingInvitation, setSendingInvitation] = useState(false);
-  
+
+  const closeAccreditationInvitationModal = () => {
+    setShowInvitationModal(false);
+    setSelectedCompanyForInvitation(null);
+  };
+
   // New Company Invitation States
   const [showNewCompanyInvitationModal, setShowNewCompanyInvitationModal] = useState(false);
   const [newCompanyInvitationForm, setNewCompanyInvitationForm] = useState({
@@ -10493,6 +10504,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     };
 
     const handleDeleteCompany = (id) => {
+      if (showInvitationModal || showNewCompanyInvitationModal) {
+        return;
+      }
       if (window.confirm('Delete Company?\n\nAre you sure? This action cannot be undone.')) {
         (async () => {
           try {
@@ -11515,11 +11529,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   // Try both snake_case and camelCase for email field
                                   const contactEmail = company.contact_email || company.contactEmail || '';
                                   
-                                  setInvitationForm({ 
-                                    email: contactEmail, 
-                                    deadline: company.accreditation_deadline 
+                                  setInvitationForm({
+                                    email: contactEmail,
+                                    deadline: company.accreditation_deadline
                                       ? new Date(company.accreditation_deadline).toLocaleDateString('en-NZ', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                                      : getDefaultAccreditationDeadline()
+                                      : getDefaultAccreditationDeadline(),
+                                    contractor_type: company.contractor_type || company.contractorType || 'D',
+                                    assignedManagerId: company.assigned_manager_id || company.assignedManagerId || '',
+                                    assignedHsPersonId: company.assigned_hs_person_id || company.assignedHsPersonId || '',
                                   });
                                   setShowInvitationModal(true);
                                 }}
@@ -12115,10 +12132,27 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             visible={showInvitationModal}
             transparent={true}
             animationType="fade"
-            onRequestClose={() => setShowInvitationModal(false)}
+            onRequestClose={closeAccreditationInvitationModal}
           >
-            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-              <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxWidth: 500 }}>
+            <TouchableOpacity
+              activeOpacity={1}
+              style={{
+                flex: 1,
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: 20,
+                zIndex: 99999,
+              }}
+              onPress={closeAccreditationInvitationModal}
+            >
+              <TouchableOpacity
+                activeOpacity={1}
+                style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxWidth: 500 }}
+                onPress={(e) => {
+                  e?.stopPropagation?.();
+                }}
+              >
                 <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>
                   Send Accreditation Invitation
                 </Text>
@@ -12137,6 +12171,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   editable={!sendingInvitation}
                 />
 
+                {/* Contractor Type Field */}
+                <Text style={styles.label}>Contractor Type</Text>
+                <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
+                  <select
+                    style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
+                    value={invitationForm.contractor_type || 'D'}
+                    onChange={(e) => setInvitationForm({ ...invitationForm, contractor_type: e.target.value })}
+                    disabled={sendingInvitation}
+                  >
+                    <option value="A">A - Major Work</option>
+                    <option value="B">B - High Risk</option>
+                    <option value="C">C - Medium Risk</option>
+                    <option value="D">D - Low Risk</option>
+                  </select>
+                </View>
+
                 {/* Deadline Field */}
                 <Text style={styles.label}>Accreditation Deadline</Text>
                 <TextInput
@@ -12147,18 +12197,56 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   editable={!sendingInvitation}
                 />
 
+                <Text style={styles.label}>Assigned Manager (optional)</Text>
+                <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
+                  <select
+                    style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
+                    value={invitationForm.assignedManagerId || ''}
+                    onChange={(e) => setInvitationForm({ ...invitationForm, assignedManagerId: e.target.value })}
+                    disabled={sendingInvitation}
+                  >
+                    <option value="">Select manager...</option>
+                    {companyAdminUsers.map((admin) => (
+                      <option key={`resend-invite-manager-${admin.id}`} value={admin.id}>
+                        {admin.name} ({admin.email}) - {admin.role}
+                      </option>
+                    ))}
+                  </select>
+                </View>
+
+                <Text style={styles.label}>Assigned H&amp;S Person (optional)</Text>
+                <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
+                  <select
+                    style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
+                    value={invitationForm.assignedHsPersonId || ''}
+                    onChange={(e) => setInvitationForm({ ...invitationForm, assignedHsPersonId: e.target.value })}
+                    disabled={sendingInvitation}
+                  >
+                    <option value="">Select H&amp;S person...</option>
+                    {companyAdminUsers.map((admin) => (
+                      <option key={`resend-invite-hs-${admin.id}`} value={admin.id}>
+                        {admin.name} ({admin.email}) - {admin.role}
+                      </option>
+                    ))}
+                  </select>
+                </View>
+
                 {/* Action Buttons */}
                 <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
                   <TouchableOpacity
                     style={[styles.addButton, { flex: 1, backgroundColor: '#6B7280' }]}
-                    onPress={() => setShowInvitationModal(false)}
+                    onPress={(e) => {
+                      e?.stopPropagation?.();
+                      closeAccreditationInvitationModal();
+                    }}
                     disabled={sendingInvitation}
                   >
                     <Text style={styles.addButtonText}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.addButton, { flex: 1, backgroundColor: sendingInvitation ? '#9CA3AF' : '#8B5CF6' }]}
-                    onPress={async () => {
+                    onPress={async (e) => {
+                      e?.stopPropagation?.();
                       if (!invitationForm.email.trim()) {
                         Alert.alert('Missing Info', 'Please enter an email address.');
                         return;
@@ -12176,6 +12264,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           }
                         }
 
+                        await updateCompany(selectedCompanyForInvitation.id, {
+                          contractor_type: invitationForm.contractor_type || 'D',
+                          contact_email: invitationForm.email.trim(),
+                          email: invitationForm.email.trim(),
+                          assignedManagerId: invitationForm.assignedManagerId || null,
+                          assignedHsPersonId: invitationForm.assignedHsPersonId || null,
+                        });
+
                         const result = await sendAccreditationInvitation(
                           invitationForm.email,
                           selectedCompanyForInvitation.name,
@@ -12187,9 +12283,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
                         if (result.success) {
                           Alert.alert('Success', 'Accreditation invitation sent successfully!');
-                          setShowInvitationModal(false);
-                          setInvitationForm({ email: '', deadline: '' });
-                          
+                          closeAccreditationInvitationModal();
+                          setInvitationForm({
+                            email: '',
+                            deadline: '',
+                            contractor_type: 'D',
+                            assignedManagerId: '',
+                            assignedHsPersonId: '',
+                          });
+
                           // Refresh companies to show updated invitation status
                           const freshCompanies = await listCompanies();
                           setCompanies(freshCompanies);
@@ -12209,8 +12311,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     </Text>
                   </TouchableOpacity>
                 </View>
-              </View>
-            </View>
+              </TouchableOpacity>
+            </TouchableOpacity>
           </Modal>
         )}
 
