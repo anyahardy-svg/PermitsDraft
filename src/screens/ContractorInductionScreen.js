@@ -51,6 +51,7 @@ import {
 } from '../utils/inductionAnswerValidation';
 import { sanitizePhoneInput, validateContractorPhone, normalizePhoneForSave } from '../utils/contractorPhone';
 import { validateContractorFullName } from '../utils/contractorName';
+import { promptUserConfirm, showUserAlert } from '../utils/showUserAlert';
 
 /**
  * ContractorInductionScreen - Simplified for single inductions table
@@ -1274,16 +1275,11 @@ export default function ContractorInductionScreen({
 
         if (duplicate?.id) {
           setLoading(false);
-          const useExisting = await new Promise((resolve) => {
-            Alert.alert(
-              'Profile already exists',
-              `"${duplicate.name}" is already registered for this company with the same email or phone number. Creating another profile would be a duplicate.\n\nUse "Resume saved induction" or "Returning contractor" if that is you, or continue with your existing profile below.`,
-              [
-                { text: 'Go back', style: 'cancel', onPress: () => resolve(false) },
-                { text: 'Use existing profile', onPress: () => resolve(true) },
-              ],
-            );
-          });
+          const useExisting = await promptUserConfirm(
+            'Profile already exists',
+            `"${duplicate.name}" is already registered for this company with the same email or phone number. Creating another profile would be a duplicate.\n\nUse "Resume saved induction" or "Returning contractor" if that is you, or continue with your existing profile.`,
+            { cancelText: 'Go back', confirmText: 'Use existing profile' },
+          );
           if (!useExisting) {
             return;
           }
@@ -1353,7 +1349,7 @@ export default function ContractorInductionScreen({
       console.error('❌ ERROR in handleInfoContinue:', err);
       setLoading(false);
       setServicesLoading(false);
-      Alert.alert('Error', 'Failed to continue: ' + err.message);
+      showUserAlert('Error', 'Failed to continue: ' + err.message);
     }
   };
 

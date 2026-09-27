@@ -32,3 +32,16 @@ export function showUserAlert(title, message, buttons) {
 
   Alert.alert(title, message);
 }
+
+/**
+ * Two-choice prompt that resolves on web and native (avoid Alert.alert + async Promise on web).
+ * @returns {Promise<boolean>} true when the user picks the confirm (non-cancel) action
+ */
+export function promptUserConfirm(title, message, { confirmText = 'OK', cancelText = 'Cancel' } = {}) {
+  return new Promise((resolve) => {
+    showUserAlert(title, message, [
+      { text: cancelText, style: 'cancel', onPress: () => resolve(false) },
+      { text: confirmText, onPress: () => resolve(true) },
+    ]);
+  });
+}
