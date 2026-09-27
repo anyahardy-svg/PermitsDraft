@@ -1270,15 +1270,17 @@ export default function ContractorInductionScreen({
           companyId: contractorInfo.companyId,
           email: contractorInfo.email,
           name: formattedName,
-          phone: phoneToSave,
         });
 
         if (duplicate?.id) {
           setLoading(false);
           const useExisting = await promptUserConfirm(
             'Profile already exists',
-            `"${duplicate.name}" is already registered for this company with the same email or phone number. Creating another profile would be a duplicate.\n\nUse "Resume saved induction" or "Returning contractor" if that is you, or continue with your existing profile.`,
-            { cancelText: 'Go back', confirmText: 'Use existing profile' },
+            `We already have "${duplicate.name}" at this company with the same name and email. You do not need a second profile.\n\nIf you were mid-induction, go back and choose "Resume saved induction" instead.\n\nOtherwise you can continue here as that person — next you will pick services, then your induction modules (same as a new signup, but on your existing record).`,
+            {
+              cancelText: 'Go back and change path',
+              confirmText: 'Continue as this person (services → inductions)',
+            },
           );
           if (!useExisting) {
             return;
