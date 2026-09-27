@@ -3477,7 +3477,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     assignedHsPersonId: '',
   });
   const [sendingInvitation, setSendingInvitation] = useState(false);
-  
+
+  const closeAccreditationInvitationModal = () => {
+    setShowInvitationModal(false);
+    setSelectedCompanyForInvitation(null);
+  };
+
   // New Company Invitation States
   const [showNewCompanyInvitationModal, setShowNewCompanyInvitationModal] = useState(false);
   const [newCompanyInvitationForm, setNewCompanyInvitationForm] = useState({
@@ -10499,6 +10504,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     };
 
     const handleDeleteCompany = (id) => {
+      if (showInvitationModal || showNewCompanyInvitationModal) {
+        return;
+      }
       if (window.confirm('Delete Company?\n\nAre you sure? This action cannot be undone.')) {
         (async () => {
           try {
@@ -12124,10 +12132,27 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             visible={showInvitationModal}
             transparent={true}
             animationType="fade"
-            onRequestClose={() => setShowInvitationModal(false)}
+            onRequestClose={closeAccreditationInvitationModal}
           >
-            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-              <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxWidth: 500 }}>
+            <TouchableOpacity
+              activeOpacity={1}
+              style={{
+                flex: 1,
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: 20,
+                zIndex: 99999,
+              }}
+              onPress={closeAccreditationInvitationModal}
+            >
+              <TouchableOpacity
+                activeOpacity={1}
+                style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, width: '100%', maxWidth: 500 }}
+                onPress={(e) => {
+                  e?.stopPropagation?.();
+                }}
+              >
                 <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>
                   Send Accreditation Invitation
                 </Text>
@@ -12210,14 +12235,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
                   <TouchableOpacity
                     style={[styles.addButton, { flex: 1, backgroundColor: '#6B7280' }]}
-                    onPress={() => setShowInvitationModal(false)}
+                    onPress={(e) => {
+                      e?.stopPropagation?.();
+                      closeAccreditationInvitationModal();
+                    }}
                     disabled={sendingInvitation}
                   >
                     <Text style={styles.addButtonText}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.addButton, { flex: 1, backgroundColor: sendingInvitation ? '#9CA3AF' : '#8B5CF6' }]}
-                    onPress={async () => {
+                    onPress={async (e) => {
+                      e?.stopPropagation?.();
                       if (!invitationForm.email.trim()) {
                         Alert.alert('Missing Info', 'Please enter an email address.');
                         return;
@@ -12254,7 +12283,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
                         if (result.success) {
                           Alert.alert('Success', 'Accreditation invitation sent successfully!');
-                          setShowInvitationModal(false);
+                          closeAccreditationInvitationModal();
                           setInvitationForm({
                             email: '',
                             deadline: '',
@@ -12282,8 +12311,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     </Text>
                   </TouchableOpacity>
                 </View>
-              </View>
-            </View>
+              </TouchableOpacity>
+            </TouchableOpacity>
           </Modal>
         )}
 
