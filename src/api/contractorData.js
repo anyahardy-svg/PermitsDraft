@@ -115,6 +115,24 @@ export async function contractorDataListForKiosk(siteId) {
   return result.data || [];
 }
 
+export async function contractorDataFindForInduction({ companyId, email, name, phone }) {
+  const { data: result, error: invokeError } = await invokeContractorData({
+    action: 'findForInduction',
+    companyId,
+    email: email || '',
+    name: name || '',
+    phone: phone || '',
+  });
+
+  if (invokeError) {
+    throw new Error(invokeError.message || 'Failed to check for existing contractor');
+  }
+  if (!result?.success) {
+    throw new Error(result?.error || 'Failed to check for existing contractor');
+  }
+  return result.data || [];
+}
+
 export async function contractorDataSearchForKiosk(siteId, searchText, limit = 40) {
   const { data: result, error: invokeError } = await invokeContractorData({
     action: 'searchForKiosk',
