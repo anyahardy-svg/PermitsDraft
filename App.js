@@ -10796,7 +10796,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 if (existingCompany) {
                   // Update existing company
                   const updateData = {};
-                  if (emailIdx >= 0 && email) updateData.email = email;
+                  if (emailIdx >= 0) {
+                    updateData.email = email ? email : null;
+                  }
                   if (businessUnitIds.length > 0) updateData.business_unit_ids = businessUnitIds;
                   if (contactName) updateData.contact_name = contactName;
                   if (contactSurname) updateData.contact_surname = contactSurname;
@@ -10822,7 +10824,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 } else {
                   // Create new company
                   const createData = { name: companyName };
-                  if (email) createData.email = email;
+                  if (emailIdx >= 0 && email) createData.email = email;
                   if (contactName) createData.contact_name = contactName;
                   if (contactSurname) createData.contact_surname = contactSurname;
                   if (contactEmail) createData.contact_email = contactEmail;
