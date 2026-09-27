@@ -14,7 +14,8 @@ import {
   Dimensions,
   Image,
   Picker,
-  ActivityIndicator
+  ActivityIndicator,
+  Platform
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
@@ -11332,10 +11333,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   <Text style={{ color: '#6B7280', marginBottom: 8 }}>
                     Showing {startIndex + 1}-{Math.min(startIndex + paginatedCompanies.length, filteredCompanies.length)} of {filteredCompanies.length} matching companies
                   </Text>
-                  <ScrollView horizontal style={{ borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: 'white' }}>
+                  <View style={{ borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: 'white', overflow: 'hidden' }}>
+                  <ScrollView horizontal nestedScrollEnabled>
                     <View>
-                      {/* Table Header */}
-                      <View style={{ flexDirection: 'row', backgroundColor: '#3B82F6', borderBottomWidth: 2, borderBottomColor: '#2563EB' }}>
+                      {/* Table Header — stays visible while scrolling company rows below */}
+                      <View style={{
+                        flexDirection: 'row',
+                        backgroundColor: '#3B82F6',
+                        borderBottomWidth: 2,
+                        borderBottomColor: '#2563EB',
+                        ...(Platform.OS === 'web' ? { position: 'sticky', top: 0, zIndex: 2 } : null),
+                      }}>
                         <Text style={{ width: 250, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company Name</Text>
                         <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Type</Text>
                         <Text style={{ width: 300, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Business Units</Text>
@@ -11348,7 +11356,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         <Text style={{ width: 160, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }}>Actions</Text>
                       </View>
 
-                      {/* Table Rows */}
+                      {/* Table Rows — scroll inside the table so column headers stay in view */}
+                      <ScrollView
+                        nestedScrollEnabled
+                        style={{
+                          maxHeight: Platform.OS === 'web'
+                            ? Math.min(Dimensions.get('window').height * 0.7, 720)
+                            : 520,
+                        }}
+                        showsVerticalScrollIndicator
+                      >
                       {paginatedCompanies.map((company, index) => {
                         const companyBUs = businessUnits.filter(bu => 
                           (company.business_unit_ids || []).includes(bu.id)
@@ -11582,8 +11599,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           </View>
                         );
                       })}
+                      </ScrollView>
                     </View>
                   </ScrollView>
+                  </View>
                   {totalPages > 1 && (
                     <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 12 }}>
                       <TouchableOpacity
