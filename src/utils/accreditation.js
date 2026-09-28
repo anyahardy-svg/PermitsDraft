@@ -1,7 +1,26 @@
-export const DEFAULT_ACCREDITATION_DEADLINE = '18/06/2026';
+export const DEFAULT_ACCREDITATION_DEADLINE_DAYS = 28;
 
-export function getDefaultAccreditationDeadline() {
-  return DEFAULT_ACCREDITATION_DEADLINE;
+function startOfLocalDay(date = new Date()) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+export function addDaysToDate(date, days) {
+  const d = startOfLocalDay(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+export function formatAccreditationDeadlineDdMmYyyy(date) {
+  return date.toLocaleDateString('en-NZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+/** Default submit-form deadline shown when sending or resending invitation emails (today + 28 days). */
+export function getDefaultAccreditationDeadline(fromDate = new Date()) {
+  return formatAccreditationDeadlineDdMmYyyy(
+    addDaysToDate(fromDate, DEFAULT_ACCREDITATION_DEADLINE_DAYS),
+  );
 }
 
 const EXPLICIT_ACCREDITATION_STATUSES = new Set([

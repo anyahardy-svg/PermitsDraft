@@ -11545,9 +11545,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   
                                   setInvitationForm({
                                     email: contactEmail,
-                                    deadline: company.accreditation_deadline
-                                      ? new Date(company.accreditation_deadline).toLocaleDateString('en-NZ', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                                      : getDefaultAccreditationDeadline(),
+                                    deadline: getDefaultAccreditationDeadline(),
                                     contractor_type: company.contractor_type || company.contractorType || 'D',
                                     assignedManagerId: company.assigned_manager_id || company.assignedManagerId || '',
                                     assignedHsPersonId: company.assigned_hs_person_id || company.assignedHsPersonId || '',

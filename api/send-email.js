@@ -20,6 +20,10 @@ const {
 } = require('./lib/emailTemplateHelpers');
 const { buildNextReminderAt } = require('./lib/reminderScheduler');
 const {
+  formatAccreditationDeadlineEmail,
+  resolveAccreditationInvitationDeadline,
+} = require('./lib/accreditationDeadline');
+const {
   DEFAULT_FROM_EMAIL,
   DEFAULT_FROM_NAME,
   getResendApiKey,
@@ -201,6 +205,11 @@ export default async function handler(req, res) {
 
     const { toEmail, companyName, deadline, type = 'invitation', adminName, setupUrl, resetUrl, toName, subject, htmlContent, contactName, companyId, supplierId } = req.body;
 
+    const resolvedInvitationDeadline =
+      type === 'invitation' || type === 'supplier-invitation'
+        ? resolveAccreditationInvitationDeadline(deadline)
+        : null;
+
     // Different types require different fields
     if (type === 'invitation') {
       if (!toEmail) {
@@ -311,13 +320,8 @@ export default async function handler(req, res) {
 
       if (dbTemplate) {
         // Use database template
-        const deadlineStr = deadline ? new Date(deadline).toLocaleDateString('en-NZ', { 
-          weekday: 'long', 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        }) : 'As soon as possible';
-        
+        const deadlineStr = formatAccreditationDeadlineEmail(resolvedInvitationDeadline);
+
         const rendered = renderTemplate(
           dbTemplate,
           buildInvitationTemplateVariables({
@@ -334,12 +338,7 @@ export default async function handler(req, res) {
         actualHtmlContent = rendered.content;
       } else {
         // Fall back to hard-coded template
-        const deadlineStr = deadline ? new Date(deadline).toLocaleDateString('en-NZ', { 
-          weekday: 'long', 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        }) : 'As soon as possible';
+        const deadlineStr = formatAccreditationDeadlineEmail(resolvedInvitationDeadline);
 
         actualSubject = needsPasswordSetup 
           ? `${companyName} - Complete Your Company Accreditation`
@@ -434,12 +433,7 @@ export default async function handler(req, res) {
       }
     } else if (type === 'supplier-invitation') {
       const resolvedContactName = (contactName || '').trim() || 'Supplier Contact';
-      const deadlineStr = deadline ? new Date(deadline).toLocaleDateString('en-NZ', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }) : 'As soon as possible';
+      const deadlineStr = formatAccreditationDeadlineEmail(resolvedInvitationDeadline);
 
       let formUrl = null;
       if (supplierId && SUPABASE_URL && (SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY)) {
@@ -526,8 +520,6 @@ export default async function handler(req, res) {
 
     // For invitation emails, update the company record and create user if needed
     if (type === 'invitation') {
-      const { deadline: deadlineParam } = req.body;
-      
       try {
         // Check if we have Supabase credentials
         if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
@@ -535,7 +527,7 @@ export default async function handler(req, res) {
         } else {
           // Update companies table with invitation sent timestamp and deadline
           if (companyId) {
-            const deadlineDate = deadlineParam ? new Date(deadlineParam).toISOString().split('T')[0] : null;
+            const deadlineDate = resolvedInvitationDeadline.toISOString().split('T')[0];
             const updateUrl = `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`;
             const updateResponse = await fetch(updateUrl, {
               method: 'PATCH',
@@ -630,13 +622,11 @@ export default async function handler(req, res) {
     }
 
     if (type === 'supplier-invitation') {
-      const { deadline: deadlineParam } = req.body;
-
       try {
         if (!SUPABASE_URL || !(SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY)) {
           console.error('❌ Supabase credentials not available for supplier DB update');
         } else if (supplierId) {
-          const deadlineDate = deadlineParam ? new Date(deadlineParam).toISOString().split('T')[0] : null;
+          const deadlineDate = resolvedInvitationDeadline.toISOString().split('T')[0];
           const updateUrl = `${SUPABASE_URL}/rest/v1/suppliers?id=eq.${supplierId}`;
           const updateResponse = await fetch(updateUrl, {
             method: 'PATCH',
