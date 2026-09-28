@@ -80,11 +80,12 @@ import {
 import {
   findAssignedHsEmailColumnIndex,
   findAssignedManagerEmailColumnIndex,
-  findCompanyEmailColumnIndex,
   findCompanyNameColumnIndex,
+  findExplicitCompanyEmailColumnIndex,
   isCompanyEmailOnlyCompanyImport,
   isContactEmailOnlyCompanyImport,
   normalizeImportEmailCell,
+  resolveCompanyEmailForImport,
 } from './src/utils/companyCsvImport';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
 import JseaAdminScreen from './src/screens/JseaAdminScreen';
@@ -10673,7 +10674,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
 
             const nameIdx = findCompanyNameColumnIndex(headerValues);
-            const emailIdx = findCompanyEmailColumnIndex(headerValues);
+            const emailIdx = findExplicitCompanyEmailColumnIndex(headerValues);
             const contactEmailOnlyImport = isContactEmailOnlyCompanyImport(headerValues);
             const companyEmailOnlyImport = isCompanyEmailOnlyCompanyImport(headerValues);
             const businessUnitIdx = headerValues.findIndex(h => h.includes('business'));
@@ -10724,6 +10725,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             let managerNotFoundCount = 0;
             let hsNotFoundCount = 0;
             let errorCount = 0;
+            let skippedCompanyEmailCount = 0;
             const importErrors = [];
             const processedNames = new Set();
 
@@ -10751,7 +10753,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               
               if (nameIdx >= 0 && values[nameIdx]) {
                 const companyName = values[nameIdx];
-                const email = emailIdx >= 0 ? normalizeImportEmailCell(values[emailIdx]) : '';
+                const companyEmailResult = resolveCompanyEmailForImport({
+                  emailIdx,
+                  values,
+                  assignedManagerEmailIdx,
+                  assignedHsEmailIdx,
+                  adminUsers: adminsForImport,
+                });
+                if (companyEmailResult.skippedAsApprover) {
+                  skippedCompanyEmailCount++;
+                }
                 const businessUnitNames = businessUnitIdx >= 0 && values[businessUnitIdx] 
                   ? values[businessUnitIdx].split(';').map(s => s.trim()) 
                   : [];
@@ -10823,16 +10834,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   // Update existing company
                   const updateData = {};
                   if (companyEmailOnlyImport) {
-                    if (emailIdx >= 0) {
-                      updateData.email = email || null;
+                    if (companyEmailResult.apply) {
+                      updateData.email = companyEmailResult.email;
                     }
                   } else if (contactEmailOnlyImport) {
                     if (contactEmailIdx >= 0) {
                       updateData.contact_email = contactEmail || null;
                     }
                   } else {
-                    if (emailIdx >= 0) {
-                      updateData.email = email ? email : null;
+                    if (companyEmailResult.apply) {
+                      updateData.email = companyEmailResult.email;
                     }
                     if (businessUnitIds.length > 0) updateData.business_unit_ids = businessUnitIds;
                     if (contactNameIdx >= 0 && contactName) updateData.contact_name = contactName;
@@ -10868,7 +10879,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 } else {
                   // Create new company
                   const createData = { name: companyName };
-                  if (emailIdx >= 0 && email) createData.email = email;
+                  if (companyEmailResult.apply && companyEmailResult.email) {
+                    createData.email = companyEmailResult.email;
+                  }
                   if (contactName) createData.contact_name = contactName;
                   if (contactSurname) createData.contact_surname = contactSurname;
                   if (contactEmail) createData.contact_email = contactEmail;
@@ -10936,6 +10949,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             }
             if (hsNotFoundCount > 0) {
               message += `⚠️ ${hsNotFoundCount} assigned H&S email(s) not found\n`;
+            }
+            if (skippedCompanyEmailCount > 0) {
+              message += `⚠️ ${skippedCompanyEmailCount} company email(s) skipped (matched approver/admin — fix column B)\n`;
             }
             if (errorCount > 0) {
               message += `❌ ${errorCount} row(s) failed to save\n`;

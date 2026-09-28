@@ -1,6 +1,9 @@
 const assert = require('assert');
 const {
   findCompanyEmailColumnIndex,
+  findExplicitCompanyEmailColumnIndex,
+  hasExplicitCompanyEmailColumn,
+  resolveCompanyEmailForImport,
   findAssignedManagerEmailColumnIndex,
   findAssignedHsEmailColumnIndex,
   findCompanyNameColumnIndex,
