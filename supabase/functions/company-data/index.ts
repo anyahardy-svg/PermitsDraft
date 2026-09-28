@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-09-26-v10";
+const VERSION = "2026-09-28-v11";
 const PAGE_SIZE = 1000;
 const IN_QUERY_BATCH_SIZE = 200;
 
@@ -555,14 +555,31 @@ Deno.serve(async (req) => {
       if (!companyId) {
         return jsonResponse({ success: false, error: "Missing company id" }, 400);
       }
+      if (Object.keys(updates).length === 0) {
+        const { data: existing, error: loadError } = await supabase
+          .from("companies")
+          .select("*")
+          .eq("id", companyId)
+          .maybeSingle();
+        if (loadError) {
+          return jsonResponse({ success: false, error: loadError.message }, 400);
+        }
+        if (!existing) {
+          return jsonResponse({ success: false, error: `Company not found (${companyId})` }, 404);
+        }
+        return jsonResponse({ success: true, data: existing, version: VERSION });
+      }
       const { data, error } = await supabase
         .from("companies")
         .update(updates)
         .eq("id", companyId)
         .select()
-        .single();
+        .maybeSingle();
       if (error) {
         return jsonResponse({ success: false, error: error.message }, 400);
+      }
+      if (!data) {
+        return jsonResponse({ success: false, error: `Company not found (${companyId})` }, 404);
       }
       return jsonResponse({ success: true, data, version: VERSION });
     }
