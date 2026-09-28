@@ -82,6 +82,7 @@ import {
   findAssignedManagerEmailColumnIndex,
   findCompanyEmailColumnIndex,
   findCompanyNameColumnIndex,
+  isCompanyEmailOnlyCompanyImport,
   isContactEmailOnlyCompanyImport,
   normalizeImportEmailCell,
 } from './src/utils/companyCsvImport';
@@ -10674,6 +10675,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const nameIdx = findCompanyNameColumnIndex(headerValues);
             const emailIdx = findCompanyEmailColumnIndex(headerValues);
             const contactEmailOnlyImport = isContactEmailOnlyCompanyImport(headerValues);
+            const companyEmailOnlyImport = isCompanyEmailOnlyCompanyImport(headerValues);
             const businessUnitIdx = headerValues.findIndex(h => h.includes('business'));
             const contactNameIdx = headerValues.findIndex(h => h.includes('contact') && h.includes('name') && !h.includes('surname'));
             const contactSurnameIdx = headerValues.findIndex(h => h.includes('contact') && h.includes('surname'));
@@ -10709,8 +10711,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const companiesSnapshot = await listCompanies();
             
             console.log('📊 CSV Headers found:', headerValues);
-            console.log('🔍 Column indices:', { nameIdx, emailIdx, contactEmailOnlyImport, nzbnIdx, address1Idx, addressCityIdx, addressPostcodeIdx, contactNameIdx, businessUnitIdx, assignedManagerEmailIdx, assignedHsEmailIdx });
-            if (contactEmailOnlyImport) {
+            console.log('🔍 Column indices:', { nameIdx, emailIdx, contactEmailOnlyImport, companyEmailOnlyImport, nzbnIdx, address1Idx, addressCityIdx, addressPostcodeIdx, contactNameIdx, businessUnitIdx, assignedManagerEmailIdx, assignedHsEmailIdx });
+            if (companyEmailOnlyImport) {
+              setImportMessage('📧 Company-email-only import (column `email` only — not contact_email)...');
+            } else if (contactEmailOnlyImport) {
               setImportMessage('📧 Contact-email-only import (will not change managers, H&S, or company email)...');
             }
 
@@ -10747,7 +10751,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               
               if (nameIdx >= 0 && values[nameIdx]) {
                 const companyName = values[nameIdx];
-                const email = emailIdx >= 0 ? values[emailIdx] : '';
+                const email = emailIdx >= 0 ? normalizeImportEmailCell(values[emailIdx]) : '';
                 const businessUnitNames = businessUnitIdx >= 0 && values[businessUnitIdx] 
                   ? values[businessUnitIdx].split(';').map(s => s.trim()) 
                   : [];
@@ -10818,7 +10822,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   }
                   // Update existing company
                   const updateData = {};
-                  if (contactEmailOnlyImport) {
+                  if (companyEmailOnlyImport) {
+                    if (emailIdx >= 0) {
+                      updateData.email = email || null;
+                    }
+                  } else if (contactEmailOnlyImport) {
                     if (contactEmailIdx >= 0) {
                       updateData.contact_email = contactEmail || null;
                     }
@@ -10855,7 +10863,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     await updateCompany(existingCompany.id, updateData);
                     updatedCount++;
                   }
-                } else if (contactEmailOnlyImport) {
+                } else if (contactEmailOnlyImport || companyEmailOnlyImport) {
                   throw new Error('Company not found — name must match exactly (check spelling/spaces)');
                 } else {
                   // Create new company

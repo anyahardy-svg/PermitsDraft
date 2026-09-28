@@ -65,6 +65,24 @@ export function findCompanyNameColumnIndex(headerValues) {
   ));
 }
 
+/** CSV has only company name + company email (column `email`). */
+export function isCompanyEmailOnlyCompanyImport(headerValues) {
+  const headers = (headerValues || [])
+    .map((value) => String(value || '').trim().toLowerCase())
+    .filter(Boolean);
+  if (!headers.length) {
+    return false;
+  }
+  const hasCompanyEmail = headers.some((header) => (
+    header === 'email' || header === 'company_email' || header === 'company email'
+  ));
+  if (!hasCompanyEmail || headers.includes('contact_email')) {
+    return false;
+  }
+  const allowed = new Set(['name', 'company_name', 'company name', 'email', 'company_email', 'company email']);
+  return headers.every((header) => allowed.has(header));
+}
+
 /** CSV has only company name + contact_email (safe partial restore). */
 export function isContactEmailOnlyCompanyImport(headerValues) {
   const headers = (headerValues || [])
