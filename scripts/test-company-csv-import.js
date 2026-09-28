@@ -3,7 +3,11 @@ const {
   findCompanyEmailColumnIndex,
   findAssignedManagerEmailColumnIndex,
   findAssignedHsEmailColumnIndex,
+  findCompanyNameColumnIndex,
   isApproverEmailHeader,
+  isCompanyEmailOnlyCompanyImport,
+  isContactEmailOnlyCompanyImport,
+  normalizeImportEmailCell,
 } = require('../src/utils/companyCsvImport');
 
 assert.strictEqual(isApproverEmailHeader('assigned_manager_email'), true);
@@ -60,5 +64,12 @@ const userHeaders = [
 ];
 assert.strictEqual(findAssignedManagerEmailColumnIndex(userHeaders), 7);
 assert.strictEqual(findAssignedHsEmailColumnIndex(userHeaders), 8);
+
+assert.strictEqual(findCompanyNameColumnIndex(['contact_name', 'name', 'contact_email']), 1);
+assert.strictEqual(isCompanyEmailOnlyCompanyImport(['name', 'email']), true);
+assert.strictEqual(isCompanyEmailOnlyCompanyImport(['name', 'email', 'contact_email']), false);
+assert.strictEqual(isContactEmailOnlyCompanyImport(['name', 'contact_email']), true);
+assert.strictEqual(isContactEmailOnlyCompanyImport(['name', 'email', 'contact_email']), false);
+assert.strictEqual(normalizeImportEmailCell('\u00a0test@example.com'), 'test@example.com');
 
 console.log('companyCsvImport tests passed');

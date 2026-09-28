@@ -47,6 +47,60 @@ export function findAssignedManagerEmailColumnIndex(headerValues) {
   ));
 }
 
+export function findCompanyNameColumnIndex(headerValues) {
+  const headers = (headerValues || []).map((value) => String(value || '').toLowerCase());
+  const explicitIdx = headers.findIndex((header) => (
+    header === 'name'
+    || header === 'company_name'
+    || header === 'company name'
+  ));
+  if (explicitIdx >= 0) {
+    return explicitIdx;
+  }
+  return headers.findIndex((header) => (
+    header.includes('name')
+    && !header.includes('contact')
+    && !header.includes('surname')
+    && !header.includes('business')
+  ));
+}
+
+/** CSV has only company name + company email (column `email`). */
+export function isCompanyEmailOnlyCompanyImport(headerValues) {
+  const headers = (headerValues || [])
+    .map((value) => String(value || '').trim().toLowerCase())
+    .filter(Boolean);
+  if (!headers.length) {
+    return false;
+  }
+  const hasCompanyEmail = headers.some((header) => (
+    header === 'email' || header === 'company_email' || header === 'company email'
+  ));
+  if (!hasCompanyEmail || headers.includes('contact_email')) {
+    return false;
+  }
+  const allowed = new Set(['name', 'company_name', 'company name', 'email', 'company_email', 'company email']);
+  return headers.every((header) => allowed.has(header));
+}
+
+/** CSV has only company name + contact_email (safe partial restore). */
+export function isContactEmailOnlyCompanyImport(headerValues) {
+  const headers = (headerValues || [])
+    .map((value) => String(value || '').trim().toLowerCase())
+    .filter(Boolean);
+  if (!headers.length || !headers.includes('contact_email')) {
+    return false;
+  }
+  const allowed = new Set(['name', 'company_name', 'company name', 'contact_email']);
+  return headers.every((header) => allowed.has(header));
+}
+
+export function normalizeImportEmailCell(value) {
+  return String(value ?? '')
+    .replace(/\u00a0/g, ' ')
+    .trim();
+}
+
 export function findAssignedHsEmailColumnIndex(headerValues) {
   const headers = (headerValues || []).map((value) => String(value || '').toLowerCase());
   return headers.findIndex((header) => (
