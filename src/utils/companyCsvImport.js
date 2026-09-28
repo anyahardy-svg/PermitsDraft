@@ -17,6 +17,15 @@ export function isApproverEmailHeader(header) {
   );
 }
 
+export function hasExplicitCompanyEmailColumn(headerValues) {
+  const headers = (headerValues || []).map((value) => String(value || '').trim().toLowerCase());
+  return headers.some((header) => (
+    header === 'email'
+    || header === 'company_email'
+    || header === 'company email'
+  ));
+}
+
 export function findCompanyEmailColumnIndex(headerValues) {
   const headers = (headerValues || []).map((value) => String(value || '').toLowerCase());
 
@@ -34,6 +43,60 @@ export function findCompanyEmailColumnIndex(headerValues) {
     && !header.includes('contact')
     && !isApproverEmailHeader(header)
   ));
+}
+
+/**
+ * For company import: only map the dedicated `email` column — never infer from other email columns.
+ */
+export function findExplicitCompanyEmailColumnIndex(headerValues) {
+  if (!hasExplicitCompanyEmailColumn(headerValues)) {
+    return -1;
+  }
+  return findCompanyEmailColumnIndex(headerValues);
+}
+
+/**
+ * Decide whether a row's company email should be written (never use approver/admin addresses).
+ */
+export function resolveCompanyEmailForImport({
+  emailIdx,
+  values,
+  assignedManagerEmailIdx,
+  assignedHsEmailIdx,
+  adminUsers,
+}) {
+  if (emailIdx < 0) {
+    return { apply: false, email: null };
+  }
+
+  const email = normalizeImportEmailCell(values[emailIdx]);
+  if (!email) {
+    return { apply: true, email: null };
+  }
+
+  const normalized = email.toLowerCase();
+  const managerEmail = assignedManagerEmailIdx >= 0
+    ? normalizeImportEmailCell(values[assignedManagerEmailIdx]).toLowerCase()
+    : '';
+  const hsEmail = assignedHsEmailIdx >= 0
+    ? normalizeImportEmailCell(values[assignedHsEmailIdx]).toLowerCase()
+    : '';
+
+  if (managerEmail && normalized === managerEmail) {
+    return { apply: false, email: null, skippedAsApprover: true };
+  }
+  if (hsEmail && normalized === hsEmail) {
+    return { apply: false, email: null, skippedAsApprover: true };
+  }
+
+  const matchesAdmin = (adminUsers || []).some(
+    (admin) => admin?.email && admin.email.toLowerCase() === normalized,
+  );
+  if (matchesAdmin) {
+    return { apply: false, email: null, skippedAsApprover: true };
+  }
+
+  return { apply: true, email };
 }
 
 export function findAssignedManagerEmailColumnIndex(headerValues) {
