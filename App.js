@@ -10694,12 +10694,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
             const resolveAdminIdByEmail = (emailValue) => {
               const trimmed = String(emailValue || '').trim();
-              if (!trimmed) return { id: null, found: true };
+              if (!trimmed) return { skip: true };
               const normalized = trimmed.toLowerCase();
               const byEmail = adminsForImport.find((admin) => admin.email?.toLowerCase() === normalized);
               if (byEmail) return { id: byEmail.id, found: true };
               return { id: null, found: false };
             };
+
+            setImportMessage('🔄 Loading latest company list...');
+            const companiesSnapshot = await listCompanies();
             
             console.log('📊 CSV Headers found:', headerValues);
             console.log('🔍 Column indices:', { nameIdx, emailIdx, nzbnIdx, address1Idx, addressCityIdx, addressPostcodeIdx, contactNameIdx, businessUnitIdx, assignedManagerEmailIdx, assignedHsEmailIdx });
@@ -10709,6 +10712,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             let duplicateCount = 0;
             let managerNotFoundCount = 0;
             let hsNotFoundCount = 0;
+            let errorCount = 0;
+            const importErrors = [];
             const processedNames = new Set();
 
             for (let i = 1; i < lines.length; i++) {
@@ -10757,18 +10762,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 let assignedHsPersonId;
                 if (assignedManagerEmailIdx >= 0) {
                   const managerResult = resolveAdminIdByEmail(values[assignedManagerEmailIdx]);
-                  if (!managerResult.found) {
-                    managerNotFoundCount++;
-                  } else {
-                    assignedManagerId = managerResult.id;
+                  if (!managerResult.skip) {
+                    if (!managerResult.found) {
+                      managerNotFoundCount++;
+                    } else {
+                      assignedManagerId = managerResult.id;
+                    }
                   }
                 }
                 if (assignedHsEmailIdx >= 0) {
                   const hsResult = resolveAdminIdByEmail(values[assignedHsEmailIdx]);
-                  if (!hsResult.found) {
-                    hsNotFoundCount++;
-                  } else {
-                    assignedHsPersonId = hsResult.id;
+                  if (!hsResult.skip) {
+                    if (!hsResult.found) {
+                      hsNotFoundCount++;
+                    } else {
+                      assignedHsPersonId = hsResult.id;
+                    }
                   }
                 }
                 
@@ -10791,9 +10800,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 }
                 
                 // Check if company already exists
-                const existingCompany = companies.find(c => c.name.toLowerCase() === companyName.toLowerCase());
+                const existingCompany = companiesSnapshot.find(c => c.name.toLowerCase() === companyName.toLowerCase());
                 
+                try {
                 if (existingCompany) {
+                  if (!existingCompany.id) {
+                    throw new Error('Matched company has no id — refresh the page and try again');
+                  }
                   // Update existing company
                   const updateData = {};
                   if (emailIdx >= 0) {
@@ -10854,10 +10867,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   
                   newCount++;
                 }
+                } catch (rowError) {
+                  errorCount++;
+                  const rowMessage = `${companyName}: ${rowError?.message || rowError}`;
+                  importErrors.push(rowMessage);
+                  console.error('🔥 CSV import row failed:', rowMessage);
+                }
               }
             }
 
-            if (newCount === 0 && updatedCount === 0 && duplicateCount === 0) {
+            if (newCount === 0 && updatedCount === 0 && duplicateCount === 0 && errorCount === 0) {
               setImportStatus('error');
               setImportMessage('❌ No valid companies found in the CSV file.');
               setTimeout(() => setImportStatus('idle'), 5000);
@@ -10885,18 +10904,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               message += `⚠️ ${managerNotFoundCount} assigned manager email(s) not found\n`;
             }
             if (hsNotFoundCount > 0) {
-              message += `⚠️ ${hsNotFoundCount} assigned H&S email(s) not found`;
+              message += `⚠️ ${hsNotFoundCount} assigned H&S email(s) not found\n`;
+            }
+            if (errorCount > 0) {
+              message += `❌ ${errorCount} row(s) failed to save\n`;
+              message += importErrors.slice(0, 8).join('\n');
+              if (importErrors.length > 8) {
+                message += `\n…and ${importErrors.length - 8} more (see browser console)`;
+              }
             }
             
-            console.log('✅ Import Complete:', { newCount, updatedCount, duplicateCount, managerNotFoundCount, hsNotFoundCount });
-            setImportStatus('success');
+            console.log('✅ Import Complete:', { newCount, updatedCount, duplicateCount, managerNotFoundCount, hsNotFoundCount, errorCount });
+            setImportStatus(errorCount > 0 && updatedCount === 0 && newCount === 0 ? 'error' : 'success');
             setImportMessage(message.trim());
-            setTimeout(() => setImportStatus('idle'), 5000);
+            setTimeout(() => setImportStatus('idle'), errorCount > 0 ? 20000 : 5000);
           } catch (error) {
             console.error('🔥 CSV Import Error:', error);
             setImportStatus('error');
-            setImportMessage(`❌ Failed to parse file: ${error.message}`);
-            setTimeout(() => setImportStatus('idle'), 5000);
+            setImportMessage(`❌ Import failed: ${error.message}`);
+            setTimeout(() => setImportStatus('idle'), 20000);
           }
         };
         reader.readAsText(file);
