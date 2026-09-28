@@ -81,6 +81,9 @@ import {
   findAssignedHsEmailColumnIndex,
   findAssignedManagerEmailColumnIndex,
   findCompanyEmailColumnIndex,
+  findCompanyNameColumnIndex,
+  isContactEmailOnlyCompanyImport,
+  normalizeImportEmailCell,
 } from './src/utils/companyCsvImport';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
 import JseaAdminScreen from './src/screens/JseaAdminScreen';
@@ -10668,8 +10671,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             }
             headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
 
-            const nameIdx = headerValues.findIndex(h => h.includes('name'));
+            const nameIdx = findCompanyNameColumnIndex(headerValues);
             const emailIdx = findCompanyEmailColumnIndex(headerValues);
+            const contactEmailOnlyImport = isContactEmailOnlyCompanyImport(headerValues);
             const businessUnitIdx = headerValues.findIndex(h => h.includes('business'));
             const contactNameIdx = headerValues.findIndex(h => h.includes('contact') && h.includes('name') && !h.includes('surname'));
             const contactSurnameIdx = headerValues.findIndex(h => h.includes('contact') && h.includes('surname'));
@@ -10705,7 +10709,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             const companiesSnapshot = await listCompanies();
             
             console.log('📊 CSV Headers found:', headerValues);
-            console.log('🔍 Column indices:', { nameIdx, emailIdx, nzbnIdx, address1Idx, addressCityIdx, addressPostcodeIdx, contactNameIdx, businessUnitIdx, assignedManagerEmailIdx, assignedHsEmailIdx });
+            console.log('🔍 Column indices:', { nameIdx, emailIdx, contactEmailOnlyImport, nzbnIdx, address1Idx, addressCityIdx, addressPostcodeIdx, contactNameIdx, businessUnitIdx, assignedManagerEmailIdx, assignedHsEmailIdx });
+            if (contactEmailOnlyImport) {
+              setImportMessage('📧 Contact-email-only import (will not change managers, H&S, or company email)...');
+            }
 
             let newCount = 0;
             let updatedCount = 0;
@@ -10746,9 +10753,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   : [];
                 const contactName = contactNameIdx >= 0 ? values[contactNameIdx] : '';
                 const contactSurname = contactSurnameIdx >= 0 ? values[contactSurnameIdx] : '';
-                const contactEmail = contactEmailIdx >= 0 ? values[contactEmailIdx] : '';
+                const contactEmail = contactEmailIdx >= 0
+                  ? normalizeImportEmailCell(values[contactEmailIdx])
+                  : '';
                 const contactPhone = contactPhoneIdx >= 0 ? values[contactPhoneIdx] : '';
-                const contractorType = contractorTypeIdx >= 0 ? values[contractorTypeIdx] : 'D';
+                const contractorType = contractorTypeIdx >= 0 ? values[contractorTypeIdx] : '';
                 const publicLiabilityExpiry = publicLiabilityIdx >= 0 ? values[publicLiabilityIdx] : '';
                 const motorVehicleExpiry = motorVehicleIdx >= 0 ? values[motorVehicleIdx] : '';
                 const reviewDate = reviewDateIdx >= 0 ? values[reviewDateIdx] : '';
@@ -10809,31 +10818,45 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   }
                   // Update existing company
                   const updateData = {};
-                  if (emailIdx >= 0) {
-                    updateData.email = email ? email : null;
+                  if (contactEmailOnlyImport) {
+                    if (contactEmailIdx >= 0) {
+                      updateData.contact_email = contactEmail || null;
+                    }
+                  } else {
+                    if (emailIdx >= 0) {
+                      updateData.email = email ? email : null;
+                    }
+                    if (businessUnitIds.length > 0) updateData.business_unit_ids = businessUnitIds;
+                    if (contactNameIdx >= 0 && contactName) updateData.contact_name = contactName;
+                    if (contactSurnameIdx >= 0 && contactSurname) updateData.contact_surname = contactSurname;
+                    if (contactEmailIdx >= 0 && contactEmail) updateData.contact_email = contactEmail;
+                    if (contactPhoneIdx >= 0 && contactPhone) updateData.contact_phone = contactPhone;
+                    if (contractorTypeIdx >= 0 && contractorType) updateData.contractor_type = contractorType;
+                    if (publicLiabilityIdx >= 0 && publicLiabilityExpiry) {
+                      updateData.public_liability_expiry = parseDateToISO(publicLiabilityExpiry) || null;
+                    }
+                    if (motorVehicleIdx >= 0 && motorVehicleExpiry) {
+                      updateData.motor_vehicle_insurance_expiry = parseDateToISO(motorVehicleExpiry) || null;
+                    }
+                    if (reviewDateIdx >= 0 && reviewDate) updateData.review_date = parseDateToISO(reviewDate) || null;
+                    if (accreditedDateIdx >= 0 && accreditedDate) {
+                      updateData.accredited_date = parseDateToISO(accreditedDate) || null;
+                    }
+                    if (nzbnIdx >= 0 && nzbn) updateData.nzbn = nzbn;
+                    if (address1Idx >= 0 && address1) updateData.address_1 = address1;
+                    if (addressCityIdx >= 0 && addressCity) updateData.address_city = addressCity;
+                    if (addressPostcodeIdx >= 0 && addressPostcode) updateData.address_postcode = addressPostcode;
+                    if (assignedManagerId !== undefined) updateData.assigned_manager_id = assignedManagerId;
+                    if (assignedHsPersonId !== undefined) updateData.assigned_hs_person_id = assignedHsPersonId;
                   }
-                  if (businessUnitIds.length > 0) updateData.business_unit_ids = businessUnitIds;
-                  if (contactName) updateData.contact_name = contactName;
-                  if (contactSurname) updateData.contact_surname = contactSurname;
-                  if (contactEmail) updateData.contact_email = contactEmail;
-                  if (contactPhone) updateData.contact_phone = contactPhone;
-                  if (contractorType) updateData.contractor_type = contractorType;
-                  if (publicLiabilityExpiry) updateData.public_liability_expiry = parseDateToISO(publicLiabilityExpiry) || null;
-                  if (motorVehicleExpiry) updateData.motor_vehicle_insurance_expiry = parseDateToISO(motorVehicleExpiry) || null;
-                  if (reviewDate) updateData.review_date = parseDateToISO(reviewDate) || null;
-                  if (accreditedDate) updateData.accredited_date = parseDateToISO(accreditedDate) || null;
-                  if (nzbn) updateData.nzbn = nzbn;
-                  if (address1) updateData.address_1 = address1;
-                  if (addressCity) updateData.address_city = addressCity;
-                  if (addressPostcode) updateData.address_postcode = addressPostcode;
-                  if (assignedManagerId !== undefined) updateData.assigned_manager_id = assignedManagerId;
-                  if (assignedHsPersonId !== undefined) updateData.assigned_hs_person_id = assignedHsPersonId;
                   
                   if (Object.keys(updateData).length > 0) {
                     console.log('📝 Updating existing company:', existingCompany.name, 'with fields:', Object.keys(updateData));
                     await updateCompany(existingCompany.id, updateData);
                     updatedCount++;
                   }
+                } else if (contactEmailOnlyImport) {
+                  throw new Error('Company not found — name must match exactly (check spelling/spaces)');
                 } else {
                   // Create new company
                   const createData = { name: companyName };
