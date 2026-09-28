@@ -216,9 +216,7 @@ export default function SupplierListScreen({ onOpenForm, styles }) {
       email: supplier.contact_email || '',
       techContactName: supplier.tech_contact_name || '',
       contactPhone: supplier.contact_phone || '',
-      deadline: supplier.accreditation_deadline
-        ? formatDate(supplier.accreditation_deadline)
-        : getDefaultAccreditationDeadline(),
+      deadline: getDefaultAccreditationDeadline(),
     });
     setShowSendInvitationModal(true);
   };
