@@ -176,9 +176,10 @@ function YesNoField({ fieldId, value, onChange }) {
   );
 }
 
-function DocumentUploadField({ field, value, onChange, uploadHandler }) {
+function DocumentUploadField({ field, value, onChange, uploadHandler, onOpenDocument }) {
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
+  const [opening, setOpening] = useState(false);
   const [error, setError] = useState(null);
 
   const handleFileSelect = async (event) => {
@@ -216,12 +217,51 @@ function DocumentUploadField({ field, value, onChange, uploadHandler }) {
     );
   }
 
+  const fileRef = value?.path || value?.url;
+  const hasDocument = Boolean(fileRef);
+
+  const handleView = async () => {
+    if (!fileRef) {
+      return;
+    }
+    if (onOpenDocument) {
+      try {
+        setOpening(true);
+        setError(null);
+        await onOpenDocument(fileRef);
+      } catch (viewError) {
+        setError(viewError.message || 'Could not open document');
+      } finally {
+        setOpening(false);
+      }
+      return;
+    }
+    if (typeof fileRef === 'string' && fileRef.includes('://')) {
+      window.open(fileRef, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
     <div style={fieldStyles.uploadBox}>
-      {value?.url ? (
+      {hasDocument ? (
         <div style={fieldStyles.uploaded}>
           Uploaded: {value.fileName || 'Document'}{' '}
-          <a href={value.url} target="_blank" rel="noreferrer">View</a>
+          <button
+            type="button"
+            onClick={handleView}
+            disabled={opening}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#2563EB',
+              cursor: opening ? 'wait' : 'pointer',
+              padding: 0,
+              font: 'inherit',
+              textDecoration: 'underline',
+            }}
+          >
+            {opening ? 'Opening...' : 'View'}
+          </button>
         </div>
       ) : (
         <span style={{ color: '#6B7280', fontSize: '0.875rem' }}>No document uploaded yet.</span>
@@ -232,7 +272,7 @@ function DocumentUploadField({ field, value, onChange, uploadHandler }) {
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
       >
-        {uploading ? 'Uploading...' : value?.url ? 'Replace document' : 'Upload document'}
+        {uploading ? 'Uploading...' : hasDocument ? 'Replace document' : 'Upload document'}
       </button>
       <input
         ref={inputRef}
@@ -246,7 +286,7 @@ function DocumentUploadField({ field, value, onChange, uploadHandler }) {
   );
 }
 
-function DocumentGroupField({ field, value, onChange, uploadHandler }) {
+function DocumentGroupField({ field, value, onChange, uploadHandler, onOpenDocument }) {
   const docs = value && typeof value === 'object' ? value : {};
 
   const updateDoc = (option, docValue) => {
@@ -268,6 +308,7 @@ function DocumentGroupField({ field, value, onChange, uploadHandler }) {
             uploadHandler={uploadHandler
               ? (file) => uploadHandler(file, `${field.id}_${option}`)
               : null}
+            onOpenDocument={onOpenDocument}
           />
         </div>
       ))}
@@ -275,7 +316,7 @@ function DocumentGroupField({ field, value, onChange, uploadHandler }) {
   );
 }
 
-function CertificationListField({ field, value, onChange, uploadHandler }) {
+function CertificationListField({ field, value, onChange, uploadHandler, onOpenDocument }) {
   const certifications = value && typeof value === 'object' ? value : {};
 
   const updateCertification = (key, patch) => {
@@ -336,6 +377,7 @@ function CertificationListField({ field, value, onChange, uploadHandler }) {
                   uploadHandler={uploadHandler
                     ? (file) => uploadHandler(file, `cert_${certification.key}`)
                     : null}
+                  onOpenDocument={onOpenDocument}
                 />
               </div>
             )}
@@ -346,7 +388,7 @@ function CertificationListField({ field, value, onChange, uploadHandler }) {
   );
 }
 
-export default function QuestionField({ field, value, onChange, uploadHandler = null }) {
+export default function QuestionField({ field, value, onChange, uploadHandler = null, onOpenDocument = null }) {
   const renderControl = () => {
     switch (field.type) {
       case 'text':
@@ -407,6 +449,7 @@ export default function QuestionField({ field, value, onChange, uploadHandler = 
             value={value}
             onChange={onChange}
             uploadHandler={uploadHandler}
+            onOpenDocument={onOpenDocument}
           />
         );
 
@@ -417,6 +460,7 @@ export default function QuestionField({ field, value, onChange, uploadHandler = 
             value={value}
             onChange={onChange}
             uploadHandler={uploadHandler}
+            onOpenDocument={onOpenDocument}
           />
         );
 
@@ -427,6 +471,7 @@ export default function QuestionField({ field, value, onChange, uploadHandler = 
             value={value}
             onChange={onChange}
             uploadHandler={uploadHandler}
+            onOpenDocument={onOpenDocument}
           />
         );
 

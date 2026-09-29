@@ -170,6 +170,7 @@ function RepeatableGroupSection({
   onProductsChange,
   userRole,
   uploadHandler,
+  onOpenDocument,
 }) {
   const updateProductField = (index, fieldId, value) => {
     const nextProducts = products.map((product, productIndex) => (
@@ -219,6 +220,7 @@ function RepeatableGroupSection({
                 uploadHandler={uploadHandler
                   ? (file, documentType) => uploadHandler(file, documentType, index, field.id)
                   : null}
+                onOpenDocument={onOpenDocument}
               />
             );
           })}
@@ -258,6 +260,7 @@ export default function FormEngine({
   onProductsChange,
   userRole = 'supplier',
   uploadHandler = null,
+  onOpenDocument = null,
 }) {
   const sectionIds = useMemo(
     () => (schema?.sections || []).map((section) => section.id),
@@ -320,6 +323,7 @@ export default function FormEngine({
                   onProductsChange={onProductsChange}
                   userRole={userRole}
                   uploadHandler={uploadHandler}
+                  onOpenDocument={onOpenDocument}
                 />
               </AccordionSection>
             );
@@ -347,6 +351,7 @@ export default function FormEngine({
                     uploadHandler={uploadHandler
                       ? (file, documentType) => uploadHandler(file, documentType, null, field.id)
                       : null}
+                    onOpenDocument={onOpenDocument}
                   />
                 );
               })}
