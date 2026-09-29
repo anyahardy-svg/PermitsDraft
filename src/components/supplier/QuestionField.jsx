@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { SUPPLIER_CERTIFICATIONS } from '../../schemas/supplierSchema';
+import { normalizeSafetyDocs } from '../../utils/supplierFormDataNormalize';
 import SignaturePadField from './SignaturePadField';
 
 const fieldStyles = {
@@ -315,18 +316,8 @@ function DocumentUploadField({ field, value, onChange, uploadHandler, onOpenDocu
   );
 }
 
-function normalizeDocumentGroupValue(value, options = []) {
-  if (!value || typeof value !== 'object') {
-    return {};
-  }
-  const docs = { ...value };
-  options.forEach((option) => {
-    const altKey = option.toLowerCase();
-    if (!docs[option] && docs[altKey]) {
-      docs[option] = docs[altKey];
-    }
-  });
-  return docs;
+function normalizeDocumentGroupValue(value) {
+  return normalizeSafetyDocs(value);
 }
 
 function DocumentGroupField({ field, value, onChange, uploadHandler, onOpenDocument }) {

@@ -1,5 +1,6 @@
 import { sendSupplierInvitation } from './sendgrid';
 import { createEmptyProduct } from '../schemas/supplierSchema';
+import { normalizeSupplierFormProducts } from '../utils/supplierFormDataNormalize';
 
 const LEGACY_PRODUCT_FIELD_IDS = [
   'product_name',
@@ -207,9 +208,12 @@ export function buildSupplierFormData(supplier, accreditationRecord) {
     address_city: savedData.address_city ?? defaults.address_city ?? '',
     address_postcode: savedData.address_postcode ?? defaults.address_postcode ?? '',
     risk_classification: savedData.risk_classification ?? defaults.risk_classification ?? '',
-    products: Array.isArray(savedData.products) && savedData.products.length
-      ? savedData.products
-      : defaults.products,
+    products: normalizeSupplierFormProducts(
+      Array.isArray(savedData.products) && savedData.products.length
+        ? savedData.products
+        : defaults.products,
+      savedData,
+    ),
   };
 }
 
