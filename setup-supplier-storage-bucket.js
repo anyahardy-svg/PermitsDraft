@@ -34,7 +34,7 @@ async function setupBucket() {
 
     if (!bucketExists) {
       const { error } = await supabase.storage.createBucket(BUCKET_NAME, {
-        public: true,
+        public: false,
         fileSizeLimit: 52428800,
         allowedMimeTypes: [
           'application/pdf',
@@ -65,7 +65,7 @@ async function setupBucket() {
     console.log('\n✅ Supplier storage bucket setup complete!');
     console.log('\nBucket details:');
     console.log(`  Name: ${BUCKET_NAME}`);
-    console.log('  Public: true');
+    console.log('  Public: false (use signed URLs via Vercel API)');
     console.log('  Path pattern: {company_name}/{document_type}/{timestamp}.{ext}');
   } catch (error) {
     console.error('❌ Error setting up bucket:', error.message);

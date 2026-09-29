@@ -10,6 +10,7 @@ import {
   saveSupplierAccreditationByToken,
   uploadSupplierDocument,
 } from '../api/supplierApi';
+import { openSupplierDocument } from '../api/supplierStorage';
 import { supplierSchema } from '../schemas/supplierSchema';
 import { getSupplierAccreditationStatusDisplay, getStatusFromFinalDecision, isSupplierAccreditationCompleted, validateAdminAssessmentCompletion } from '../utils/supplierAccreditation';
 
@@ -289,6 +290,13 @@ export default function SupplierAccreditationScreen({
     });
   }, [token, supplierId]);
 
+  const handleOpenDocument = useCallback(async (fileRef) => {
+    await openSupplierDocument(fileRef, {
+      token: token || null,
+      supplierId: supplierId || null,
+    });
+  }, [token, supplierId]);
+
   const persistForm = async (status) => {
     if (token) {
       return saveSupplierAccreditationByToken(token, formData, status);
@@ -488,6 +496,7 @@ export default function SupplierAccreditationScreen({
         onProductsChange={handleProductsChange}
         userRole={resolvedUserRole}
         uploadHandler={uploadHandler}
+        onOpenDocument={handleOpenDocument}
       />
 
       <div style={screenStyles.footer}>

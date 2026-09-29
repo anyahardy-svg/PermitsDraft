@@ -47,16 +47,30 @@ export function buildSupplierDocumentStoragePath({ companyName, documentType, fi
   return `${companySegment}/${documentSegment}/${Date.now()}.${extension}`;
 }
 
-export function extractSupplierDocumentStoragePath(fileUrl) {
-  if (!fileUrl || typeof fileUrl !== 'string') {
+export function extractSupplierDocumentStoragePath(fileRef) {
+  if (!fileRef || typeof fileRef !== 'string') {
     return null;
   }
 
-  const markers = [`/${SUPPLIER_DOCUMENTS_BUCKET}/`, '/accreditations/suppliers/'];
+  const trimmed = fileRef.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (!trimmed.includes('://') && !trimmed.startsWith('/')) {
+    return trimmed.split('?')[0];
+  }
+
+  const markers = [
+    `/object/public/${SUPPLIER_DOCUMENTS_BUCKET}/`,
+    `/object/sign/${SUPPLIER_DOCUMENTS_BUCKET}/`,
+    `/${SUPPLIER_DOCUMENTS_BUCKET}/`,
+    '/accreditations/suppliers/',
+  ];
   for (const marker of markers) {
-    const markerIndex = fileUrl.indexOf(marker);
+    const markerIndex = trimmed.indexOf(marker);
     if (markerIndex !== -1) {
-      return fileUrl.slice(markerIndex + marker.length).split('?')[0];
+      return trimmed.slice(markerIndex + marker.length).split('?')[0];
     }
   }
 

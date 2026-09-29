@@ -18,5 +18,5 @@ Columns such as `aep_certificate_url` and `*_evidence_url` may still hold full p
 
 ## Not in this step
 
-- **`suppliers`** bucket (supplier accreditation forms) — separate follow-up.
+- **`suppliers`** bucket — see `DEPLOY_SUPPLIERS_STORAGE.md`.
 - **`evidence_library_items` table** RLS — metadata; files are in this bucket.

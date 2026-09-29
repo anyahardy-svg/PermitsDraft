@@ -27,6 +27,10 @@ Supplier data is **not** used for morning sign-ins. Lock-down removes **anon Pos
 3. Re-run anon probes + quick admin supplier smoke test
 ```
 
+## Storage (technical PDFs / uploads)
+
+Table lock-down does **not** make the **`suppliers` storage bucket** private. Follow **`docs/security/DEPLOY_SUPPLIERS_STORAGE.md`** and `migrations/lock-down-suppliers-storage.sql` after signed URL support is deployed.
+
 ## If something breaks
 
 - **Empty supplier list:** check Vercel function logs for `list-suppliers`; confirm service role env vars.

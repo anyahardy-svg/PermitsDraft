@@ -166,12 +166,10 @@ export default async function handler(req, res) {
       return res.status(uploadResponse.status).json({ error: 'Failed to upload document' });
     }
 
-    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${SUPPLIER_DOCUMENTS_BUCKET}/${storagePath}`;
-
     return res.status(200).json({
       success: true,
-      url: publicUrl,
       path: storagePath,
+      url: storagePath,
       bucket: SUPPLIER_DOCUMENTS_BUCKET,
       uploadedAt: new Date().toISOString(),
     });
