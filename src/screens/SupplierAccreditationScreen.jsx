@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import FormEngine from '../components/supplier/FormEngine.jsx';
 import {
@@ -290,10 +290,11 @@ export default function SupplierAccreditationScreen({
     });
   }, [token, supplierId]);
 
-  const handleOpenDocument = useCallback(async (fileRef) => {
+  const handleOpenDocument = useCallback(async (fileRef, targetWindow = null) => {
     await openSupplierDocument(fileRef, {
       token: token || null,
       supplierId: supplierId || null,
+      targetWindow,
     });
   }, [token, supplierId]);
 
@@ -309,18 +310,52 @@ export default function SupplierAccreditationScreen({
     return saveSupplierAccreditation(supplierId, formData, status);
   };
 
+  const persistDraftTimeoutRef = useRef(null);
+
+  const schedulePersistDraft = useCallback((nextFormData) => {
+    if (persistDraftTimeoutRef.current) {
+      clearTimeout(persistDraftTimeoutRef.current);
+    }
+    persistDraftTimeoutRef.current = setTimeout(async () => {
+      try {
+        const statusToSave = isPublic ? 'draft' : (meta.status || 'draft');
+        if (token) {
+          await saveSupplierAccreditationByToken(token, nextFormData, statusToSave);
+        } else if (supplierId) {
+          await saveSupplierAccreditation(supplierId, nextFormData, statusToSave);
+        }
+      } catch (saveError) {
+        console.error('Auto-save after supplier form change failed:', saveError);
+      }
+    }, 600);
+  }, [isPublic, meta.status, supplierId, token]);
+
+  useEffect(() => () => {
+    if (persistDraftTimeoutRef.current) {
+      clearTimeout(persistDraftTimeoutRef.current);
+    }
+  }, []);
+
   const handleFieldChange = (fieldId, value) => {
-    setFormData((previousFormData) => ({
-      ...previousFormData,
-      [fieldId]: value,
-    }));
+    setFormData((previousFormData) => {
+      const next = {
+        ...previousFormData,
+        [fieldId]: value,
+      };
+      schedulePersistDraft(next);
+      return next;
+    });
   };
 
   const handleProductsChange = (products) => {
-    setFormData((previousFormData) => ({
-      ...previousFormData,
-      products,
-    }));
+    setFormData((previousFormData) => {
+      const next = {
+        ...previousFormData,
+        products,
+      };
+      schedulePersistDraft(next);
+      return next;
+    });
   };
 
   const handleSaveDraft = async () => {

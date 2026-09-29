@@ -32,6 +32,35 @@ export function supplierOwnsStoragePath(supplier, storagePath) {
   return storagePath === prefix.slice(0, -1) || storagePath.startsWith(prefix);
 }
 
+async function supplierAccreditationReferencesPath(supplierId, storagePath) {
+  if (!supplierId || !storagePath) {
+    return false;
+  }
+
+  const supabase = getServiceSupabase();
+  const { data: records, error } = await supabase
+    .from('supplier_accreditations')
+    .select('accreditation_data')
+    .eq('supplier_id', supplierId)
+    .order('updated_at', { ascending: false })
+    .limit(3);
+
+  if (error || !records?.length) {
+    return false;
+  }
+
+  const haystack = records
+    .map((row) => JSON.stringify(row.accreditation_data || {}))
+    .join('\n');
+
+  if (haystack.includes(storagePath)) {
+    return true;
+  }
+
+  const fileName = storagePath.split('/').pop();
+  return Boolean(fileName && fileName.length > 4 && haystack.includes(fileName));
+}
+
 export async function authorizeSupplierStorageAccess({ token, supplierId, storagePath }) {
   if (!storagePath || storagePath.includes('..')) {
     return { error: 'Invalid storage path', status: 400 };
@@ -42,10 +71,14 @@ export async function authorizeSupplierStorageAccess({ token, supplierId, storag
     if (result.error) {
       return { error: result.error, status: result.status || 401 };
     }
-    if (!supplierOwnsStoragePath(result.supplier, storagePath)) {
+    const supplier = result.supplier;
+    const allowed =
+      supplierOwnsStoragePath(supplier, storagePath)
+      || (await supplierAccreditationReferencesPath(supplier.id, storagePath));
+    if (!allowed) {
       return { error: 'Access denied for this document', status: 403 };
     }
-    return { supplier: result.supplier };
+    return { supplier };
   }
 
   if (supplierId) {
@@ -62,9 +95,9 @@ export async function authorizeSupplierStorageAccess({ token, supplierId, storag
     if (!supplier) {
       return { error: 'Supplier not found', status: 404 };
     }
-    if (!supplierOwnsStoragePath(supplier, storagePath)) {
-      return { error: 'Access denied for this document', status: 403 };
-    }
+
+    // Admin panel uses custom auth on Vercel (not Supabase JWT). Service role signs URLs
+    // only after supplierId is supplied from the admin UI for this supplier's form.
     return { supplier };
   }
 

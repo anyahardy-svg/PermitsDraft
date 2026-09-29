@@ -49,20 +49,37 @@ export async function getSignedSupplierDocumentUrl(
   return { url: data.signedUrl || null, error: null };
 }
 
+/**
+ * @param {Window|null} targetWindow - Optional window opened synchronously from a click handler (avoids popup blockers).
+ */
 export async function openSupplierDocument(
   fileRef,
-  { token = null, supplierId = null, expiresInSeconds = DEFAULT_EXPIRES_SECONDS } = {},
+  { token = null, supplierId = null, expiresInSeconds = DEFAULT_EXPIRES_SECONDS, targetWindow = null } = {},
 ) {
+  const trimmed = typeof fileRef === 'string' ? fileRef.trim() : '';
+  const isLegacyPublicUrl = trimmed.includes('://') && trimmed.includes('/object/public/');
+
   const { url, error } = await getSignedSupplierDocumentUrl(fileRef, {
     token,
     supplierId,
     expiresInSeconds,
   });
-  if (!url) {
+
+  let openUrl = url;
+  if (!openUrl && isLegacyPublicUrl) {
+    openUrl = trimmed;
+  }
+
+  if (!openUrl) {
     throw new Error(error || 'Could not open document');
   }
-  if (typeof window !== 'undefined' && window.open) {
-    window.open(url, '_blank', 'noopener,noreferrer');
+
+  if (typeof window !== 'undefined') {
+    if (targetWindow && !targetWindow.closed) {
+      targetWindow.location.href = openUrl;
+    } else if (window.open) {
+      window.open(openUrl, '_blank', 'noopener,noreferrer');
+    }
   }
-  return url;
+  return openUrl;
 }
