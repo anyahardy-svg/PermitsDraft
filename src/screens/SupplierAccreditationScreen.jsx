@@ -290,10 +290,11 @@ export default function SupplierAccreditationScreen({
     });
   }, [token, supplierId]);
 
-  const handleOpenDocument = useCallback(async (fileRef) => {
+  const handleOpenDocument = useCallback(async (fileRef, targetWindow = null) => {
     await openSupplierDocument(fileRef, {
       token: token || null,
       supplierId: supplierId || null,
+      targetWindow,
     });
   }, [token, supplierId]);
 
