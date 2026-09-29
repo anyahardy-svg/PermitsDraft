@@ -1,24 +1,5 @@
-import { supabase } from '../supabaseClient';
 import { sendSupplierInvitation } from './sendgrid';
 import { createEmptyProduct } from '../schemas/supplierSchema';
-
-const SUPPLIER_SELECT_FIELDS = [
-  'id',
-  'company_name',
-  'company_email',
-  'risk_classification',
-  'status',
-  'created_at',
-  'contact_email',
-  'tech_contact_name',
-  'contact_phone',
-  'nzbn',
-  'address_1',
-  'address_city',
-  'address_postcode',
-  'invitation_sent_at',
-  'accreditation_deadline',
-].join(', ');
 
 const LEGACY_PRODUCT_FIELD_IDS = [
   'product_name',
@@ -93,79 +74,38 @@ function migrateLegacyFormData(savedData) {
   return nextData;
 }
 
-async function attachAccreditationStatuses(suppliers = []) {
-  if (!suppliers.length || !supabase) {
-    return suppliers.map((supplier) => ({
-      ...supplier,
-      accreditation_status: supplier.accreditation_status || 'draft',
-    }));
-  }
-
-  const supplierIds = suppliers.map((supplier) => supplier.id).filter(Boolean);
-  if (!supplierIds.length) {
-    return suppliers;
-  }
-
-  const { data: accreditationRecords, error } = await supabase
-    .from('supplier_accreditations')
-    .select('supplier_id, status, updated_at')
-    .in('supplier_id', supplierIds)
-    .order('updated_at', { ascending: false });
-
-  if (error) {
-    console.warn('Failed to load supplier accreditation statuses:', error);
-    return suppliers.map((supplier) => ({
-      ...supplier,
-      accreditation_status: supplier.accreditation_status || 'draft',
-    }));
-  }
-
-  const statusBySupplierId = {};
-  for (const record of accreditationRecords || []) {
-    if (!statusBySupplierId[record.supplier_id]) {
-      statusBySupplierId[record.supplier_id] = record.status;
-    }
-  }
-
-  return suppliers.map((supplier) => ({
-    ...supplier,
-    accreditation_status: statusBySupplierId[supplier.id] || supplier.accreditation_status || 'draft',
-  }));
+function supplierApiError(response, fallbackMessage) {
+  return response
+    .json()
+    .catch(() => ({}))
+    .then((body) => {
+      throw new Error(body.error || fallbackMessage || `Supplier API returned ${response.status}`);
+    });
 }
 
 /**
  * Fetch all suppliers from the suppliers table.
  */
 export async function getAllSuppliers() {
-  if (typeof fetch !== 'undefined') {
-    try {
-      const response = await fetch('/api/list-suppliers');
-
-      if (response.ok) {
-        const suppliers = await response.json();
-        if (Array.isArray(suppliers)) {
-          return suppliers;
-        }
-      }
-    } catch (apiError) {
-      console.warn('Supplier list API unavailable, falling back to direct Supabase query:', apiError);
-    }
+  if (typeof fetch === 'undefined') {
+    throw new Error('Supplier list requires a browser or server with fetch (/api/list-suppliers)');
   }
 
-  if (!supabase) {
-    throw new Error('Supabase client is not configured');
+  const response = await fetch('/api/list-suppliers');
+
+  if (!response.ok) {
+    return supplierApiError(
+      response,
+      'Failed to load suppliers. Ensure SUPABASE_SERVICE_ROLE_KEY is set on the server.',
+    );
   }
 
-  const { data, error } = await supabase
-    .from('suppliers')
-    .select(SUPPLIER_SELECT_FIELDS)
-    .order('company_name', { ascending: true });
-
-  if (error) {
-    throw error;
+  const suppliers = await response.json();
+  if (!Array.isArray(suppliers)) {
+    throw new Error('Invalid supplier list response from server');
   }
 
-  return attachAccreditationStatuses(data || []);
+  return suppliers;
 }
 
 /**
@@ -176,37 +116,23 @@ export async function getSupplierById(supplierId) {
     throw new Error('Supplier ID is required');
   }
 
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('suppliers')
-      .select(SUPPLIER_SELECT_FIELDS)
-      .eq('id', supplierId)
-      .maybeSingle();
+  if (typeof fetch === 'undefined') {
+    throw new Error('Supplier lookup requires fetch (/api/get-supplier)');
+  }
 
-    if (!error && data) {
-      return data;
+  const response = await fetch(
+    `/api/get-supplier?supplierId=${encodeURIComponent(supplierId)}`,
+  );
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      return null;
     }
+    return supplierApiError(response, 'Failed to load supplier');
   }
 
-  if (typeof fetch !== 'undefined') {
-    try {
-      const response = await fetch('/api/list-suppliers');
-      if (response.ok) {
-        const suppliers = await response.json();
-        if (Array.isArray(suppliers)) {
-          return suppliers.find((supplier) => supplier.id === supplierId) || null;
-        }
-      }
-    } catch (apiError) {
-      console.warn('Supplier lookup API unavailable:', apiError);
-    }
-  }
-
-  if (!supabase) {
-    throw new Error('Supabase client is not configured');
-  }
-
-  return null;
+  const supplier = await response.json();
+  return supplier || null;
 }
 
 /**
@@ -295,40 +221,20 @@ export async function getSupplierAccreditation(supplierId) {
     throw new Error('Supplier ID is required');
   }
 
-  if (typeof fetch !== 'undefined') {
-    try {
-      const response = await fetch(
-        `/api/get-supplier-accreditation?supplierId=${encodeURIComponent(supplierId)}`
-      );
-
-      if (response.ok) {
-        const record = await response.json();
-        if (record) {
-          return record;
-        }
-      }
-    } catch (apiError) {
-      console.warn('Supplier accreditation API unavailable, falling back to direct Supabase query:', apiError);
-    }
+  if (typeof fetch === 'undefined') {
+    throw new Error('Supplier accreditation requires fetch (/api/get-supplier-accreditation)');
   }
 
-  if (!supabase) {
-    throw new Error('Supabase client is not configured');
+  const response = await fetch(
+    `/api/get-supplier-accreditation?supplierId=${encodeURIComponent(supplierId)}`,
+  );
+
+  if (!response.ok) {
+    return supplierApiError(response, 'Failed to load supplier accreditation');
   }
 
-  const { data, error } = await supabase
-    .from('supplier_accreditations')
-    .select('*')
-    .eq('supplier_id', supplierId)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
+  const record = await response.json();
+  return record || null;
 }
 
 /**
@@ -375,125 +281,30 @@ export async function saveSupplierAccreditation(supplierId, formData, status = '
     throw new Error('Supplier ID is required');
   }
 
-  let apiErrorMessage = null;
-
-  if (typeof fetch !== 'undefined') {
-    try {
-      const response = await fetch('/api/save-supplier-accreditation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          supplierId,
-          formData,
-          status,
-        }),
-      });
-
-      if (response.ok) {
-        return response.json();
-      }
-
-      const errorBody = await response.json().catch(() => ({}));
-      apiErrorMessage = errorBody.error || `Save API returned ${response.status}`;
-      console.warn('Supplier accreditation save API failed:', apiErrorMessage);
-    } catch (apiError) {
-      apiErrorMessage = apiError.message || 'Save API unavailable';
-      console.warn('Supplier accreditation save API unavailable:', apiError);
-    }
+  if (typeof fetch === 'undefined') {
+    throw new Error('Save supplier accreditation requires fetch (/api/save-supplier-accreditation)');
   }
 
-  if (!supabase) {
-    throw new Error(
-      apiErrorMessage ||
-        'Supabase client is not configured. Set SUPABASE_SERVICE_ROLE_KEY on the server or run migrations/fix-suppliers-anon-read-rls.sql.'
-    );
-  }
-
-  const { data: { session } } = await supabase.auth.getSession();
-  const userId = session?.user?.id || null;
-
-  let existingQuery = supabase
-    .from('supplier_accreditations')
-    .select('id, submitted_by')
-    .eq('supplier_id', supplierId)
-    .order('updated_at', { ascending: false })
-    .limit(1);
-
-  if (userId) {
-    existingQuery = existingQuery.eq('submitted_by', userId);
-  }
-
-  const { data: existing, error: fetchError } = await existingQuery.maybeSingle();
-
-  if (fetchError) {
-    throw fetchError;
-  }
-
-  if (existing?.id) {
-    const { data, error } = await supabase
-      .from('supplier_accreditations')
-      .update({
-        accreditation_data: formData,
-        status,
-      })
-      .eq('id', existing.id)
-      .select()
-      .maybeSingle();
-
-    if (error) {
-      throw new Error(
-        `${error.message}. Run migrations/fix-suppliers-anon-read-rls.sql in Supabase or configure SUPABASE_SERVICE_ROLE_KEY on the server.`
-      );
-    }
-
-    if (data) {
-      return data;
-    }
-
-    const { data: refreshed, error: refreshError } = await supabase
-      .from('supplier_accreditations')
-      .select('*')
-      .eq('id', existing.id)
-      .maybeSingle();
-
-    if (refreshError) {
-      throw refreshError;
-    }
-
-    if (refreshed) {
-      return refreshed;
-    }
-
-    throw new Error(
-      'Save was blocked by database permissions. Run migrations/fix-suppliers-anon-read-rls.sql in Supabase or configure SUPABASE_SERVICE_ROLE_KEY on the server.'
-    );
-  }
-
-  if (!userId) {
-    throw new Error(
-      apiErrorMessage ||
-        'Unable to save supplier accreditation from the admin panel. Configure SUPABASE_SERVICE_ROLE_KEY on the server or run migrations/fix-suppliers-anon-read-rls.sql.'
-    );
-  }
-
-  const { data, error } = await supabase
-    .from('supplier_accreditations')
-    .insert({
-      supplier_id: supplierId,
-      accreditation_data: formData,
+  const response = await fetch('/api/save-supplier-accreditation', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      supplierId,
+      formData,
       status,
-      submitted_by: userId,
-    })
-    .select()
-    .single();
+    }),
+  });
 
-  if (error) {
-    throw error;
+  if (!response.ok) {
+    return supplierApiError(
+      response,
+      'Failed to save supplier accreditation. Ensure SUPABASE_SERVICE_ROLE_KEY is set on the server.',
+    );
   }
 
-  return data;
+  return response.json();
 }
 
 /**

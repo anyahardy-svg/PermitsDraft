@@ -63,6 +63,8 @@ Consolidated evidence wording, storage vs table tests, and probe list: **`docs/s
 ## What Step 2 does *not* fix by itself
 
 - **`companies`** — see `docs/security/DEPLOY_COMPANY_DATA.md` and `migrations/lock-down-anon-companies.sql` (deploy Edge + frontend before SQL).
+- **`suppliers` / `supplier_accreditations`** — see `docs/security/DEPLOY_SUPPLIERS_LOCKDOWN.md` and `migrations/lock-down-anon-suppliers.sql` (Vercel APIs; safe to schedule outside kiosk peak).
+- **`sign_ins`** — defer while sign-in volume is high; requires Edge/API wiring before SQL (same pattern as contractors).
 - **Kiosk Edge actions** (`listForKiosk`, `searchForKiosk`) are still invokable with the public anon key — they only remove **bulk table dump** via REST. Tightening kiosk (shared secret, rate limits) is optional Step 2b.
 
 ---
