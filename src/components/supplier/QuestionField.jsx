@@ -224,20 +224,49 @@ function DocumentUploadField({ field, value, onChange, uploadHandler, onOpenDocu
     if (!fileRef) {
       return;
     }
+
+    const legacyPublicUrl =
+      typeof fileRef === 'string'
+      && fileRef.includes('://')
+      && fileRef.includes('/object/public/');
+
+    let viewTab = null;
+    if (typeof window !== 'undefined' && window.open) {
+      viewTab = window.open('about:blank', '_blank', 'noopener,noreferrer');
+    }
+
     if (onOpenDocument) {
       try {
         setOpening(true);
         setError(null);
-        await onOpenDocument(fileRef);
+        await onOpenDocument(fileRef, viewTab);
       } catch (viewError) {
+        if (viewTab && !viewTab.closed) {
+          viewTab.close();
+        }
+        if (legacyPublicUrl) {
+          const fallbackTab = window.open(fileRef, '_blank', 'noopener,noreferrer');
+          if (!fallbackTab) {
+            setError(viewError.message || 'Could not open document (allow pop-ups for this site)');
+          }
+          return;
+        }
         setError(viewError.message || 'Could not open document');
       } finally {
         setOpening(false);
       }
       return;
     }
+
     if (typeof fileRef === 'string' && fileRef.includes('://')) {
-      window.open(fileRef, '_blank', 'noopener,noreferrer');
+      if (viewTab && !viewTab.closed) {
+        viewTab.location.href = fileRef;
+      } else {
+        window.open(fileRef, '_blank', 'noopener,noreferrer');
+      }
+    } else if (viewTab && !viewTab.closed) {
+      viewTab.close();
+      setError('Document path saved but viewer is not available. Refresh the page after deploying the latest app.');
     }
   };
 
@@ -286,8 +315,22 @@ function DocumentUploadField({ field, value, onChange, uploadHandler, onOpenDocu
   );
 }
 
+function normalizeDocumentGroupValue(value, options = []) {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+  const docs = { ...value };
+  options.forEach((option) => {
+    const altKey = option.toLowerCase();
+    if (!docs[option] && docs[altKey]) {
+      docs[option] = docs[altKey];
+    }
+  });
+  return docs;
+}
+
 function DocumentGroupField({ field, value, onChange, uploadHandler, onOpenDocument }) {
-  const docs = value && typeof value === 'object' ? value : {};
+  const docs = normalizeDocumentGroupValue(value, field.options || []);
 
   const updateDoc = (option, docValue) => {
     onChange({
