@@ -6,29 +6,20 @@
 import { supabase } from '../supabaseClient';
 import { validateFile } from '../utils/fileValidation';
 import { buildContractorAttachmentStoragePath } from '../utils/storagePaths';
-import { getContractor, updateContractor } from './contractors';
+import { getContractor, listContractorsByCompany, updateContractor } from './contractors';
 import {
   TRAINING_RECORDS_BUCKET,
   openTrainingRecordsFile,
   trainingRecordsFileReference,
 } from './trainingRecordsStorage';
+import {
+  countCompanyContractorAttachments,
+  normalizeContractorAttachments,
+} from '../utils/contractorAttachmentsUtils';
+
+export { normalizeContractorAttachments, countCompanyContractorAttachments };
 
 const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp'];
-
-export function normalizeContractorAttachments(raw) {
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-  return raw
-    .filter((item) => item && typeof item === 'object' && item.path)
-    .map((item) => ({
-      id: String(item.id || item.path),
-      label: item.label ? String(item.label) : '',
-      name: item.name ? String(item.name) : 'Attachment',
-      path: String(item.path),
-      uploadedAt: item.uploadedAt || item.uploaded_at || null,
-    }));
-}
 
 async function persistAttachments(contractorId, attachments) {
   const updated = await updateContractor(contractorId, { attachments });
@@ -38,6 +29,31 @@ async function persistAttachments(contractorId, attachments) {
 export async function loadContractorAttachments(contractorId) {
   const contractor = await getContractor(contractorId);
   return normalizeContractorAttachments(contractor?.attachments);
+}
+
+/** All contractor-uploaded attachments for every person linked to a company. */
+export async function loadCompanyContractorAttachments(companyId) {
+  if (!companyId) {
+    return [];
+  }
+
+  const contractors = await listContractorsByCompany(companyId);
+  const groups = [];
+
+  for (const contractor of contractors || []) {
+    const attachments = normalizeContractorAttachments(contractor.attachments);
+    if (attachments.length === 0) {
+      continue;
+    }
+    groups.push({
+      contractorId: contractor.id,
+      contractorName: contractor.name || 'Unknown contractor',
+      contractorEmail: contractor.email || '',
+      attachments,
+    });
+  }
+
+  return groups.sort((a, b) => a.contractorName.localeCompare(b.contractorName));
 }
 
 export async function uploadContractorAttachment({
