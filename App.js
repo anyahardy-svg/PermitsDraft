@@ -119,6 +119,7 @@ import { getLegalDocument } from './src/api/legal-documents';
 import PermitHandoverModal from './src/components/PermitHandoverModal';
 import TransientMessageOverlay from './src/components/TransientMessageOverlay';
 import ContractorAttachmentsSection from './src/components/ContractorAttachmentsSection';
+import CompanyContractorAttachmentsModal from './src/components/CompanyContractorAttachmentsModal';
 import { showTransientMessage } from './src/utils/transientMessage';
 import { exportSitesCsv } from './src/utils/siteExport';
 import { normalizeVisitorInductionContent } from './src/utils/visitorInductionContent';
@@ -3466,6 +3467,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [rejectionFeedback, setRejectionFeedback] = useState('');
   const [showTrainingRecordsModal, setShowTrainingRecordsModal] = useState(false);
   const [selectedCompanyForTrainingRecords, setSelectedCompanyForTrainingRecords] = useState(null);
+  const [showCompanyAttachmentsModal, setShowCompanyAttachmentsModal] = useState(false);
+  const [selectedCompanyForAttachments, setSelectedCompanyForAttachments] = useState(null);
   const [trainingRecordsStatuses, setTrainingRecordsStatuses] = useState({}); // Stores status for each company ID
   const [trainingMatricesStatuses, setTrainingMatricesStatuses] = useState({});
   const [approvingTrainingRecords, setApprovingTrainingRecords] = useState(false);
@@ -11426,6 +11429,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Accreditation</Text>
                         <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Training Records</Text>
                         <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Training Matrices</Text>
+                        <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Attachments</Text>
                         <Text style={{ width: 140, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Invitation Sent</Text>
                         <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Deadline</Text>
                         <Text style={{ width: 160, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Next Reminder Email</Text>
@@ -11566,6 +11570,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                     '#6B7280'
                                 }}>
                                   {company.training_matrices_total > 0 && (company.training_matrices_approved || 0) === company.training_matrices_total ? '✓ Approved' : company.training_matrices_total > 0 ? `⏳ ${company.training_matrices_total - (company.training_matrices_approved || 0)} Pending` : '○ None'}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              style={{ width: 120, padding: 12, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}
+                              onPress={() => {
+                                setSelectedCompanyForAttachments(company);
+                                setShowCompanyAttachmentsModal(true);
+                              }}
+                            >
+                              <View style={{
+                                paddingHorizontal: 8,
+                                paddingVertical: 4,
+                                borderRadius: 4,
+                                backgroundColor: '#EEF2FF',
+                              }}>
+                                <Text style={{ fontSize: 13, fontWeight: '600', color: '#4338CA' }}>
+                                  📎 View
                                 </Text>
                               </View>
                             </TouchableOpacity>
@@ -12129,6 +12152,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             </View>
           </Modal>
         )}
+
+        <CompanyContractorAttachmentsModal
+          visible={showCompanyAttachmentsModal}
+          company={selectedCompanyForAttachments}
+          onClose={() => {
+            setShowCompanyAttachmentsModal(false);
+            setSelectedCompanyForAttachments(null);
+          }}
+        />
 
         {/* Training Records Feedback Modal */}
         {showTrainingRecordsFeedbackModal && (
