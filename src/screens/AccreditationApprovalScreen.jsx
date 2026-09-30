@@ -94,7 +94,7 @@ export default function AccreditationApprovalScreen({ token }) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
         <ActivityIndicator size="large" color="#3B82F6" />
-        <Text style={{ marginTop: 12, color: '#4B5563' }}>Loading approval request...</Text>
+        <Text style={{ marginTop: 12, color: '#4B5563' }}>Loading data…</Text>
       </View>
     );
   }
