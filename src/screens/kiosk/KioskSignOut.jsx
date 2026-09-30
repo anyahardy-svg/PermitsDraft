@@ -4,18 +4,24 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigate } from 'react-router-dom';
 import { KioskContext } from '../KioskScreen';
 import { getSignedInPeople, checkOut } from '../../api/signIns';
+import {
+  showTransientMessage,
+  showProgressMessage,
+  clearProgressMessage,
+} from '../../utils/transientMessage';
 
 const KioskSignOut = () => {
   const navigate = useNavigate();
   const { siteId, styles } = useContext(KioskContext);
-  
+
   const [signedInPeople, setSignedInPeople] = useState([]);
   const [selectedPerson, setSelectedPerson] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     loadSignedInPeople();
@@ -32,37 +38,42 @@ const KioskSignOut = () => {
   };
 
   const handleSignOut = async () => {
-    if (!selectedPerson) {
-      Alert.alert('Error', 'Please select a person to sign out');
+    if (busy) {
       return;
     }
 
+    if (!selectedPerson) {
+      showTransientMessage('Please select a person to sign out');
+      return;
+    }
+
+    setBusy(true);
+    showProgressMessage('Signing out…');
     try {
       const { error } = await checkOut(selectedPerson.id);
-      
+
       if (error) {
-        Alert.alert('Error', error);
+        showTransientMessage(error, 3000);
         return;
       }
 
       const name = selectedPerson.contractor_name || selectedPerson.visitor_name || 'Unknown';
-      Alert.alert('Success', `${name} signed out at ${new Date().toLocaleTimeString('en-NZ')}`);
+      showTransientMessage(`${name} signed out`);
       setSelectedPerson(null);
-      
-      // Reload the list
       await loadSignedInPeople();
-      
-      // Navigate back to welcome after 1 second
       setTimeout(() => navigate('/'), 1000);
     } catch (error) {
-      Alert.alert('Error', 'Failed to sign out: ' + error.message);
+      showTransientMessage(`Failed to sign out: ${error.message}`, 3000);
+    } finally {
+      clearProgressMessage();
+      setBusy(false);
     }
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigate('/')}>
+        <TouchableOpacity onPress={() => navigate('/')} disabled={busy}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Sign Out</Text>
@@ -72,7 +83,6 @@ const KioskSignOut = () => {
         <Text style={styles.label}>Select Person to Sign Out:</Text>
         {signedInPeople.length > 0 ? (
           signedInPeople.map((person) => {
-            // Determine type, company, and phone
             const type = person.type || (person.contractor_id ? 'Contractor' : 'Visitor');
             const name = person.contractor_name || person.visitor_name || 'Unknown';
             const company = person.contractor_company || person.visitor_company || 'N/A';
@@ -82,12 +92,15 @@ const KioskSignOut = () => {
                 key={person.id}
                 style={[
                   styles.personItem,
-                  selectedPerson?.id === person.id && styles.personItemSelected
+                  selectedPerson?.id === person.id && styles.personItemSelected,
                 ]}
                 onPress={() => setSelectedPerson(person)}
+                disabled={busy}
               >
                 <Text style={styles.personName}>{name}</Text>
-                <Text style={styles.personTime}>Checked in: {new Date(person.check_in_time).toLocaleTimeString('en-NZ')}</Text>
+                <Text style={styles.personTime}>
+                  Checked in: {new Date(person.check_in_time).toLocaleTimeString('en-NZ')}
+                </Text>
                 <Text style={styles.personDetails}>Type: {type}</Text>
                 <Text style={styles.personDetails}>Company: {company}</Text>
                 <Text style={styles.personDetails}>Phone: {phone}</Text>
@@ -100,10 +113,18 @@ const KioskSignOut = () => {
 
         {selectedPerson && (
           <TouchableOpacity
-            style={styles.submitButton}
+            style={[styles.submitButton, busy && { opacity: 0.6 }]}
             onPress={handleSignOut}
+            disabled={busy}
           >
-            <Text style={styles.submitButtonText}>✓ Sign Out</Text>
+            {busy ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <ActivityIndicator color="#FFFFFF" size="small" />
+                <Text style={styles.submitButtonText}>Signing out…</Text>
+              </View>
+            ) : (
+              <Text style={styles.submitButtonText}>✓ Sign Out</Text>
+            )}
           </TouchableOpacity>
         )}
       </ScrollView>

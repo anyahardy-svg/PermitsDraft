@@ -7,7 +7,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigate } from 'react-router-dom';
 
@@ -19,22 +19,25 @@ import {
   normalizePhoneForSave,
 } from '../../utils/contractorPhone';
 import { validateContractorFullName } from '../../utils/contractorName';
-import { showTransientMessage } from '../../utils/transientMessage';
+import {
+  showTransientMessage,
+  showProgressMessage,
+  clearProgressMessage,
+} from '../../utils/transientMessage';
 
-// Format name to proper title case
 const formatNameToTitleCase = (name) => {
   if (!name) return '';
   return name
     .toLowerCase()
     .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 };
 
 const KioskVisitorSignIn = () => {
   const navigate = useNavigate();
   const { siteId, styles } = useContext(KioskContext);
-  
+
   const [visitorName, setVisitorName] = useState('');
   const [visitorCompany, setVisitorCompany] = useState('');
   const [visitorPhone, setVisitorPhone] = useState('');
@@ -42,8 +45,13 @@ const KioskVisitorSignIn = () => {
   const [visitorNameError, setVisitorNameError] = useState('');
   const [visitorCompanyError, setVisitorCompanyError] = useState('');
   const [visitorPhoneError, setVisitorPhoneError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const handleCheckInVisitor = async () => {
+    if (busy) {
+      return;
+    }
+
     const nameError = validateContractorFullName(visitorName) || '';
     const companyError = visitorCompany.trim() ? '' : 'Please enter your company';
     const phoneError = validateContractorPhone(visitorPhone) || '';
@@ -57,6 +65,8 @@ const KioskVisitorSignIn = () => {
       return;
     }
 
+    setBusy(true);
+    showProgressMessage('Signing in…');
     try {
       const result = await checkInVisitor(
         formatNameToTitleCase(visitorName),
@@ -66,13 +76,13 @@ const KioskVisitorSignIn = () => {
         normalizePhoneForSave(visitorPhone),
         visitingPerson || null
       );
-      
+
       if (!result?.success) {
-        Alert.alert('Error', result?.error || 'Failed to check in');
+        showTransientMessage(result?.error || 'Failed to check in', 3000);
         return;
       }
 
-      Alert.alert('Success', `${visitorName} checked in at ${new Date().toLocaleTimeString('en-NZ')}`);
+      showTransientMessage(`${visitorName} checked in`);
       setVisitorName('');
       setVisitorCompany('');
       setVisitorPhone('');
@@ -80,18 +90,20 @@ const KioskVisitorSignIn = () => {
       setVisitorNameError('');
       setVisitorCompanyError('');
       setVisitorPhoneError('');
-      
-      // Navigate back to welcome after 1 second
+
       setTimeout(() => navigate('/'), 1000);
     } catch (error) {
-      Alert.alert('Error', 'Failed to check in: ' + error.message);
+      showTransientMessage(`Failed to check in: ${error.message}`, 3000);
+    } finally {
+      clearProgressMessage();
+      setBusy(false);
     }
   };
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigate('/')}>
+        <TouchableOpacity onPress={() => navigate('/')} disabled={busy}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Sign In Visitor</Text>
@@ -109,9 +121,12 @@ const KioskVisitorSignIn = () => {
               setVisitorNameError('');
             }
           }}
+          editable={!busy}
         />
         {visitorNameError ? (
-          <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{visitorNameError}</Text>
+          <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>
+            {visitorNameError}
+          </Text>
         ) : null}
 
         <Text style={styles.label}>Company *</Text>
@@ -125,9 +140,12 @@ const KioskVisitorSignIn = () => {
               setVisitorCompanyError('');
             }
           }}
+          editable={!busy}
         />
         {visitorCompanyError ? (
-          <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{visitorCompanyError}</Text>
+          <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>
+            {visitorCompanyError}
+          </Text>
         ) : null}
 
         <Text style={styles.label}>Phone Number *</Text>
@@ -143,9 +161,12 @@ const KioskVisitorSignIn = () => {
             }
           }}
           keyboardType="phone-pad"
+          editable={!busy}
         />
         {visitorPhoneError ? (
-          <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>{visitorPhoneError}</Text>
+          <Text style={{ fontSize: 12, color: '#DC2626', marginTop: 4, marginBottom: 12 }}>
+            {visitorPhoneError}
+          </Text>
         ) : null}
 
         <Text style={styles.label}>Visiting Person (optional)</Text>
@@ -154,13 +175,22 @@ const KioskVisitorSignIn = () => {
           placeholder="Who are you visiting?"
           value={visitingPerson}
           onChangeText={setVisitingPerson}
+          editable={!busy}
         />
 
-        <TouchableOpacity 
-          style={styles.submitButton}
+        <TouchableOpacity
+          style={[styles.submitButton, busy && { opacity: 0.6 }]}
           onPress={handleCheckInVisitor}
+          disabled={busy}
         >
-          <Text style={styles.submitButtonText}>✓ Check In</Text>
+          {busy ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <ActivityIndicator color="#FFFFFF" size="small" />
+              <Text style={styles.submitButtonText}>Signing in…</Text>
+            </View>
+          ) : (
+            <Text style={styles.submitButtonText}>✓ Check In</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

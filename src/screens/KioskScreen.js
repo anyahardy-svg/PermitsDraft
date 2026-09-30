@@ -40,7 +40,11 @@ import MarkdownRenderer from '../components/MarkdownRenderer';
 import KioskBrandLogo from '../components/KioskBrandLogo';
 import { kioskPermitsEnabled } from '../utils/kioskBrandLogo';
 import { normalizeVisitorInductionContent } from '../utils/visitorInductionContent';
-import { showTransientMessage } from '../utils/transientMessage';
+import {
+  showTransientMessage,
+  showProgressMessage,
+  clearProgressMessage,
+} from '../utils/transientMessage';
 import {
   formatPhoneForDisplay,
   normalizePhoneForSave,
@@ -106,6 +110,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [businessUnitId, setBusinessUnitId] = useState(null);
   const [allSites, setAllSites] = useState([]); // Store all sites for lookup
   const [loading, setLoading] = useState(true);
+  const [kioskActionBusy, setKioskActionBusy] = useState(false);
   const [testMode, setTestMode] = useState(false); // For development/testing
   
   // For contractor search
@@ -816,14 +821,14 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   };
 
   const handleCheckInContractor = async () => {
+    if (kioskActionBusy) {
+      return;
+    }
+
     console.log('🔘 Check-in button clicked');
-    
-    console.log('1️⃣ Checking if contractor selected...');
-    console.log('   selectedContractor:', selectedContractor);
-    
+
     if (!selectedContractor) {
-      console.log('❌ No contractor selected - showing alert');
-      Alert.alert('Error', 'Please select a contractor');
+      showTransientMessage('Please select a contractor');
       return;
     }
 
@@ -834,13 +839,11 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       return;
     }
     setContractorPhoneError('');
-    
-    console.log('2️⃣ Contractor selected:', selectedContractor.name);
 
-    // Refresh site data to get latest flag/rt settings
+    setKioskActionBusy(true);
+    showProgressMessage('Signing in…');
     let refreshedSite = site;
     try {
-      console.log('3️⃣ Refreshing current site flag/rt settings...');
       refreshedSite = await getSite(siteId) || site;
       if (refreshedSite) {
         setSite(refreshedSite);
@@ -849,34 +852,32 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       console.error('❌ Error refreshing site data:', err);
       refreshedSite = site;
     }
-    
-    // Check if site requires flag/RT - USE REFRESHED DATA, not state
-    console.log('8️⃣ Checking flag/rt requirements on refreshed site...');
+
     const siteNeedsFlag = refreshedSite?.flag;
     const siteNeedsRT = refreshedSite?.rt;
-    
-    console.log('9️⃣ Refreshed site data:', { name: refreshedSite?.name, flag: siteNeedsFlag, rt: siteNeedsRT });
-    console.log('🚩 Site needs Flag:', siteNeedsFlag, 'Type:', typeof siteNeedsFlag);
-    console.log('📡 Site needs RT:', siteNeedsRT, 'Type:', typeof siteNeedsRT);
 
     if (siteNeedsFlag || siteNeedsRT) {
-      console.log('🔟 Flag/RT required - showing modal');
+      clearProgressMessage();
+      setKioskActionBusy(false);
       setPendingCheckInContractor(selectedContractor);
       setFlagTaken(false);
       setFlagName('');
       setRtTaken(false);
       setRtName('');
       setShowFlagRTModal(true);
-      console.log('1️⃣1️⃣ Modal state set - showFlagRTModal:', true);
       return;
     }
 
-    console.log('1️⃣2️⃣ No Flag/RT required - proceeding with check-in');
     await performCheckIn(selectedContractor, null, null);
   };
 
   const performCheckIn = async (contractor, flagData, rtData) => {
-    console.log('📞 Calling checkInContractor for:', contractor.name);
+    if (!contractor) {
+      return;
+    }
+
+    setKioskActionBusy(true);
+    showProgressMessage('Signing in…');
     try {
       const phoneValidationError = validateContractorPhone(contractorPhone);
       if (phoneValidationError) {
@@ -888,7 +889,6 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
       if (contractorPhoneNeedsUpdate(contractor.phone, contractorPhone)) {
         const phoneToSave = normalizePhoneForSave(contractorPhone);
-        console.log('📱 Updating contractor phone before check-in:', contractor.id);
         try {
           await updateContractor(contractor.id, { phone: phoneToSave });
         } catch (phoneUpdateError) {
@@ -905,11 +905,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         contractorVisitingPerson || null,
         normalizePhoneForSave(contractorPhone)
       );
-      
-      console.log('📊 Check-in result:', result);
-      
+
       if (result?.success) {
-        // Clear the form immediately since check-in was recorded
         const contractorName = contractor.name;
         selectedContractorIdRef.current = null;
         setSelectedContractor(null);
@@ -925,26 +922,33 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         showTransientMessage('You are signed in');
 
         if (result?.isExpired) {
-          Alert.alert(
-            '⚠️ Induction Expired',
-            `${contractorName}'s induction expired on ${result.expiryDate}. They have been checked in but renewal is recommended.`
+          showTransientMessage(
+            `${contractorName}'s induction expired. Check-in recorded — please renew induction.`,
+            4000
           );
         } else if (!result?.inducted) {
-          Alert.alert(
-            '⚠️ Induction Required',
-            `${contractorName} is not inducted at ${site.name}. They have been checked in but induction is required.`
+          showTransientMessage(
+            `${contractorName} is not inducted at ${site?.name || 'this site'}. Check-in recorded — induction required.`,
+            4000
           );
         }
       } else {
-        Alert.alert('Error', result?.error || 'Check-in failed');
+        showTransientMessage(result?.error || 'Check-in failed', 3000);
       }
     } catch (error) {
-      Alert.alert('Error', error?.message);
+      showTransientMessage(error?.message || 'Check-in failed', 3000);
       console.error('Check-in error:', error);
+    } finally {
+      clearProgressMessage();
+      setKioskActionBusy(false);
     }
   };
 
   const handleCheckInVisitor = async () => {
+    if (kioskActionBusy) {
+      return;
+    }
+
     const nameError = validateContractorFullName(visitorName) || '';
     const companyError = visitorCompany.trim() ? '' : 'Please enter your company';
     const phoneError = validateContractorPhone(visitorPhone) || '';
@@ -957,7 +961,9 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       showTransientMessage(nameError || companyError || phoneError);
       return;
     }
-    
+
+    setKioskActionBusy(true);
+    showProgressMessage('Signing in…');
     try {
       const formattedName = formatNameToTitleCase(visitorName);
       const result = await checkInVisitor(
@@ -968,10 +974,9 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         normalizePhoneForSave(visitorPhone),
         visitingPerson || null
       );
-      
+
       if (result?.success) {
         showTransientMessage('You are signed in');
-        // Clear all visitor form state
         setVisitorName('');
         setVisitorCompany('');
         setVisitorPhone('');
@@ -982,26 +987,31 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         setCurrentScreen('welcome');
         loadSignedInPeople();
       } else {
-        Alert.alert('Error', result?.error || 'Check-in failed');
+        showTransientMessage(result?.error || 'Check-in failed', 3000);
       }
     } catch (error) {
-      Alert.alert('Error', error?.message);
+      showTransientMessage(error?.message || 'Check-in failed', 3000);
       console.error('Visitor check-in error:', error);
+    } finally {
+      clearProgressMessage();
+      setKioskActionBusy(false);
     }
   };
 
   const handleSignOut = async () => {
-    if (!selectedPerson) {
-      Alert.alert('Error', 'Please select a person to sign out');
+    if (kioskActionBusy) {
       return;
     }
-    
-    // Check if person took flag or RT
+
+    if (!selectedPerson) {
+      showTransientMessage('Please select a person to sign out');
+      return;
+    }
+
     const tookFlag = selectedPerson.flag_taken;
     const tookRT = selectedPerson.rt_taken;
 
     if (tookFlag || tookRT) {
-      // Show return confirmation modal
       setPendingCheckOutId(selectedPerson.id);
       setFlagReturned(true);
       setRtReturned(true);
@@ -1009,20 +1019,28 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       return;
     }
 
-    // No flag/RT to return, proceed with sign-out
     await performCheckOut(selectedPerson.id, null, null);
   };
 
   const performCheckOut = async (signInId, flagReturned, rtReturned) => {
+    setKioskActionBusy(true);
+    showProgressMessage('Signing out…');
     try {
       await checkOut(signInId, flagReturned, rtReturned);
-      const personName = selectedPerson.name;
-      Alert.alert('Success', `${personName} signed out successfully`);
+      const personName =
+        selectedPerson?.contractor_name ||
+        selectedPerson?.visitor_name ||
+        selectedPerson?.name ||
+        'Guest';
+      showTransientMessage(`${personName} signed out`);
       setCurrentScreen('welcome');
       setSelectedPerson(null);
       loadSignedInPeople();
     } catch (error) {
-      Alert.alert('Error', error?.message || 'Failed to sign out');
+      showTransientMessage(error?.message || 'Failed to sign out', 3000);
+    } finally {
+      clearProgressMessage();
+      setKioskActionBusy(false);
     }
   };
 
@@ -1659,12 +1677,18 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               </View>
               
               <TouchableOpacity 
-                style={styles.submitButton}
+                style={[styles.submitButton, kioskActionBusy && { opacity: 0.6 }]}
                 onPress={handleCheckInContractor}
+                disabled={kioskActionBusy}
               >
-                <Text style={styles.submitButtonText}>
-                  ✓ Check In
-                </Text>
+                {kioskActionBusy ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                    <Text style={styles.submitButtonText}>Signing in…</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.submitButtonText}>✓ Check In</Text>
+                )}
               </TouchableOpacity>
             </View>
           )}
@@ -1979,10 +2003,18 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           })}
 
           <TouchableOpacity 
-            style={styles.submitButton}
+            style={[styles.submitButton, kioskActionBusy && { opacity: 0.6 }]}
             onPress={handleCheckInVisitor}
+            disabled={kioskActionBusy}
           >
-            <Text style={styles.submitButtonText}>✓ Check In</Text>
+            {kioskActionBusy ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <ActivityIndicator color="#FFFFFF" size="small" />
+                <Text style={styles.submitButtonText}>Signing in…</Text>
+              </View>
+            ) : (
+              <Text style={styles.submitButtonText}>✓ Check In</Text>
+            )}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -2066,10 +2098,18 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                     
                     {selectedPerson?.id === person.id && (
                       <TouchableOpacity
-                        style={styles.submitButton}
+                        style={[styles.submitButton, kioskActionBusy && { opacity: 0.6 }]}
                         onPress={handleSignOut}
+                        disabled={kioskActionBusy}
                       >
-                        <Text style={styles.submitButtonText}>✓ Sign Out</Text>
+                        {kioskActionBusy ? (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                            <ActivityIndicator color="#FFFFFF" size="small" />
+                            <Text style={styles.submitButtonText}>Signing out…</Text>
+                          </View>
+                        ) : (
+                          <Text style={styles.submitButtonText}>✓ Sign Out</Text>
+                        )}
                       </TouchableOpacity>
                     )}
                   </View>
