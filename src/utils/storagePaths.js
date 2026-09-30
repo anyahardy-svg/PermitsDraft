@@ -37,6 +37,18 @@ export function buildCompanyTrainingMatrixStoragePath({ companyName, fileExt }) 
   return `${companySegment}/matrices/${Date.now()}.${extension}`;
 }
 
+export function buildContractorAttachmentStoragePath({
+  companyName,
+  contractorName,
+  fileExt,
+}) {
+  const companySegment = sanitizeStorageSegment(companyName, 'unknown_company');
+  const contractorSegment = sanitizeStorageSegment(contractorName, 'unknown_contractor');
+  const extension = (fileExt || 'pdf').replace(/^\./, '');
+
+  return `${companySegment}/${contractorSegment}/other_attachments/${Date.now()}.${extension}`;
+}
+
 export const SUPPLIER_DOCUMENTS_BUCKET = 'suppliers';
 
 export function buildSupplierDocumentStoragePath({ companyName, documentType, fileExt }) {

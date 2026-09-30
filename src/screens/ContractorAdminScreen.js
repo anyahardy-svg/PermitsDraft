@@ -24,6 +24,7 @@ import CompanyAccreditationScreen from './CompanyAccreditationScreen';
 import TrainingRecordsScreen from './TrainingRecordsScreen';
 import ContractorAuthScreen from './ContractorAuthScreen';
 import HelpModal from '../components/HelpModal';
+import ContractorAttachmentsSection from '../components/ContractorAttachmentsSection';
 import { copyContractorInductionLink, getContractorInductionUrl } from '../utils/inductionLinks';
 
 export default function ContractorAdminScreen({ 
@@ -2248,7 +2249,7 @@ export default function ContractorAdminScreen({
               <Text style={styles.backButton}>←</Text>
             </TouchableOpacity>
             <Text style={styles.title}>
-              {activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : activeTab === 'inductions' ? 'Inducted Contractors' : activeTab === 'training-records' ? 'Training Records' : activeTab === 'profile' ? 'My Profile' : activeTab === 'my-permits' ? 'My Draft Permits' : activeTab === 'join-requests' ? 'Join Requests' : 'Accreditation'}
+              {activeTab === 'jsea' ? 'JSEA Templates' : activeTab === 'permits' ? 'Permit Templates' : activeTab === 'inductions' ? 'Inducted Contractors' : activeTab === 'training-records' ? 'Training Records' : activeTab === 'attachments' ? 'Attachments' : activeTab === 'profile' ? 'My Profile' : activeTab === 'my-permits' ? 'My Draft Permits' : activeTab === 'join-requests' ? 'Join Requests' : 'Accreditation'}
             </Text>
             <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
               <TouchableOpacity onPress={() => setShowHelpModal(true)} style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#374151', borderRadius: 6 }}>
@@ -2302,6 +2303,13 @@ export default function ContractorAdminScreen({
               <Text style={styles.cardLabel}>Training Records</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              onPress={() => setActiveTab('attachments')}
+              style={[styles.dashboardCard, { borderLeftColor: '#6366F1', width: '48%' }]}
+            >
+              <Text style={styles.cardNumber}>📎</Text>
+              <Text style={styles.cardLabel}>Attachments</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={() => setActiveTab('profile')}
               style={[styles.dashboardCard, { borderLeftColor: '#06B6D4', width: '48%' }]}
             >
@@ -2326,7 +2334,7 @@ export default function ContractorAdminScreen({
         </ScrollView>
       ) : (
         /* Content View - Show selected section */
-        !effectiveBuId && activeTab !== 'accreditation' && activeTab !== 'inductions' && activeTab !== 'join-requests' ? (
+        !effectiveBuId && activeTab !== 'accreditation' && activeTab !== 'inductions' && activeTab !== 'join-requests' && activeTab !== 'attachments' ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
             <Text style={{ fontSize: 16, color: '#6B7280', textAlign: 'center', fontStyle: 'italic' }}>
               No business units available. Please contact your administrator.
@@ -2353,6 +2361,16 @@ export default function ContractorAdminScreen({
               onClose={() => setActiveTab(null)}
             />
           </View>
+        ) : activeTab === 'attachments' ? (
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
+            <ContractorAttachmentsSection
+              contractorId={loggedInContractorId}
+              companyName={loggedInCompanyName || ''}
+              contractorName={loggedInContractor || ''}
+              styles={styles}
+              hint="Upload PDFs or images for your company, such as traffic management plans or method statements. These are stored against your contractor profile."
+            />
+          </ScrollView>
         ) : activeTab === 'profile' ? (
           renderProfileEdit()
         ) : activeTab === 'my-permits' ? (

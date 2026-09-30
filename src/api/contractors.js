@@ -147,6 +147,7 @@ const transformContractor = (dbContractor) => {
     service_names: dbContractor.service_names || [],
     siteIds: dbContractor.site_ids || [],
     site_ids: dbContractor.site_ids || [],
+    attachments: dbContractor.attachments || [],
     createdAt: dbContractor.created_at,
     created_at: dbContractor.created_at,
   };

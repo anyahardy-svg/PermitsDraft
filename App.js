@@ -118,6 +118,7 @@ import { loginAdminUser, createAdminUser, getAllAdminUsers, deleteAdminUser, upd
 import { getLegalDocument } from './src/api/legal-documents';
 import PermitHandoverModal from './src/components/PermitHandoverModal';
 import TransientMessageOverlay from './src/components/TransientMessageOverlay';
+import ContractorAttachmentsSection from './src/components/ContractorAttachmentsSection';
 import { showTransientMessage } from './src/utils/transientMessage';
 import { exportSitesCsv } from './src/utils/siteExport';
 import { normalizeVisitorInductionContent } from './src/utils/visitorInductionContent';
@@ -2465,7 +2466,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
   
   const [currentScreen, setCurrentScreen] = useState(getInitialScreen());
-  const [contractorAdminTab, setContractorAdminTab] = useState(null); // null, 'jsea', 'permits', 'accreditation', 'inductions', 'training-records'
+  const [contractorAdminTab, setContractorAdminTab] = useState(null); // null, 'jsea', 'permits', 'accreditation', 'inductions', 'training-records', 'attachments'
   const [showPasswordReset, setShowPasswordReset] = useState(false); // Show password reset form in contractor auth
   const [invitationFlow, setInvitationFlow] = useState(false); // True when coming from ?type=invited email link
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
@@ -4199,6 +4200,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           'accreditation': '/contractor-admin/accreditation/',
           'inductions': '/contractor-admin/inductions/',
           'training-records': '/contractor-admin/training-records/',
+          'attachments': '/contractor-admin/attachments/',
           'my-permits': '/contractor-admin/my-permits/'
         };
         newUrl = tabMap[contractorAdminTab] || '/contractor-admin/';
@@ -4281,6 +4283,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           'inductions': 'inductions',
           '/training-records': 'training-records',
           'training-records': 'training-records',
+          '/attachments': 'attachments',
+          'attachments': 'attachments',
           '/my-permits': 'my-permits',
           'my-permits': 'my-permits',
           '': null,
@@ -4330,6 +4334,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             'inductions': 'inductions',
             '/training-records': 'training-records',
             'training-records': 'training-records',
+            '/attachments': 'attachments',
+            'attachments': 'attachments',
             '/my-permits': 'my-permits',
             'my-permits': 'my-permits',
             '': null,
@@ -14923,6 +14929,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   })}
                 </View>
               )}
+
+              <ContractorAttachmentsSection
+                contractorId={currentContractor.id || null}
+                companyName={currentContractor.company || ''}
+                contractorName={currentContractor.name || ''}
+                styles={styles}
+              />
 
               <Text style={styles.label}>Induction Expiry Date</Text>
               <TextInput 
@@ -27125,6 +27138,8 @@ const AppRouter = ({ initialRoute }) => {
           'inductions': 'inductions',
           '/training-records': 'training-records',
           'training-records': 'training-records',
+          '/attachments': 'attachments',
+          'attachments': 'attachments',
           '/my-permits': 'my-permits',
           'my-permits': 'my-permits',
           '': null,
