@@ -127,7 +127,7 @@ const KioskContractorSignIn = () => {
             )}
           />
         ) : (
-          contractorSearch.trim().length > 0 && (
+          !selectedContractor && contractorSearch.trim().length > 0 && (
             <Text style={styles.noResults}>No contractors found</Text>
           )
         )}
