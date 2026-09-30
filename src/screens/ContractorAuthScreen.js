@@ -26,6 +26,11 @@ import {
 } from '../api/contractorAuth';
 import { submitJoinRequest } from '../api/joinRequests';
 import ContractorSiteFooter from '../components/ContractorSiteFooter';
+import {
+  showProgressMessage,
+  clearProgressMessage,
+  showTransientMessage,
+} from '../utils/transientMessage';
 
 function readInviteParamsFromUrl() {
   if (typeof window === 'undefined') {
@@ -52,6 +57,7 @@ export default function ContractorAuthScreen({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const initialInvite = readInviteParamsFromUrl();
@@ -468,7 +474,9 @@ export default function ContractorAuthScreen({
 
     if (!validateForm()) return;
 
+    setLoginError('');
     setLoading(true);
+    showProgressMessage('Signing in…');
     try {
       clearContractorSessionStorage();
       if (supabase) {
@@ -484,13 +492,18 @@ export default function ContractorAuthScreen({
           email: response.data?.email
         }, { showSignedInToast: true });
       } else {
-        showUserMessage('Login Failed', response?.error || 'Password or username incorrect');
+        const message = response?.error || 'Password or username incorrect';
+        setLoginError(message);
+        showTransientMessage(message, 3000);
         setPassword('');
       }
     } catch (error) {
-      showUserMessage('Error', error.message || 'An unexpected error occurred');
+      const message = error.message || 'An unexpected error occurred';
+      setLoginError(message);
+      showTransientMessage(message, 3000);
       setPassword('');
     } finally {
+      clearProgressMessage();
       setLoading(false);
     }
   };
@@ -1921,6 +1934,12 @@ export default function ContractorAuthScreen({
               <Text style={{ fontSize: 14, color: '#4B5563', fontWeight: '500' }}>Remember me</Text>
             </TouchableOpacity>
 
+            {loginError ? (
+              <Text style={{ fontSize: 14, color: '#DC2626', marginBottom: 12, lineHeight: 20 }}>
+                {loginError}
+              </Text>
+            ) : null}
+
             {/* Login Button */}
             <TouchableOpacity
               onPress={handleLogin}
@@ -1934,7 +1953,12 @@ export default function ContractorAuthScreen({
               }}
             >
               {loading ? (
-                <ActivityIndicator color="white" size="small" />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <ActivityIndicator color="white" size="small" />
+                  <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>
+                    Signing in…
+                  </Text>
+                </View>
               ) : (
                 <Text style={{ 
                   color: 'white', 

@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -8,18 +8,25 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { useNavigate } from 'react-router-dom';
 import { KioskContext } from '../KioskScreen';
 import { checkInContractor } from '../../api/signIns';
+import {
+  showTransientMessage,
+  showProgressMessage,
+  clearProgressMessage,
+} from '../../utils/transientMessage';
 
 const KioskContractorSignIn = () => {
   const navigate = useNavigate();
   const { contractors, styles } = useContext(KioskContext);
-  
+
   const [contractorSearch, setContractorSearch] = useState('');
   const [filteredContractors, setFilteredContractors] = useState([]);
   const [selectedContractor, setSelectedContractor] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   const handleContractorSearch = (text) => {
     setContractorSearch(text);
@@ -40,34 +47,43 @@ const KioskContractorSignIn = () => {
   };
 
   const handleCheckInContractor = async () => {
-    if (!selectedContractor) {
-      Alert.alert('Error', 'Please select a contractor');
+    if (busy) {
       return;
     }
+
+    if (!selectedContractor) {
+      showTransientMessage('Please select a contractor');
+      return;
+    }
+
+    setBusy(true);
+    showProgressMessage('Signing in…');
     try {
       const { data, error } = await checkInContractor({
         contractor_id: selectedContractor.id,
         check_in_time: new Date().toISOString(),
       });
       if (error) {
-        Alert.alert('Error', error);
+        showTransientMessage(error, 3000);
         return;
       }
-      Alert.alert('Success', `${selectedContractor.name} checked in at ${new Date().toLocaleTimeString('en-NZ')}`);
+      showTransientMessage(`${selectedContractor.name} checked in`);
       setContractorSearch('');
       setSelectedContractor(null);
       setFilteredContractors([]);
-      // Navigate back to welcome after 1 second
       setTimeout(() => navigate('/'), 1000);
     } catch (error) {
-      Alert.alert('Error', 'Failed to check in: ' + error.message);
+      showTransientMessage(`Failed to check in: ${error.message}`, 3000);
+    } finally {
+      clearProgressMessage();
+      setBusy(false);
     }
   };
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigate('/')}>
+        <TouchableOpacity onPress={() => navigate('/')} disabled={busy}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Sign In Contractor</Text>
@@ -80,20 +96,22 @@ const KioskContractorSignIn = () => {
           placeholder="Type contractor name or email..."
           value={contractorSearch}
           onChangeText={handleContractorSearch}
+          editable={!busy}
         />
 
         {filteredContractors.length > 0 ? (
           <FlatList
             data={filteredContractors}
             scrollEnabled={false}
-            keyExtractor={item => item.id}
+            keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
                   styles.contractorItem,
-                  selectedContractor?.id === item.id && styles.contractorItemSelected
+                  selectedContractor?.id === item.id && styles.contractorItemSelected,
                 ]}
                 onPress={() => setSelectedContractor(item)}
+                disabled={busy}
               >
                 <Text style={styles.contractorName}>{item.name}</Text>
                 <Text style={styles.contractorEmail}>{item.email}</Text>
@@ -111,21 +129,32 @@ const KioskContractorSignIn = () => {
           <View style={styles.selectedBox}>
             <Text style={styles.selectedLabel}>Ready to Check In:</Text>
             <Text style={styles.selectedName}>{selectedContractor.name}</Text>
-            <Text style={styles.selectedCompany}>Company: {selectedContractor.companyName || 'N/A'}</Text>
+            <Text style={styles.selectedCompany}>
+              Company: {selectedContractor.companyName || 'N/A'}
+            </Text>
             <Text style={styles.selectedDateTime}>
-              Date & Time: {new Date().toLocaleString('en-NZ', { 
-                year: 'numeric', 
-                month: 'short', 
+              Date & Time:{' '}
+              {new Date().toLocaleString('en-NZ', {
+                year: 'numeric',
+                month: 'short',
                 day: 'numeric',
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
               })}
             </Text>
-            <TouchableOpacity 
-              style={styles.submitButton}
+            <TouchableOpacity
+              style={[styles.submitButton, busy && { opacity: 0.6 }]}
               onPress={handleCheckInContractor}
+              disabled={busy}
             >
-              <Text style={styles.submitButtonText}>✓ Check In</Text>
+              {busy ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <Text style={styles.submitButtonText}>Signing in…</Text>
+                </View>
+              ) : (
+                <Text style={styles.submitButtonText}>✓ Check In</Text>
+              )}
             </TouchableOpacity>
           </View>
         )}
