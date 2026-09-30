@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingTop: 56,
+    paddingTop: 104,
     zIndex: 99999,
     elevation: 99999,
   },

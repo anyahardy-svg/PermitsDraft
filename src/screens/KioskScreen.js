@@ -548,6 +548,16 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
   const handleContractorSearch = (text) => {
     setReturnedFromInduction(false);
+    if (selectedContractorIdRef.current && text.trim() !== (selectedContractor?.name || '').trim()) {
+      selectedContractorIdRef.current = null;
+      setSelectedContractor(null);
+      setContractorInductionExpiry(null);
+      setContractorInductionExpired(false);
+      setAllContractorInductions([]);
+      setContractorPhone('');
+      setContractorPhoneError('');
+      setContractorVisitingPerson('');
+    }
     setContractorSearch(text);
 
     if (contractorSearchDebounceRef.current) {
@@ -777,6 +787,12 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   };
 
   const applyContractorSelection = async (contractorForStatus) => {
+    if (contractorSearchDebounceRef.current) {
+      clearTimeout(contractorSearchDebounceRef.current);
+      contractorSearchDebounceRef.current = null;
+    }
+    contractorSearchRequestRef.current += 1;
+
     selectedContractorIdRef.current = contractorForStatus?.id || null;
     const sitesForLookup = await loadBusinessUnitSitesIfNeeded();
     setSelectedContractor(contractorForStatus);
@@ -1438,33 +1454,6 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
             </View>
           )}
 
-          {!returnedFromInduction && (
-            <View style={{
-              backgroundColor: '#EFF6FF',
-              borderLeftWidth: 4,
-              borderLeftColor: '#3B82F6',
-              padding: 14,
-              borderRadius: 8,
-              marginBottom: 16,
-            }}>
-              <Text style={{ fontSize: 14, color: '#1E40AF', lineHeight: 20, marginBottom: 10 }}>
-                All new contractors (or if your name is not on the list) — can you please do an induction.
-              </Text>
-              <TouchableOpacity
-                style={{ alignSelf: 'flex-start' }}
-                onPress={() => {
-                  setInductionPrefillContractorId(null);
-                  setInductionReturnScreen('contractor-signin');
-                  setCurrentScreen('inductions');
-                }}
-              >
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#2563EB', textDecorationLine: 'underline' }}>
-                  Go to Inductions →
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
           <Text style={styles.label}>Search for Contractor:</Text>
           {contractorsLoadError ? (
             <View style={{ marginBottom: 12, padding: 12, backgroundColor: '#FEF2F2', borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#DC2626' }}>
@@ -1494,7 +1483,35 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
             </View>
           )}
 
-          {!contractorsLoading && filteredContractors.length > 0 ? (
+          {!returnedFromInduction && (
+            <View style={{
+              backgroundColor: '#EFF6FF',
+              borderLeftWidth: 4,
+              borderLeftColor: '#3B82F6',
+              padding: 14,
+              borderRadius: 8,
+              marginTop: 12,
+              marginBottom: 16,
+            }}>
+              <Text style={{ fontSize: 14, color: '#1E40AF', lineHeight: 20, marginBottom: 10 }}>
+                All new contractors (or if your name is not on the list) — can you please do an induction.
+              </Text>
+              <TouchableOpacity
+                style={{ alignSelf: 'flex-start' }}
+                onPress={() => {
+                  setInductionPrefillContractorId(null);
+                  setInductionReturnScreen('contractor-signin');
+                  setCurrentScreen('inductions');
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#2563EB', textDecorationLine: 'underline' }}>
+                  Go to Inductions →
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {!selectedContractor && !contractorsLoading && filteredContractors.length > 0 ? (
             <FlatList
               data={filteredContractors}
               scrollEnabled={false}
@@ -1518,7 +1535,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               )}
             />
           ) : (
-            !contractorsLoading && contractorSearch.trim().length > 0 && (
+            !selectedContractor && !contractorsLoading && contractorSearch.trim().length > 0 && (
               <Text style={styles.noResults}>No contractors found</Text>
             )
           )}

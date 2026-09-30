@@ -29,6 +29,9 @@ const KioskContractorSignIn = () => {
   const [busy, setBusy] = useState(false);
 
   const handleContractorSearch = (text) => {
+    if (selectedContractor && text.trim() !== (selectedContractor.name || '').trim()) {
+      setSelectedContractor(null);
+    }
     setContractorSearch(text);
     if (text.trim()) {
       const searchLower = text.toLowerCase();
@@ -99,7 +102,7 @@ const KioskContractorSignIn = () => {
           editable={!busy}
         />
 
-        {filteredContractors.length > 0 ? (
+        {!selectedContractor && filteredContractors.length > 0 ? (
           <FlatList
             data={filteredContractors}
             scrollEnabled={false}
@@ -110,7 +113,11 @@ const KioskContractorSignIn = () => {
                   styles.contractorItem,
                   selectedContractor?.id === item.id && styles.contractorItemSelected,
                 ]}
-                onPress={() => setSelectedContractor(item)}
+                onPress={() => {
+                  setSelectedContractor(item);
+                  setContractorSearch(item.name || '');
+                  setFilteredContractors([]);
+                }}
                 disabled={busy}
               >
                 <Text style={styles.contractorName}>{item.name}</Text>
@@ -120,7 +127,7 @@ const KioskContractorSignIn = () => {
             )}
           />
         ) : (
-          contractorSearch.trim().length > 0 && (
+          !selectedContractor && contractorSearch.trim().length > 0 && (
             <Text style={styles.noResults}>No contractors found</Text>
           )
         )}
