@@ -120,7 +120,11 @@ import PermitHandoverModal from './src/components/PermitHandoverModal';
 import TransientMessageOverlay from './src/components/TransientMessageOverlay';
 import ContractorAttachmentsSection from './src/components/ContractorAttachmentsSection';
 import CompanyContractorAttachmentsModal from './src/components/CompanyContractorAttachmentsModal';
-import { showTransientMessage } from './src/utils/transientMessage';
+import {
+  showTransientMessage,
+  showProgressMessage,
+  clearProgressMessage,
+} from './src/utils/transientMessage';
 import { exportSitesCsv } from './src/utils/siteExport';
 import { normalizeVisitorInductionContent } from './src/utils/visitorInductionContent';
 
@@ -3456,6 +3460,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [companyAdminUsers, setCompanyAdminUsers] = useState([]);
   const [selectedCompanyForAccreditation, setSelectedCompanyForAccreditation] = useState(null);
   const [showAccreditationModal, setShowAccreditationModal] = useState(false);
+  const [accreditationDeepLinkLoading, setAccreditationDeepLinkLoading] = useState(
+    () => Boolean(initialCompanyAccreditationId),
+  );
   const [companyAccreditationData, setCompanyAccreditationData] = useState(null);
   const [accreditationAdminActions, setAccreditationAdminActions] = useState(null);
   const [displayedAccreditationStatus, setDisplayedAccreditationStatus] = useState('Not Submitted');
@@ -10111,32 +10118,56 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   };
 
   useEffect(() => {
-    if (!initialCompanyAccreditationId || !adminSessionActive) {
+    if (!initialCompanyAccreditationId) {
       return undefined;
+    }
+
+    setAccreditationDeepLinkLoading(true);
+    showProgressMessage('Loading data…');
+
+    if (!adminSessionActive) {
+      return () => {
+        clearProgressMessage();
+      };
     }
 
     let cancelled = false;
     (async () => {
-      await openCompanyAccreditationReview(initialCompanyAccreditationId);
-      if (cancelled || typeof window === 'undefined') {
-        return;
+      try {
+        await openCompanyAccreditationReview(initialCompanyAccreditationId);
+        if (cancelled || typeof window === 'undefined') {
+          return;
+        }
+        const approvalStage = new URLSearchParams(window.location.search).get('approvalStage');
+        if (approvalStage === 'manager' || approvalStage === 'hs') {
+          const stageLabel = approvalStage === 'hs' ? 'H&S' : 'Manager';
+          showUserAlert(
+            'Accreditation approval',
+            `This company is awaiting your ${stageLabel} approval. Scroll to the bottom and tap Approve (${stageLabel}).`
+          );
+        }
+      } catch (error) {
+        console.error('Error opening accreditation from URL:', error);
+      } finally {
+        if (!cancelled) {
+          setAccreditationDeepLinkLoading(false);
+          clearProgressMessage();
+        }
       }
-      const approvalStage = new URLSearchParams(window.location.search).get('approvalStage');
-      if (approvalStage === 'manager' || approvalStage === 'hs') {
-        const stageLabel = approvalStage === 'hs' ? 'H&S' : 'Manager';
-        showUserAlert(
-          'Accreditation approval',
-          `This company is awaiting your ${stageLabel} approval. Scroll to the bottom and tap Approve (${stageLabel}).`
-        );
-      }
-    })().catch((error) => {
-      console.error('Error opening accreditation from URL:', error);
-    });
+    })();
 
     return () => {
       cancelled = true;
+      clearProgressMessage();
     };
   }, [initialCompanyAccreditationId, adminSessionActive]);
+
+  useEffect(() => {
+    if (showAccreditationModal && initialCompanyAccreditationId) {
+      setAccreditationDeepLinkLoading(false);
+      clearProgressMessage();
+    }
+  }, [showAccreditationModal, initialCompanyAccreditationId]);
 
   // Helper: Refresh training records status for a company
   // Just reads the current counter values from database (counters are updated by API functions)
@@ -26378,6 +26409,27 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           </View>
         </View>
       </Modal>
+
+      {accreditationDeepLinkLoading && adminSessionActive ? (
+        <View
+          pointerEvents="auto"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: '#F9FAFB',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 99998,
+            elevation: 99998,
+          }}
+        >
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text style={{ marginTop: 12, fontSize: 16, color: '#6B7280' }}>Loading data…</Text>
+        </View>
+      ) : null}
     </View>
   );
 };
@@ -27344,10 +27396,21 @@ const AppRouter = ({ initialRoute }) => {
     }
   }, []);
 
+  const isAccreditationEmailDeepLink = () => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    const pathname = window.location.pathname;
+    return isAccreditationApprovalRoute(pathname) || isCompanyAccreditationAdminPath(pathname);
+  };
+
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' }}>
-        <Text style={{ fontSize: 16, color: '#6B7280' }}>Loading...</Text>
+        <ActivityIndicator size="large" color="#3B82F6" />
+        <Text style={{ marginTop: 12, fontSize: 16, color: '#6B7280' }}>
+          {isAccreditationEmailDeepLink() ? 'Loading data…' : 'Loading…'}
+        </Text>
       </View>
     );
   }
