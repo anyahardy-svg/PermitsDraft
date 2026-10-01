@@ -3043,6 +3043,7 @@ export default function CompanyAccreditationScreen({
         contractorType,
         selectedBusinessUnits: businessUnitsForApproval,
         selectedServices: servicesForApproval,
+        publicLiabilityInsurance: section24.public_liability_insurance,
       });
       const submitStatus = isAutoApproveTypeD ? 'completed' : 'pending_manager';
       const updateData = buildUpdateData(submitStatus);
@@ -3130,9 +3131,14 @@ export default function CompanyAccreditationScreen({
         selectedBusinessUnits: businessUnitsForValidation,
         selectedServices: servicesForValidation,
         selectedSiteIds: getSelectedSiteIdsForValidation(),
+        publicLiabilityInsurance: section24.public_liability_insurance,
       });
       if (sectionError) {
-        showUserMessage('Sections required', sectionError);
+        const isInsuranceError = sectionError.includes('Section 24');
+        showUserMessage(isInsuranceError ? 'Section 24 required' : 'Sections required', sectionError);
+        if (isInsuranceError) {
+          setExpandedSections((prev) => ({ ...prev, 24: true }));
+        }
         return;
       }
     } else {
@@ -3166,7 +3172,7 @@ export default function CompanyAccreditationScreen({
       visible: true,
       title: 'Submit Accreditation',
       message: isTypeDAccreditation
-        ? 'Submit your Type D accreditation? Sections 1 and 2, plus the H&S agreement, will be reviewed and approved automatically.'
+        ? 'Submit your Type D accreditation? Sections 1 and 2, public liability insurance (Section 24), and the H&S agreement will be reviewed and approved automatically.'
         : 'Are you sure you want to submit this accreditation as complete? You will be able to edit it later if needed.',
       onConfirm: async () => {
         debugLog('🟢 User confirmed submission');
@@ -5171,7 +5177,7 @@ export default function CompanyAccreditationScreen({
                 Type D (Low Risk) accreditation
               </Text>
               <Text style={{ fontSize: 14, color: '#1E3A8A', lineHeight: 20 }}>
-                Sections 5–25 are not applicable for Type D contractors. Please complete Sections 1–4 below, then sign the Health & Safety Agreement in Section 26.
+                Most sections (5–23 and 25) are not applicable for Type D contractors. Please complete Sections 1–4, upload public liability insurance in Section 24, then sign the Health & Safety Agreement in Section 26.
               </Text>
             </View>
           )}
@@ -5593,7 +5599,7 @@ export default function CompanyAccreditationScreen({
               
               {!isTypeDAccreditation && renderSection20()}
               
-              {!isTypeDAccreditation && renderInsuranceSection()}
+              {renderInsuranceSection()}
               
               {!isTypeDAccreditation && renderContactInfoSection()}
 
@@ -5608,7 +5614,7 @@ export default function CompanyAccreditationScreen({
                   marginBottom: 12,
                 }}>
                   <Text style={{ fontSize: 14, color: '#4B5563', lineHeight: 20 }}>
-                    Sections 5–25 do not apply to Type D contractors. Continue to Section 26 to sign the Health & Safety Agreement.
+                    Sections 5–23 and 25 do not apply to Type D contractors. Complete Section 24 (insurance) above, then continue to Section 26 to sign the Health & Safety Agreement.
                   </Text>
                 </View>
               )}
