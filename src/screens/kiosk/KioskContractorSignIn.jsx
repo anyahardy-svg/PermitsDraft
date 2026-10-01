@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import {
   View,
   Text,
@@ -27,9 +27,22 @@ const KioskContractorSignIn = () => {
   const [filteredContractors, setFilteredContractors] = useState([]);
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [busy, setBusy] = useState(false);
+  const selectedContractorIdRef = useRef(null);
+  const selectedContractorNameRef = useRef('');
 
   const handleContractorSearch = (text) => {
-    if (selectedContractor && text.trim() !== (selectedContractor.name || '').trim()) {
+    const lockedSelectionName = selectedContractorIdRef.current
+      ? (selectedContractorNameRef.current || (selectedContractor?.name || '').trim())
+      : '';
+    if (lockedSelectionName && text.trim() === lockedSelectionName) {
+      setContractorSearch(text);
+      setFilteredContractors([]);
+      return;
+    }
+
+    if (selectedContractorIdRef.current) {
+      selectedContractorIdRef.current = null;
+      selectedContractorNameRef.current = '';
       setSelectedContractor(null);
     }
     setContractorSearch(text);
@@ -71,6 +84,8 @@ const KioskContractorSignIn = () => {
         return;
       }
       showTransientMessage(`${selectedContractor.name} checked in`);
+      selectedContractorIdRef.current = null;
+      selectedContractorNameRef.current = '';
       setContractorSearch('');
       setSelectedContractor(null);
       setFilteredContractors([]);
@@ -114,6 +129,8 @@ const KioskContractorSignIn = () => {
                   selectedContractor?.id === item.id && styles.contractorItemSelected,
                 ]}
                 onPress={() => {
+                  selectedContractorIdRef.current = item.id;
+                  selectedContractorNameRef.current = (item.name || '').trim();
                   setSelectedContractor(item);
                   setContractorSearch(item.name || '');
                   setFilteredContractors([]);
