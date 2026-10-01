@@ -168,6 +168,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const resumeAppliedRef = useRef(false);
   const contractorRefreshRequestRef = useRef(0);
   const selectedContractorIdRef = useRef(null);
+  const selectedContractorNameRef = useRef('');
   const contractorsLoadedSiteIdRef = useRef(null);
   const contractorSearchDebounceRef = useRef(null);
   const contractorSearchRequestRef = useRef(0);
@@ -548,8 +549,19 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
   const handleContractorSearch = (text) => {
     setReturnedFromInduction(false);
-    if (selectedContractorIdRef.current && text.trim() !== (selectedContractor?.name || '').trim()) {
+
+    const lockedSelectionName = selectedContractorIdRef.current
+      ? (selectedContractorNameRef.current || (selectedContractor?.name || '').trim())
+      : '';
+    if (lockedSelectionName && text.trim() === lockedSelectionName) {
+      setContractorSearch(text);
+      setFilteredContractors([]);
+      return;
+    }
+
+    if (selectedContractorIdRef.current) {
       selectedContractorIdRef.current = null;
+      selectedContractorNameRef.current = '';
       setSelectedContractor(null);
       setContractorInductionExpiry(null);
       setContractorInductionExpired(false);
@@ -794,6 +806,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     contractorSearchRequestRef.current += 1;
 
     selectedContractorIdRef.current = contractorForStatus?.id || null;
+    selectedContractorNameRef.current = (contractorForStatus?.name || '').trim();
     const sitesForLookup = await loadBusinessUnitSitesIfNeeded();
     setSelectedContractor(contractorForStatus);
     setContractorSearch(contractorForStatus.name || '');
@@ -925,6 +938,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
       if (result?.success) {
         const contractorName = contractor.name;
         selectedContractorIdRef.current = null;
+        selectedContractorNameRef.current = '';
         setSelectedContractor(null);
         setContractorSearch('');
         setFilteredContractors([]);
@@ -1225,8 +1239,10 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
             onPress={() => {
               setCurrentScreen('contractor-signin');
               selectedContractorIdRef.current = null;
+              selectedContractorNameRef.current = '';
               setSelectedContractor(null);
               setContractorSearch('');
+              setFilteredContractors([]);
               setContractorInductionExpiry(null);
               setContractorInductionExpired(false);
               setAllContractorInductions([]);
@@ -2449,8 +2465,10 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               onPress={() => {
                 setCurrentScreen('contractor-signin');
                 selectedContractorIdRef.current = null;
+                selectedContractorNameRef.current = '';
                 setSelectedContractor(null);
                 setContractorSearch('');
+                setFilteredContractors([]);
                 setContractorInductionExpiry(null);
                 setContractorInductionExpired(false);
                 setAllContractorInductions([]);
