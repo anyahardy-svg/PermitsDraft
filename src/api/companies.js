@@ -133,6 +133,7 @@ const transformCompany = (dbCompany) => {
     assigned_manager_id: dbCompany.assigned_manager_id || null,
     assignedHsPersonId: dbCompany.assigned_hs_person_id || null,
     assigned_hs_person_id: dbCompany.assigned_hs_person_id || null,
+    attachments: dbCompany.attachments || [],
     managerApprovedAt: dbCompany.manager_approved_at || null,
     manager_approved_at: dbCompany.manager_approved_at || null,
     managerApprovedBy: dbCompany.manager_approved_by || null,
@@ -314,7 +315,7 @@ const getCompanyDirect = async (companyId) => {
   const { data, error } = await supabase
     .from('companies')
     .select(
-      'id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved',
+      'id, name, email, contact_name, contact_surname, contact_email, contact_phone, contact_manager, business_unit_ids, public_liability_expiry, motor_vehicle_insurance_expiry, review_date, accredited_date, manually_created, company_active, pre_qualification_approved, in_radar, nzbn, address_1, address_city, address_postcode, created_at, updated_at, accreditation_invitation_sent_at, accreditation_deadline, accreditation_status, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved, attachments',
     )
     .eq('id', companyId)
     .maybeSingle();

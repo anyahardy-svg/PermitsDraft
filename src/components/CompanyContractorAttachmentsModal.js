@@ -107,7 +107,7 @@ export default function CompanyContractorAttachmentsModal({
           ) : (
             groups.map((group) => (
               <View
-                key={group.contractorId}
+                key={group.contractorId || 'company-documents'}
                 style={{
                   backgroundColor: 'white',
                   borderRadius: 8,
