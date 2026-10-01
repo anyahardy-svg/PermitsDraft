@@ -8,33 +8,41 @@ import {
   Alert,
 } from 'react-native';
 import {
+  deleteCompanyAttachment,
   deleteContractorAttachment,
+  loadCompanyAttachments,
   loadContractorAttachments,
   openContractorAttachment,
+  uploadCompanyAttachment,
   uploadContractorAttachment,
 } from '../api/contractorAttachments';
 
 export default function ContractorAttachmentsSection({
   contractorId,
+  companyId = null,
   companyName = '',
   contractorName = '',
   styles = {},
   disabled = false,
   hint = 'Upload PDFs or images such as traffic management plans, method statements, or other supporting documents.',
 }) {
+  const useCompanyAttachments = !contractorId && !!companyId;
+  const attachmentOwnerReady = !!(contractorId || companyId);
   const [attachments, setAttachments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [label, setLabel] = useState('');
 
   const refresh = useCallback(async () => {
-    if (!contractorId) {
+    if (!attachmentOwnerReady) {
       setAttachments([]);
       return;
     }
     setLoading(true);
     try {
-      const rows = await loadContractorAttachments(contractorId);
+      const rows = useCompanyAttachments
+        ? await loadCompanyAttachments(companyId)
+        : await loadContractorAttachments(contractorId);
       setAttachments(rows);
     } catch (error) {
       console.error('Failed to load contractor attachments:', error);
@@ -42,17 +50,19 @@ export default function ContractorAttachmentsSection({
     } finally {
       setLoading(false);
     }
-  }, [contractorId]);
+  }, [attachmentOwnerReady, companyId, contractorId, useCompanyAttachments]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
   const handlePickFile = () => {
-    if (!contractorId || disabled) {
+    if (!attachmentOwnerReady || disabled) {
       Alert.alert(
-        'Save contractor first',
-        'Create or save this contractor record before uploading attachments.',
+        'Cannot upload yet',
+        useCompanyAttachments
+          ? 'Your company profile is still loading. Please try again in a moment.'
+          : 'Create or save this contractor record before uploading attachments.',
       );
       return;
     }
@@ -72,13 +82,20 @@ export default function ContractorAttachmentsSection({
       }
       setUploading(true);
       try {
-        const updated = await uploadContractorAttachment({
-          contractorId,
-          companyName,
-          contractorName,
-          file,
-          label,
-        });
+        const updated = useCompanyAttachments
+          ? await uploadCompanyAttachment({
+            companyId,
+            companyName,
+            file,
+            label,
+          })
+          : await uploadContractorAttachment({
+            contractorId,
+            companyName,
+            contractorName,
+            file,
+            label,
+          });
         setAttachments(updated);
         setLabel('');
         Alert.alert('Success', 'Attachment uploaded');
@@ -111,7 +128,9 @@ export default function ContractorAttachmentsSection({
     (async () => {
       setUploading(true);
       try {
-        const updated = await deleteContractorAttachment(contractorId, attachment.id);
+        const updated = useCompanyAttachments
+          ? await deleteCompanyAttachment(companyId, attachment.id)
+          : await deleteContractorAttachment(contractorId, attachment.id);
         setAttachments(updated);
       } catch (error) {
         Alert.alert('Error', error?.message || 'Could not delete attachment');
@@ -138,10 +157,12 @@ export default function ContractorAttachmentsSection({
       <Text style={[labelStyle, { marginTop: 12 }]}>Attachments</Text>
       <Text style={{ color: '#6B7280', fontSize: 13, marginBottom: 12 }}>{hint}</Text>
 
-      {!contractorId ? (
+      {!attachmentOwnerReady ? (
         <View style={{ padding: 12, backgroundColor: '#FEF3C7', borderRadius: 6 }}>
           <Text style={{ color: '#92400E', fontSize: 13 }}>
-            Save this contractor first, then you can upload attachments.
+            {companyId
+              ? 'Your company profile is still loading. Please wait a moment and try again.'
+              : 'Save this contractor first, then you can upload attachments.'}
           </Text>
         </View>
       ) : (

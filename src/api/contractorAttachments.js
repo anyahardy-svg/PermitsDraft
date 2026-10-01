@@ -5,7 +5,11 @@
 
 import { supabase } from '../supabaseClient';
 import { validateFile } from '../utils/fileValidation';
-import { buildContractorAttachmentStoragePath } from '../utils/storagePaths';
+import {
+  buildCompanyAttachmentStoragePath,
+  buildContractorAttachmentStoragePath,
+} from '../utils/storagePaths';
+import { getCompany } from './companies';
 import { getContractor, listContractorsByCompany, updateContractor } from './contractors';
 import {
   TRAINING_RECORDS_BUCKET,
@@ -26,9 +30,32 @@ async function persistAttachments(contractorId, attachments) {
   return normalizeContractorAttachments(updated?.attachments ?? attachments);
 }
 
+async function persistCompanyAttachments(companyId, attachments) {
+  if (!supabase) {
+    throw new Error('Supabase client is not configured');
+  }
+  const { data, error } = await supabase
+    .from('companies')
+    .update({ attachments })
+    .eq('id', companyId)
+    .select('attachments')
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message || 'Could not save company attachments');
+  }
+
+  return normalizeContractorAttachments(data?.attachments ?? attachments);
+}
+
 export async function loadContractorAttachments(contractorId) {
   const contractor = await getContractor(contractorId);
   return normalizeContractorAttachments(contractor?.attachments);
+}
+
+export async function loadCompanyAttachments(companyId) {
+  const company = await getCompany(companyId);
+  return normalizeContractorAttachments(company?.attachments);
 }
 
 /** All contractor-uploaded attachments for every person linked to a company. */
@@ -37,9 +64,18 @@ export async function loadCompanyContractorAttachments(companyId) {
     return [];
   }
 
-  const contractors = await listContractorsByCompany(companyId);
   const groups = [];
+  const companyAttachments = await loadCompanyAttachments(companyId);
+  if (companyAttachments.length > 0) {
+    groups.push({
+      contractorId: null,
+      contractorName: 'Company documents',
+      contractorEmail: '',
+      attachments: companyAttachments,
+    });
+  }
 
+  const contractors = await listContractorsByCompany(companyId);
   for (const contractor of contractors || []) {
     const attachments = normalizeContractorAttachments(contractor.attachments);
     if (attachments.length === 0) {
@@ -103,6 +139,73 @@ export async function uploadContractorAttachment({
   };
 
   return persistAttachments(contractorId, [...existing, entry]);
+}
+
+export async function uploadCompanyAttachment({
+  companyId,
+  companyName,
+  file,
+  label = '',
+}) {
+  if (!companyId) {
+    throw new Error('Company is required before uploading attachments');
+  }
+  if (!file) {
+    throw new Error('No file selected');
+  }
+
+  const validation = validateFile(file, 50);
+  if (!validation.valid) {
+    throw new Error(validation.error || 'Invalid file');
+  }
+
+  const ext = (file.name || '').split('.').pop() || 'pdf';
+  const storagePath = buildCompanyAttachmentStoragePath({
+    companyName,
+    fileExt: ext,
+  });
+
+  const contentType = file.type || 'application/octet-stream';
+  const { error: uploadError } = await supabase.storage
+    .from(TRAINING_RECORDS_BUCKET)
+    .upload(storagePath, file, { contentType, upsert: false });
+
+  if (uploadError) {
+    throw new Error(uploadError.message || 'Upload failed');
+  }
+
+  const existing = await loadCompanyAttachments(companyId);
+  const entry = {
+    id: typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    label: label.trim(),
+    name: file.name || 'Attachment',
+    path: trainingRecordsFileReference(storagePath),
+    uploadedAt: new Date().toISOString(),
+  };
+
+  return persistCompanyAttachments(companyId, [...existing, entry]);
+}
+
+export async function deleteCompanyAttachment(companyId, attachmentId) {
+  const existing = await loadCompanyAttachments(companyId);
+  const target = existing.find((item) => item.id === attachmentId);
+  if (!target) {
+    return existing;
+  }
+
+  if (target.path) {
+    const { error } = await supabase.storage.from(TRAINING_RECORDS_BUCKET).remove([target.path]);
+    if (error) {
+      console.warn('Could not delete attachment file from storage:', error.message);
+    }
+  }
+
+  return persistCompanyAttachments(
+    companyId,
+    existing.filter((item) => item.id !== attachmentId),
+  );
 }
 
 export async function deleteContractorAttachment(contractorId, attachmentId) {
