@@ -3172,7 +3172,7 @@ export default function CompanyAccreditationScreen({
       visible: true,
       title: 'Submit Accreditation',
       message: isTypeDAccreditation
-        ? 'Submit your Type D accreditation? Sections 1 and 2, public liability insurance (Section 24), and the H&S agreement will be reviewed and approved automatically.'
+        ? 'Submit your Type D accreditation? Sections 1 and 2, plus Sections 23–26, will be reviewed and approved automatically.'
         : 'Are you sure you want to submit this accreditation as complete? You will be able to edit it later if needed.',
       onConfirm: async () => {
         debugLog('🟢 User confirmed submission');
@@ -5177,7 +5177,7 @@ export default function CompanyAccreditationScreen({
                 Type D (Low Risk) accreditation
               </Text>
               <Text style={{ fontSize: 14, color: '#1E3A8A', lineHeight: 20 }}>
-                Most sections (5–23 and 25) are not applicable for Type D contractors. Please complete Sections 1–4, upload public liability insurance in Section 24, then sign the Health & Safety Agreement in Section 26.
+                Sections 5–22 are not applicable for Type D contractors. Please complete Sections 1–4, then Sections 23–26 below (incidents, insurance, contact information, and the Health & Safety Agreement).
               </Text>
             </View>
           )}
@@ -5597,27 +5597,11 @@ export default function CompanyAccreditationScreen({
               {/* Sections 5-19 (Dynamic Rendering - hide sections 5-19 when safety accreditations are checked) */}
               {!isTypeDAccreditation && renderSections__719()}
               
-              {!isTypeDAccreditation && renderSection20()}
+              {renderSection20()}
               
               {renderInsuranceSection()}
               
-              {!isTypeDAccreditation && renderContactInfoSection()}
-
-              {isTypeDAccreditation && (
-                <View style={{
-                  backgroundColor: '#F9FAFB',
-                  borderWidth: 1,
-                  borderColor: '#D1D5DB',
-                  borderRadius: 8,
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-                  marginBottom: 12,
-                }}>
-                  <Text style={{ fontSize: 14, color: '#4B5563', lineHeight: 20 }}>
-                    Sections 5–23 and 25 do not apply to Type D contractors. Complete Section 24 (insurance) above, then continue to Section 26 to sign the Health & Safety Agreement.
-                  </Text>
-                </View>
-              )}
+              {renderContactInfoSection()}
 
               {renderSection26HSAgreement()}
         </View>
