@@ -24,8 +24,19 @@ assert.strictEqual(
     selectedBusinessUnits: { bu1: true },
     selectedServices: { svc1: true },
     selectedSiteIds: [],
+    publicLiabilityInsurance: { has_document: true, expiry_date: '01/01/2027' },
   }),
   'Please select at least one site in Section 1 before submitting.',
+);
+
+assert.strictEqual(
+  getTypeDSubmitValidationError({
+    selectedBusinessUnits: { bu1: true },
+    selectedServices: { svc1: true },
+    selectedSiteIds: ['site1'],
+    publicLiabilityInsurance: { has_document: false, expiry_date: '' },
+  }),
+  'Please upload your public liability insurance certificate and expiry date in Section 24 before submitting.',
 );
 
 assert.strictEqual(
@@ -41,8 +52,19 @@ assert.strictEqual(
     contractorType: 'D',
     selectedBusinessUnits: { bu1: true },
     selectedServices: { svc1: true },
+    publicLiabilityInsurance: { has_document: true, expiry_date: '01/01/2027' },
   }),
   true,
+);
+
+assert.strictEqual(
+  canAutoApproveTypeDAccreditation({
+    contractorType: 'D',
+    selectedBusinessUnits: { bu1: true },
+    selectedServices: { svc1: true },
+    publicLiabilityInsurance: { has_document: false, expiry_date: '' },
+  }),
+  false,
 );
 
 assert.strictEqual(
