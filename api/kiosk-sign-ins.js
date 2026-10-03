@@ -8,7 +8,7 @@
  */
 
 const { assertKioskSiteAccess } = require('./lib/kioskSiteAuth');
-const { notifySignIn } = require('./lib/signInNotificationEmail');
+const { runSignInNotification } = require('./lib/runSignInNotification');
 
 const ON_SITE_SELECT = `
   id,
@@ -99,15 +99,25 @@ export default async function handler(req, res) {
         throw error;
       }
 
+      let notification = null;
       if (data?.id) {
-        notifySignIn(data.id, {
+        notification = await runSignInNotification(data.id, {
           visitingPersonEmail: body.visitingPersonEmail || null,
-        }).catch((err) => {
-          console.warn('Sign-in notification could not be sent:', err?.message || err);
+          signInRecord: data,
         });
       }
 
-      return res.status(200).json({ success: true, data });
+      return res.status(200).json({
+        success: true,
+        data,
+        notification: notification?.messageId
+          ? { sent: true, recipientEmail: notification.recipientEmail }
+          : notification?.skipped
+            ? { skipped: true, reason: notification.reason }
+            : notification?.error
+              ? { error: notification.error }
+              : null,
+      });
     }
 
     if (action === 'checkOut') {

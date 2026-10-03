@@ -7,7 +7,7 @@
 
 const { getSupabaseAdmin } = require('./supabaseAdmin');
 const { assertKioskSiteAccess } = require('./lib/kioskSiteAuth');
-const { notifySignIn } = require('./lib/signInNotificationEmail');
+const { runSignInNotification } = require('./lib/runSignInNotification');
 
 function getExpiryStatus(expiryRaw) {
   if (!expiryRaw) return 'not_inducted';
@@ -164,11 +164,11 @@ module.exports = async function handler(req, res) {
       throw error;
     }
 
+    let notification = null;
     if (data?.id) {
-      notifySignIn(data.id, {
+      notification = await runSignInNotification(data.id, {
         visitingPersonEmail: visitingPersonEmail || null,
-      }).catch((notificationError) => {
-        console.warn('Sign-in notification could not be sent:', notificationError?.message || notificationError);
+        signInRecord: data,
       });
     }
 
@@ -180,6 +180,13 @@ module.exports = async function handler(req, res) {
       inducted: isInductedHere,
       isExpired,
       expiryDate,
+      notification: notification?.messageId
+        ? { sent: true, recipientEmail: notification.recipientEmail }
+        : notification?.skipped
+          ? { skipped: true, reason: notification.reason }
+          : notification?.error
+            ? { error: notification.error }
+            : null,
     });
   } catch (error) {
     console.error('kiosk-check-in error:', error);
