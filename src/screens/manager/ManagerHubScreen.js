@@ -14,6 +14,7 @@ import ManagerContractorsPanel from './ManagerContractorsPanel';
 import ManagerSignInsPanel from './ManagerSignInsPanel';
 import ManagerCompaniesPanel from './ManagerCompaniesPanel';
 import ManagerApprovalsPanel from './ManagerApprovalsPanel';
+import InviteNewCompanyScreen from '../InviteNewCompanyScreen';
 
 export default function ManagerHubScreen({
   loggedInAdmin,
@@ -23,8 +24,9 @@ export default function ManagerHubScreen({
   onOpenAdminPanel,
   isSuperAdmin = false,
   styles,
+  initialView = 'dashboard',
 }) {
-  const [currentView, setCurrentView] = useState('dashboard');
+  const [currentView, setCurrentView] = useState(initialView || 'dashboard');
   const [selectedSiteId, setSelectedSiteId] = useState('');
   const [showSitePicker, setShowSitePicker] = useState(false);
   const [countsLoading, setCountsLoading] = useState(false);
@@ -106,7 +108,42 @@ export default function ManagerHubScreen({
 
   const selectedSiteName = siteIdToName[selectedSiteId] || 'Select site';
 
-  const goToDashboard = () => setCurrentView('dashboard');
+  const goToDashboard = () => {
+    setCurrentView('dashboard');
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, '', '/manager/');
+    }
+  };
+
+  const openInviteCompany = () => {
+    setCurrentView('invite_company');
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', '/manager/invite-company/');
+    }
+  };
+
+  if (currentView === 'invite_company') {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={goToDashboard} accessibilityRole="button" accessibilityLabel="Back">
+            <Text style={styles.backButton}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Invite New Company</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <InviteNewCompanyScreen
+          mode="manager"
+          siteId={selectedSiteId || null}
+          siteName={selectedSiteName}
+          loggedInAdmin={loggedInAdmin}
+          onBack={goToDashboard}
+          onSuccess={loadCounts}
+          styles={styles}
+        />
+      </View>
+    );
+  }
 
   if (currentView === 'inducted') {
     return (
@@ -312,6 +349,15 @@ export default function ManagerHubScreen({
           >
             <Text style={styles.cardNumber}>+</Text>
             <Text style={styles.cardLabel}>Add Company to Site</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.dashboardCard, { borderLeftColor: '#A855F7' }]}
+            onPress={openInviteCompany}
+            disabled={!selectedSiteId}
+          >
+            <Text style={styles.cardNumber}>✉</Text>
+            <Text style={styles.cardLabel}>Invite New Company</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

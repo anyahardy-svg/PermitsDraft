@@ -29,8 +29,17 @@ const ACCREDITATION_APPROVAL_ROUTES = new Set([
   '/approve-accreditation/',
 ]);
 
+const INVITE_COMPANY_ROUTES = new Set([
+  '/invite-company',
+  '/invite-company/',
+]);
+
 function isSupplierFormRoute(pathname) {
   return SUPPLIER_FORM_ROUTES.has(pathname);
+}
+
+function isInviteCompanyRoute(pathname) {
+  return INVITE_COMPANY_ROUTES.has(pathname);
 }
 
 function isAccreditationApprovalRoute(pathname) {
@@ -63,6 +72,7 @@ export function shouldBootKioskApp() {
     || pathname.includes('/admin/')
     || pathname.startsWith('/contractor-admin')
     || isSupplierFormRoute(pathname)
+    || isInviteCompanyRoute(pathname)
     || isAccreditationApprovalRoute(pathname);
   const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz';
   const isContractorAuthRoute = pathname.startsWith('/sign-in-contractor')
