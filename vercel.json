@@ -290,6 +290,22 @@
       "destination": "/index.html"
     },
     {
+      "source": "/invite-company",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/invite-company/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/manager/invite-company",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/manager/invite-company/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

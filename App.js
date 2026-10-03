@@ -59,6 +59,12 @@ import StandaloneInductionScreen from './src/screens/StandaloneInductionScreen';
 import { isStandaloneInductionRoute } from './src/utils/inductionLinks';
 import { kioskPermitsEnabled } from './src/utils/kioskBrandLogo';
 import { isSupplierFormRoute } from './src/utils/supplierFormRoute';
+import InviteNewCompanyScreen from './src/screens/InviteNewCompanyScreen';
+import {
+  isInviteCompanyRoute,
+  isManagerInviteCompanyRoute,
+  parseInviteCompanySiteId,
+} from './src/utils/inviteCompanyRoute';
 import {
   isAccreditationApprovalRoute,
   isCompanyAccreditationAdminPath,
@@ -717,7 +723,7 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
   );
 }
 
-const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, initialCompanyAccreditationId, initialSupplierId, initialSupplierToken, initialAccreditationApprovalToken, initialContractorAdminTab, initialContractorParams }) => {
+const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, initialCompanyAccreditationId, initialSupplierId, initialSupplierToken, initialAccreditationApprovalToken, initialContractorAdminTab, initialContractorParams, initialManagerHubView, initialInviteCompanySiteId }) => {
   // Helper function to format dates from yyyy-MM-dd to dd/MM/yyyy
   const formatDateNZ = (dateStr) => {
     if (!dateStr) return '';
@@ -2457,6 +2463,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       if (pathname.startsWith('/contractor-admin')) {
         return 'contractor_admin';
       }
+      if (isInviteCompanyRoute(pathname)) {
+        return 'invite_company_public';
+      }
       if (isSupplierFormRoute(pathname)) {
         return 'supplier_accreditation_public';
       }
@@ -3987,6 +3996,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           console.log('ℹ️ Public supplier form route - skipping contractor hub auth check');
           return;
         }
+
+        if (isInviteCompanyRoute(pathname)) {
+          console.log('ℹ️ Public invite-company route - skipping contractor hub auth check');
+          return;
+        }
         
         //Skip admin and manager routes - they're handled by admin protection check
         if (pathname === '/admin' || pathname === '/admin/' || pathname.startsWith('/admin/')) {
@@ -4071,6 +4085,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
     
     // Public supplier accreditation form (token link)
+    if (isInviteCompanyRoute(pathname)) {
+      setCurrentScreen('invite_company_public');
+      return;
+    }
+
     if (isSupplierFormRoute(pathname)) {
       setCurrentScreen('supplier_accreditation_public');
       return;
@@ -4081,9 +4100,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       setCurrentScreen('accreditation_approval_public');
       return;
     }
+
+    if (isManagerInviteCompanyRoute(pathname)) {
+      if (!adminSessionActive) {
+        setShowAdminLoginModal(true);
+      } else {
+        setCurrentScreen('manager_hub');
+      }
+      return;
+    }
     
     // Only check if we're currently not in admin/manager and not already showing login
-    if (showAdminLoginModal || currentScreen === 'admin' || currentScreen === 'manager_hub' || currentScreen?.startsWith('manage_') || currentScreen === 'supplier_accreditation' || currentScreen === 'supplier_accreditation_public' || currentScreen === 'accreditation_approval_public') {
+    if (showAdminLoginModal || currentScreen === 'admin' || currentScreen === 'manager_hub' || currentScreen?.startsWith('manage_') || currentScreen === 'supplier_accreditation' || currentScreen === 'supplier_accreditation_public' || currentScreen === 'accreditation_approval_public' || currentScreen === 'invite_company_public') {
       console.log('ℹ️ Already in admin context, skipping check');
       return;
     }
@@ -4186,7 +4214,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         return;
       }
 
-      if (currentScreen === 'supplier_accreditation_public' || currentScreen === 'accreditation_approval_public') {
+      if (currentScreen === 'supplier_accreditation_public' || currentScreen === 'accreditation_approval_public' || currentScreen === 'invite_company_public') {
         return;
       }
 
@@ -4208,6 +4236,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           : '/admin/suppliers/',
         'admin': '/admin/',
         'manager_hub': '/manager/',
+        'invite_company_public': '/invite-company/',
         'contractor_admin': '/contractor-admin/',
         'contractorAuth': '/sign-in-contractor/',
         'authCallback': '/auth/callback/',
@@ -4277,6 +4306,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         return;
       }
 
+      if (isInviteCompanyRoute(pathname)) {
+        console.log('✅ Setting initial screen to invite_company_public from URL');
+        setCurrentScreen('invite_company_public');
+        return;
+      }
+
       if (isSupplierFormRoute(pathname)) {
         console.log('✅ Setting initial screen to supplier_accreditation_public from URL');
         setCurrentScreen('supplier_accreditation_public');
@@ -4286,6 +4321,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       if (isAccreditationApprovalRoute(pathname)) {
         console.log('✅ Setting initial screen to accreditation_approval_public from URL');
         setCurrentScreen('accreditation_approval_public');
+        return;
+      }
+
+      if (isManagerInviteCompanyRoute(pathname)) {
+        if (!adminSessionActive) {
+          setShowAdminLoginModal(true);
+        } else {
+          setCurrentScreen('manager_hub');
+        }
         return;
       }
 
@@ -4450,6 +4494,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           return;
         }
 
+        if (isInviteCompanyRoute(pathname)) {
+          setCurrentScreen('invite_company_public');
+          return;
+        }
+
         if (isSupplierFormRoute(pathname)) {
           setCurrentScreen('supplier_accreditation_public');
           return;
@@ -4457,6 +4506,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
         if (isAccreditationApprovalRoute(pathname)) {
           setCurrentScreen('accreditation_approval_public');
+          return;
+        }
+
+        if (isManagerInviteCompanyRoute(pathname)) {
+          if (!adminSessionActive) {
+            setShowAdminLoginModal(true);
+          } else {
+            setCurrentScreen('manager_hub');
+          }
           return;
         }
         
@@ -25483,6 +25541,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       }
       return (
         <ManagerHubScreen
+          initialView={initialManagerHubView}
           loggedInAdmin={loggedInAdmin}
           sites={sites}
           onLogout={handleAdminLogout}
@@ -25834,6 +25893,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={{ flexGrow: 1, width: '100%', paddingHorizontal: 16, paddingBottom: 16 }}>
             <SupplierAccreditationScreen supplierId={selectedSupplierId} userRole="admin" />
           </ScrollView>
+        </View>
+      );
+    case 'invite_company_public':
+      return (
+        <View style={{ flex: 1, backgroundColor: '#F9FAFB', width: '100%' }}>
+          <InviteNewCompanyScreen
+            mode="public"
+            siteId={initialInviteCompanySiteId}
+          />
         </View>
       );
     case 'supplier_accreditation_public':
@@ -27282,6 +27350,9 @@ const AppRouter = ({ initialRoute }) => {
       if (pathname === '/inductions/add-parts' || pathname === '/inductions/add-parts/') {
         return 'inductions-add-parts';
       }
+      if (isInviteCompanyRoute(pathname)) {
+        return 'invite-company-public';
+      }
       if (isSupplierFormRoute(pathname)) {
         return 'supplier-accreditation-public';
       }
@@ -27434,6 +27505,20 @@ const AppRouter = ({ initialRoute }) => {
     return null;
   };
 
+  const getInitialManagerHubView = () => {
+    if (typeof window !== 'undefined' && isManagerInviteCompanyRoute(window.location.pathname)) {
+      return 'invite_company';
+    }
+    return 'dashboard';
+  };
+
+  const getInitialInviteCompanySiteId = () => {
+    if (typeof window !== 'undefined' && isInviteCompanyRoute(window.location.pathname)) {
+      return parseInviteCompanySiteId(window.location.search);
+    }
+    return null;
+  };
+
   const [isKiosk, setIsKiosk] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [showModeToggle, setShowModeToggle] = React.useState(false); // Disabled - admin key button removed
@@ -27445,6 +27530,8 @@ const AppRouter = ({ initialRoute }) => {
   const initialSupplierId = getInitialSupplierId();
   const initialSupplierToken = getInitialSupplierToken();
   const initialAccreditationApprovalToken = getInitialAccreditationApprovalToken();
+  const initialManagerHubView = getInitialManagerHubView();
+  const initialInviteCompanySiteId = getInitialInviteCompanySiteId();
   const initialContractorAdminTab = getInitialContractorAdminTab();
   
   // Extract contractor details from URL query params if present
@@ -27500,6 +27587,7 @@ const AppRouter = ({ initialRoute }) => {
           || pathname.includes('/admin/')
           || pathname.startsWith('/contractor-admin')
           || isSupplierFormRoute(pathname)
+          || isInviteCompanyRoute(pathname)
           || isAccreditationApprovalRoute(pathname);
         const isContractorHub = hostname === 'contractorhq.co.nz' || hostname === 'www.contractorhq.co.nz';
         const isContractorAuthRoute = pathname.startsWith('/sign-in-contractor')
@@ -27605,7 +27693,7 @@ const AppRouter = ({ initialRoute }) => {
     }} initialRoute={forceRoute} />;
   } else {
     // Normal permit management app
-    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} initialCompanyAccreditationId={initialCompanyAccreditationId} initialSupplierId={initialSupplierId} initialSupplierToken={initialSupplierToken} initialAccreditationApprovalToken={initialAccreditationApprovalToken} initialContractorAdminTab={initialContractorAdminTab} initialContractorParams={initialContractorParams} />;
+    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} initialCompanyAccreditationId={initialCompanyAccreditationId} initialSupplierId={initialSupplierId} initialSupplierToken={initialSupplierToken} initialAccreditationApprovalToken={initialAccreditationApprovalToken} initialContractorAdminTab={initialContractorAdminTab} initialContractorParams={initialContractorParams} initialManagerHubView={initialManagerHubView} initialInviteCompanySiteId={initialInviteCompanySiteId} />;
   }
 
   // For kiosk: show a Permits button. For main app: show mode toggle
