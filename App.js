@@ -13982,6 +13982,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           if (currentContractor.companyManuallyEntered) {
             // Company was manually entered - upsert with tracking flags
             console.log('📝 Manually entered company - upserting with tracking');
+            showFullScreenProgress('Creating company…');
             const company = await upsertCompany({
               name: currentContractor.company,
               manuallyCreated: true,
