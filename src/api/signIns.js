@@ -1,31 +1,48 @@
 /**
- * Sign-Ins API
- * Handles kiosk check-in/out and contractor presence tracking
+ * Sign-Ins API — kiosk and manager flows use Vercel service-role routes (no direct sign_ins PostgREST).
  */
 
-import { supabase } from '../supabaseClient';
-import { getContractorSiteInduction } from './contractorInductions';
-import { getSiteInductionExpiry, getSiteInductionStatus } from '../utils/siteInductionStatus';
-import { notifySignIn } from './signInNotifications';
-import { isAdminSessionActive } from './contractorData';
-import { getCompany } from './companies';
+import { getRequestingAdminId } from './contractorData';
 
-// ============================================================================
-// CHECK-IN FUNCTIONS
-// ============================================================================
+function getKioskClientContext() {
+  if (typeof window === 'undefined') {
+    return { kioskSubdomain: null, hostname: null };
+  }
+  const hostname = window.location.hostname;
+  const relaxed = hostname.includes('localhost') || hostname.includes('127.0.0.1') || hostname.includes('vercel.app');
+  const kioskSubdomain = relaxed ? null : (hostname.split('.')[0] || null);
+  return { kioskSubdomain, hostname };
+}
 
-/**
- * Contractor Sign-In (Kiosk)
- * @param {UUID} contractorId - Contractor UUID
- * @param {UUID} siteId - Site UUID
- * @param {UUID} businessUnitId - Business Unit UUID
- * @returns {Object} Sign-in record
- */
+async function kioskSignInsRequest(action, payload) {
+  const { kioskSubdomain, hostname } = getKioskClientContext();
+  const response = await fetch('/api/kiosk-sign-ins', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action,
+      kioskSubdomain,
+      hostname,
+      ...payload,
+    }),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(body.error || `Kiosk sign-in API failed (${response.status})`);
+  }
+  return body;
+}
+
 async function checkInContractorViaApi(payload) {
+  const { kioskSubdomain, hostname } = getKioskClientContext();
   const response = await fetch('/api/kiosk-check-in', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      ...payload,
+      kioskSubdomain,
+      hostname,
+    }),
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -57,341 +74,86 @@ export async function checkInContractor(
   flagData = null,
   rtData = null,
   visitingPersonName = null,
-  contractorPhone = null
+  contractorPhone = null,
 ) {
   try {
-    console.log('🔍 Checking in contractor:', contractorId, 'at site:', siteId);
-
-    let resolvedBusinessUnitId = businessUnitId;
-    if (!resolvedBusinessUnitId && siteId) {
-      const { data: siteRow, error: siteError } = await supabase
-        .from('sites')
-        .select('business_unit_id')
-        .eq('id', siteId)
-        .maybeSingle();
-      if (siteError) {
-        console.warn('Could not resolve site business unit:', siteError.message);
-      } else {
-        resolvedBusinessUnitId = siteRow?.business_unit_id || null;
-      }
+    if (!contractorId || !siteId) {
+      return { success: false, error: 'Contractor and site are required' };
     }
 
-    if (!resolvedBusinessUnitId) {
-      return {
-        success: false,
-        error: 'Site business unit is not configured. Please contact your administrator.',
-      };
-    }
-
-    const kioskApiPayload = {
+    const apiResult = await checkInContractorViaApi({
       contractorId,
       siteId,
-      businessUnitId: resolvedBusinessUnitId,
+      businessUnitId,
       flagData,
       rtData,
       visitingPersonName,
       contractorPhone,
-    };
+    });
 
-    // Always prefer Vercel service-role check-in (works for kiosk after contractors RLS lock-down).
-    try {
-      const apiResult = await checkInContractorViaApi(kioskApiPayload);
-      if (apiResult?.success) {
-        return mapKioskCheckInApiResult(apiResult);
-      }
-      if (!isAdminSessionActive()) {
-        return { success: false, error: apiResult?.error || 'Check-in failed' };
-      }
-    } catch (apiError) {
-      if (!isAdminSessionActive()) {
-        console.error('❌ Kiosk check-in API error:', apiError.message);
-        return { success: false, error: apiError.message || 'Check-in failed' };
-      }
-      console.warn('Kiosk check-in API failed; trying legacy admin PostgREST path:', apiError.message);
+    if (apiResult?.success) {
+      return mapKioskCheckInApiResult(apiResult);
     }
 
-    // Legacy path: only when an admin is actively signed in and the API is unavailable.
-    // Get contractor details
-    const { data: contractor, error: contractorError } = await supabase
-      .from('contractors')
-      .select('*')
-      .eq('id', contractorId)
-      .single();
-
-    if (contractorError) {
-      console.error('❌ Contractor query error:', contractorError);
-      throw contractorError;
-    }
-
-    if (!contractor) {
-      console.error('❌ No contractor found with ID:', contractorId);
-      return { success: false, error: 'Contractor not found' };
-    }
-
-    console.log('✓ Contractor data:', contractor);
-
-    const siteInduction = await getContractorSiteInduction(contractorId, siteId);
-    const contractorWithSiteInduction = siteInduction
-      ? {
-          ...contractor,
-          site_inductions: {
-            ...(contractor.site_inductions || {}),
-            [siteId]: siteInduction,
-          },
-        }
-      : contractor;
-
-    const inductionStatus = getSiteInductionStatus(contractorWithSiteInduction, siteId);
-    const isInductedHere = inductionStatus === 'inducted';
-    const isExpired = inductionStatus === 'expired';
-    const siteExpiry = getSiteInductionExpiry(contractorWithSiteInduction, siteId);
-    const induction = isInductedHere || isExpired ? {
-      expires_at: siteExpiry,
-      inducted_at: siteInduction?.inducted_at || contractor.services,
-    } : null;
-
-    console.log('📋 Status - Inducted here:', isInductedHere, 'Expired:', isExpired);
-
-    // Get company name if available
-    let companyName = 'Unknown';
-    if (contractor?.company_id) {
-      try {
-        const company = await getCompany(contractor.company_id);
-        if (company?.name) {
-          companyName = company.name;
-        }
-      } catch (err) {
-        console.warn('Could not fetch company name:', err.message);
-      }
-    }
-
-    // Create sign-in record
-    console.log('📝 Creating sign-in record...');
-    const signInData = {
-      contractor_id: contractorId,
-      contractor_name: contractor?.name || 'Unknown',
-      contractor_phone: contractor?.phone || null,
-      site_id: siteId,
-      business_unit_id: resolvedBusinessUnitId,
-      contractor_company: companyName,
-      check_in_time: new Date().toISOString(),
-      inducted: isInductedHere,
-      induction_status: isExpired ? 'induction_expired' : (isInductedHere ? 'inducted' : 'not_inducted'),
-      inducted_at_site: siteInduction?.inducted_at || null,
-      induction_expires_at: siteExpiry || null,
-      visiting_person_name: visitingPersonName || null,
-    };
-
-    // Add flag and RT data if provided
-    if (flagData) {
-      signInData.flag_taken = flagData.taken || false;
-      signInData.flag_name = flagData.taken ? flagData.name : null;
-    }
-    if (rtData) {
-      signInData.rt_taken = rtData.taken || false;
-      signInData.rt_name = rtData.taken ? rtData.name : null;
-    }
-
-    const { data, error } = await supabase
-      .from('sign_ins')
-      .insert(signInData)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('❌ Sign-in insert error:', error);
-      try {
-        const apiResult = await checkInContractorViaApi({
-          contractorId,
-          siteId,
-          businessUnitId: resolvedBusinessUnitId,
-          flagData,
-          rtData,
-          visitingPersonName,
-          contractorPhone,
-        });
-        if (apiResult?.success) {
-          const expiryDate = apiResult.expiryDate || null;
-          return {
-            success: true,
-            data: apiResult.data,
-            inducted: apiResult.inducted,
-            isExpired: apiResult.isExpired,
-            expiryDate,
-            message: apiResult.isExpired
-              ? '⚠️ INDUCTION EXPIRED - renewal required before work'
-              : apiResult.inducted
-                ? 'Checked in successfully'
-                : '⚠️ NOT INDUCTED - induction required before work',
-          };
-        }
-      } catch (apiError) {
-        console.warn('Kiosk check-in API fallback failed:', apiError.message);
-      }
-      throw error;
-    }
-
-    console.log('✓ Sign-in recorded:', data?.id);
-
-    if (data?.id) {
-      notifySignIn(data.id).catch((notificationError) => {
-        console.warn('Sign-in notification could not be sent:', notificationError?.message || notificationError);
-      });
-    }
-
-    // Format expiry date for display
-    const expiryDate = siteExpiry ? new Date(siteExpiry).toLocaleDateString('en-NZ') : null;
-
-    return {
-      success: true,
-      data,
-      inducted: isInductedHere,
-      isExpired,
-      expiryDate,
-      message: isExpired 
-        ? '⚠️ INDUCTION EXPIRED - renewal required before work' 
-        : isInductedHere 
-          ? 'Checked in successfully' 
-          : '⚠️ NOT INDUCTED - induction required before work',
-    };
+    return { success: false, error: apiResult?.error || 'Check-in failed' };
   } catch (error) {
-    console.error('❌ Check-in error:', error.message, error.code);
+    console.error('❌ Check-in error:', error.message);
     return { success: false, error: error.message };
   }
 }
 
-/**
- * Visitor Sign-In (Third-party visitors)
- * @param {string} visitorName
- * @param {string} company
- * @param {UUID} siteId
- * @param {UUID} businessUnitId
- * @param {string} phone - Phone number
- * @returns {Object} Sign-in record
- */
-export async function checkInVisitor(visitorName, company, siteId, businessUnitId, phone, visitingPersonName = null) {
+export async function checkInVisitor(
+  visitorName,
+  company,
+  siteId,
+  businessUnitId,
+  phone,
+  visitingPersonName = null,
+) {
   try {
-    const { data, error } = await supabase
-      .from('sign_ins')
-      .insert({
-        visitor_name: visitorName,
-        visitor_company: company,
-        phone_number: phone,
-        site_id: siteId,
-        business_unit_id: businessUnitId,
-        check_in_time: new Date().toISOString(),
-        inducted: true, // Visitors don't need induction check
-        visiting_person_name: visitingPersonName || null,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    if (data?.id) {
-      notifySignIn(data.id).catch((notificationError) => {
-        console.warn('Sign-in notification could not be sent:', notificationError?.message || notificationError);
-      });
-    }
-
-    return { success: true, data };
+    const result = await kioskSignInsRequest('checkInVisitor', {
+      siteId,
+      businessUnitId,
+      visitorName,
+      visitorCompany: company,
+      phone,
+      visitingPersonName,
+    });
+    return { success: true, data: result.data };
   } catch (error) {
     console.error('Visitor check-in error:', error);
     return { success: false, error: error.message };
   }
 }
 
-// ============================================================================
-// CHECK-OUT FUNCTIONS
-// ============================================================================
-
-/**
- * Sign-Out (works for both contractors and visitors)
- * @param {UUID} signInId - Sign-in record ID
- * @param {Object} flagReturnData - Flag return information (optional)
- * @param {Object} rtReturnData - RT return information (optional)
- * @returns {Object} Updated sign-in record with duration
- */
-export async function checkOut(signInId, flagReturnData = null, rtReturnData = null) {
+export async function checkOut(signInId, siteId, flagReturnData = null, rtReturnData = null) {
   try {
-    const now = new Date().toISOString();
-
-    const updateData = {
-      check_out_time: now,
-      updated_at: now,
-    };
-
-    // Add flag and RT return data if provided
-    if (flagReturnData !== null) {
-      updateData.flag_returned = flagReturnData;
-    }
-    if (rtReturnData !== null) {
-      updateData.rt_returned = rtReturnData;
+    if (!signInId || !siteId) {
+      return { success: false, error: 'Sign-in and site are required' };
     }
 
-    const { data, error } = await supabase
-      .from('sign_ins')
-      .update(updateData)
-      .eq('id', signInId)
-      .select()
-      .single();
+    const result = await kioskSignInsRequest('checkOut', {
+      siteId,
+      signInId,
+      flagReturnData,
+      rtReturnData,
+    });
 
-    if (error) throw error;
-
-    // Calculate duration in minutes
-    const checkInTime = new Date(data.check_in_time);
-    const checkOutTime = new Date(data.check_out_time);
-    const durationMinutes = Math.round((checkOutTime - checkInTime) / 60000);
-
-    return {
-      success: true,
-      data: { ...data, duration_minutes: durationMinutes },
-    };
+    return { success: true, data: result.data };
   } catch (error) {
     console.error('Check-out error:', error);
     return { success: false, error: error.message };
   }
 }
 
-// ============================================================================
-// QUERIES
-// ============================================================================
-
-/**
- * Get all currently signed-in people at a site
- * @param {UUID} siteId
- * @returns {Array} List of people currently on-site
- */
 export async function getSignedInPeople(siteId) {
   try {
-    const { data, error } = await supabase
-      .from('sign_ins')
-      .select(`
-        id,
-        contractor_id,
-        contractor_name,
-        contractor_phone,
-        contractor_company,
-        visitor_name,
-        visitor_company,
-        phone_number,
-        check_in_time,
-        inducted,
-        induction_status,
-        flag_taken,
-        flag_name,
-        rt_taken,
-        rt_name,
-        visiting_person_name
-      `)
-      .eq('site_id', siteId)
-      .is('check_out_time', null) // Currently signed in (no check-out time)
-      .order('check_in_time', { ascending: false });
+    if (!siteId) {
+      return { success: true, data: [] };
+    }
 
-    if (error) throw error;
-
-    // Return data as-is (no need for separate enrichment)
-    return { success: true, data };
+    const result = await kioskSignInsRequest('listOnSite', { siteId });
+    return { success: true, data: result.data || [] };
   } catch (error) {
     console.error('Get signed-in error:', error);
     return { success: false, error: error.message };
@@ -407,67 +169,46 @@ function enrichSignInRecord(record) {
   return {
     ...record,
     personType: isContractor ? 'Contractor' : 'Visitor',
-    displayName: isContractor ? (record.contractor_name || 'Unknown contractor') : (record.visitor_name || 'Unknown visitor'),
-    displayCompany: isContractor ? (record.contractor_company || '') : (record.visitor_company || ''),
+    displayName: isContractor
+      ? record.contractor_name || 'Unknown contractor'
+      : record.visitor_name || 'Unknown visitor',
+    displayCompany: isContractor ? record.contractor_company || '' : record.visitor_company || '',
     duration_minutes: durationMinutes,
   };
 }
 
-/**
- * Get sign-in history for a site (date range)
- * @param {UUID} siteId
- * @param {string} startDate - ISO date
- * @param {string} endDate - ISO date
- * @returns {Array} Sign-in records
- */
 export async function getSignInHistory(siteId, startDate, endDate) {
   return searchSignInHistory(siteId, { startDate, endDate });
 }
 
-/**
- * Search sign-in history for a site with optional filters.
- * @param {UUID} siteId
- * @param {Object} filters
- * @param {string} [filters.startDate] - ISO datetime
- * @param {string} [filters.endDate] - ISO datetime
- * @param {string} [filters.personQuery] - visitor or contractor name
- * @param {string} [filters.companyQuery] - visitor or contractor company
- */
 export async function searchSignInHistory(siteId, filters = {}) {
   try {
     if (!siteId) {
       return { success: true, data: [] };
     }
 
-    let query = supabase
-      .from('sign_ins')
-      .select('*')
-      .eq('site_id', siteId);
+    const requestingAdminId = getRequestingAdminId();
+    const response = await fetch('/api/manager-sign-in-history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requestingAdminId,
+        siteId,
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        personQuery: filters.personQuery,
+        companyQuery: filters.companyQuery,
+      }),
+    });
 
-    if (filters.startDate) {
-      query = query.gte('check_in_time', filters.startDate);
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(body.error || `History search failed (${response.status})`);
     }
-    if (filters.endDate) {
-      query = query.lte('check_in_time', filters.endDate);
-    }
-
-    const personQuery = String(filters.personQuery || '').trim();
-    if (personQuery) {
-      query = query.or(`visitor_name.ilike.%${personQuery}%,contractor_name.ilike.%${personQuery}%`);
-    }
-
-    const companyQuery = String(filters.companyQuery || '').trim();
-    if (companyQuery) {
-      query = query.or(`visitor_company.ilike.%${companyQuery}%,contractor_company.ilike.%${companyQuery}%`);
-    }
-
-    const { data, error } = await query.order('check_in_time', { ascending: false }).limit(500);
-
-    if (error) throw error;
 
     return {
       success: true,
-      data: (data || []).map(enrichSignInRecord),
+      data: (body.data || []).map(enrichSignInRecord),
     };
   } catch (error) {
     console.error('Search sign-in history error:', error);
@@ -475,41 +216,9 @@ export async function searchSignInHistory(siteId, filters = {}) {
   }
 }
 
-/**
- * Get sign-in stats for a contractor (hours worked per site)
- * @param {UUID} contractorId
- * @returns {Object} Hours worked per site
- */
 export async function getContractorHours(contractorId) {
-  try {
-    const { data, error } = await supabase
-      .from('sign_ins')
-      .select(`
-        site_id,
-        check_in_time,
-        check_out_time
-      `)
-      .eq('contractor_id', contractorId)
-      .not('check_out_time', 'is', null); // Only completed sign-outs
-
-    if (error) throw error;
-
-    // Aggregate hours by site
-    const hoursBySite = {};
-    data.forEach((record) => {
-      const siteId = record.site_id;
-      const checkInTime = new Date(record.check_in_time);
-      const checkOutTime = new Date(record.check_out_time);
-      const durationMinutes = (checkOutTime - checkInTime) / 60000;
-
-      hoursBySite[siteId] = (hoursBySite[siteId] || 0) + durationMinutes / 60;
-    });
-
-    return { success: true, data: hoursBySite };
-  } catch (error) {
-    console.error('Get contractor hours error:', error);
-    return { success: false, error: error.message };
-  }
+  console.warn('getContractorHours is not available without a dedicated admin API');
+  return { success: false, error: 'Not implemented' };
 }
 
 export default {

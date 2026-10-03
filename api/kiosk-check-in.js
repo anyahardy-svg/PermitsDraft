@@ -6,6 +6,7 @@
  */
 
 const { getSupabaseAdmin } = require('./supabaseAdmin');
+const { assertKioskSiteAccess } = require('./lib/kioskSiteAuth');
 const { notifySignIn } = require('./lib/signInNotificationEmail');
 
 function getExpiryStatus(expiryRaw) {
@@ -35,22 +36,20 @@ module.exports = async function handler(req, res) {
       rtData = null,
       visitingPersonName = null,
       contractorPhone = null,
+      kioskSubdomain,
+      hostname,
     } = req.body || {};
 
     if (!contractorId || !siteId) {
       return res.status(400).json({ error: 'contractorId and siteId are required' });
     }
 
-    const { data: site, error: siteError } = await admin
-      .from('sites')
-      .select('id, business_unit_id, name')
-      .eq('id', siteId)
-      .maybeSingle();
-
-    if (siteError) {
-      throw siteError;
+    const siteAuth = await assertKioskSiteAccess(siteId, kioskSubdomain, { hostname });
+    if (siteAuth.error) {
+      return res.status(siteAuth.status || 403).json({ error: siteAuth.error });
     }
 
+    const site = siteAuth.site;
     const businessUnitId = businessUnitIdFromBody || site?.business_unit_id;
     if (!businessUnitId) {
       return res.status(400).json({
