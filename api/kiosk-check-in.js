@@ -35,6 +35,7 @@ module.exports = async function handler(req, res) {
       flagData = null,
       rtData = null,
       visitingPersonName = null,
+      visitingPersonEmail = null,
       contractorPhone = null,
       kioskSubdomain,
       hostname,
@@ -148,7 +149,9 @@ module.exports = async function handler(req, res) {
     }
 
     if (data?.id) {
-      notifySignIn(data.id).catch((notificationError) => {
+      notifySignIn(data.id, {
+        visitingPersonEmail: visitingPersonEmail || null,
+      }).catch((notificationError) => {
         console.warn('Sign-in notification could not be sent:', notificationError?.message || notificationError);
       });
     }

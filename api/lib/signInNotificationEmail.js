@@ -6,6 +6,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 const SUPPORT_EMAIL = 'support@contractorhq.co.nz';
+const NZ_TIMEZONE = 'Pacific/Auckland';
 
 const FALLBACK_TEMPLATE = {
   subject: '{{siteName}} - {{personType}} sign-in: {{personName}}',
@@ -29,6 +30,10 @@ function getServiceRoleHeaders() {
 }
 
 function normalizeName(value = '') {
+  return String(value).trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function normalizeEmail(value = '') {
   return String(value).trim().toLowerCase();
 }
 
@@ -51,6 +56,7 @@ function formatInductionStatus(signInRecord) {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
+        timeZone: NZ_TIMEZONE,
       })
     : null;
 
@@ -65,8 +71,15 @@ function formatInductionStatus(signInRecord) {
 }
 
 function personAssignedToSite(person, siteId) {
-  const siteIds = person?.site_ids || person?.siteIds || [];
-  return Array.isArray(siteIds) && siteIds.includes(siteId);
+  if (!siteId) {
+    return false;
+  }
+  const siteIds = person?.site_ids || person?.siteIds;
+  if (!Array.isArray(siteIds) || siteIds.length === 0) {
+    return false;
+  }
+  const normalizedSiteId = String(siteId);
+  return siteIds.some((id) => String(id) === normalizedSiteId);
 }
 
 function buildSignInDetails(signInRecord, siteName) {
@@ -79,6 +92,7 @@ function buildSignInDetails(signInRecord, siteName) {
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: NZ_TIMEZONE,
       })
     : 'Unknown';
 
@@ -123,6 +137,28 @@ function resolveVisitingPersonRecipient(visitingPersonName, siteId, adminUsers =
   return candidates[0] || null;
 }
 
+function resolveVisitingPersonByEmail(visitingPersonEmail, siteId, adminUsers = [], permitIssuers = []) {
+  const normalizedTarget = normalizeEmail(visitingPersonEmail);
+  if (!normalizedTarget) {
+    return null;
+  }
+
+  for (const admin of adminUsers || []) {
+    if (!personAssignedToSite(admin, siteId)) continue;
+    if (normalizeEmail(admin.email) === normalizedTarget) {
+      return { email: admin.email, name: admin.name, source: 'admin' };
+    }
+  }
+  for (const issuer of permitIssuers || []) {
+    if (!personAssignedToSite(issuer, siteId)) continue;
+    if (normalizeEmail(issuer.email) === normalizedTarget) {
+      return { email: issuer.email, name: issuer.name, source: 'permit_issuer' };
+    }
+  }
+
+  return null;
+}
+
 function resolveDefaultManagerRecipient(site) {
   if (!site?.send_default_sign_in_notifications) {
     return null;
@@ -145,12 +181,27 @@ function resolveSignInNotificationRecipient({
   site,
   adminUsers = [],
   permitIssuers = [],
+  visitingPersonEmail = null,
 }) {
+  const siteId = site?.id;
+
+  if (visitingPersonEmail?.trim()) {
+    const byEmail = resolveVisitingPersonByEmail(
+      visitingPersonEmail,
+      siteId,
+      adminUsers,
+      permitIssuers
+    );
+    if (byEmail?.email) {
+      return byEmail;
+    }
+  }
+
   const visitingPersonName = signInRecord?.visiting_person_name;
   if (visitingPersonName?.trim()) {
     const visitingRecipient = resolveVisitingPersonRecipient(
       visitingPersonName,
-      site?.id,
+      siteId,
       adminUsers,
       permitIssuers
     );
@@ -272,13 +323,16 @@ async function sendSignInNotificationEmail({ recipient, signInRecord, site }) {
   };
 }
 
-async function notifySignIn(signInId) {
+async function notifySignIn(signInId, options = {}) {
   const context = await loadSignInNotificationContext(signInId);
   if (!context.success) {
     return context;
   }
 
-  const recipient = resolveSignInNotificationRecipient(context);
+  const recipient = resolveSignInNotificationRecipient({
+    ...context,
+    visitingPersonEmail: options.visitingPersonEmail || null,
+  });
   if (!recipient?.email) {
     return {
       success: true,
@@ -299,6 +353,7 @@ module.exports = {
   formatInductionStatus,
   buildSignInDetails,
   resolveVisitingPersonRecipient,
+  resolveVisitingPersonByEmail,
   resolveDefaultManagerRecipient,
   resolveSignInNotificationRecipient,
   loadSignInNotificationContext,

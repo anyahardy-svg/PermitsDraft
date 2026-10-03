@@ -75,6 +75,7 @@ export async function checkInContractor(
   rtData = null,
   visitingPersonName = null,
   contractorPhone = null,
+  visitingPersonEmail = null,
 ) {
   try {
     if (!contractorId || !siteId) {
@@ -88,6 +89,7 @@ export async function checkInContractor(
       flagData,
       rtData,
       visitingPersonName,
+      visitingPersonEmail,
       contractorPhone,
     });
 
@@ -109,6 +111,7 @@ export async function checkInVisitor(
   businessUnitId,
   phone,
   visitingPersonName = null,
+  visitingPersonEmail = null,
 ) {
   try {
     const result = await kioskSignInsRequest('checkInVisitor', {
@@ -118,6 +121,7 @@ export async function checkInVisitor(
       visitorCompany: company,
       phone,
       visitingPersonName,
+      visitingPersonEmail,
     });
     return { success: true, data: result.data };
   } catch (error) {

@@ -4,6 +4,7 @@ const {
   formatPhoneForDisplay,
   formatInductionStatus,
   resolveVisitingPersonRecipient,
+  resolveVisitingPersonByEmail,
   resolveDefaultManagerRecipient,
   resolveSignInNotificationRecipient,
 } = require('../api/lib/signInNotificationEmail');
@@ -51,10 +52,23 @@ function run() {
   assert.strictEqual(details.personPhone, '0211234567');
   assert.strictEqual(details.inductionStatus, 'Inducted at this site (expires 15 Mar 2027)');
   assert.ok(details.checkInTime.includes('2026'));
+  assert.match(details.checkInTime, /8:30|20:30|08:30/);
 
   const visitingRecipient = resolveVisitingPersonRecipient('Jane Manager', SITE_ID, adminUsers, permitIssuers);
   assert.strictEqual(visitingRecipient.email, 'jane@example.com');
   assert.strictEqual(visitingRecipient.source, 'admin');
+
+  const visitingByEmail = resolveVisitingPersonByEmail('jane@example.com', SITE_ID, adminUsers, permitIssuers);
+  assert.strictEqual(visitingByEmail.email, 'jane@example.com');
+
+  const visitingByEmailRecipient = resolveSignInNotificationRecipient({
+    signInRecord: { ...contractorSignIn, visiting_person_name: 'Wrong Name' },
+    site: siteWithManager,
+    adminUsers,
+    permitIssuers,
+    visitingPersonEmail: 'jane@example.com',
+  });
+  assert.strictEqual(visitingByEmailRecipient.email, 'jane@example.com');
 
   const issuerRecipient = resolveVisitingPersonRecipient('Pat Issuer', SITE_ID, adminUsers, permitIssuers);
   assert.strictEqual(issuerRecipient.email, 'pat@example.com');

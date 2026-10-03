@@ -127,6 +127,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [contractorInductionExpired, setContractorInductionExpired] = useState(false);
   const [allContractorInductions, setAllContractorInductions] = useState([]); // Inductions at other sites
   const [contractorVisitingPerson, setContractorVisitingPerson] = useState('');
+  const [contractorVisitingPersonEmail, setContractorVisitingPersonEmail] = useState('');
   const [contractorPhone, setContractorPhone] = useState('');
   const [contractorPhoneError, setContractorPhoneError] = useState('');
   
@@ -138,6 +139,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
   const [visitorCompanyError, setVisitorCompanyError] = useState('');
   const [visitorPhoneError, setVisitorPhoneError] = useState('');
   const [visitingPerson, setVisitingPerson] = useState('');
+  const [visitingPersonEmail, setVisitingPersonEmail] = useState('');
   const [visitorInductionContent, setVisitorInductionContent] = useState('');
   const [visitorInductionPdfUrl, setVisitorInductionPdfUrl] = useState('');
   const [visitorInductionConfirmed, setVisitorInductionConfirmed] = useState(false);
@@ -673,7 +675,14 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     }
   };
 
-  const renderVisitingPersonLookup = ({ value, onChangeText, showDropdown, setShowDropdown, label = 'Visiting Person (optional)' }) => {
+  const renderVisitingPersonLookup = ({
+    value,
+    onChangeText,
+    onVisitingEmailChange,
+    showDropdown,
+    setShowDropdown,
+    label = 'Visiting Person (optional)',
+  }) => {
     const matchingAdmins = getSiteAdminUsers(value);
 
     return (
@@ -685,6 +694,9 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           value={value}
           onChangeText={(text) => {
             onChangeText(text);
+            if (onVisitingEmailChange) {
+              onVisitingEmailChange('');
+            }
             setShowDropdown(true);
           }}
           onFocus={() => setShowDropdown(true)}
@@ -697,6 +709,9 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                   key={admin.id}
                   onPress={() => {
                     onChangeText(admin.name);
+                    if (onVisitingEmailChange) {
+                      onVisitingEmailChange(admin.email || '');
+                    }
                     setShowDropdown(false);
                   }}
                   style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
@@ -927,7 +942,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         flagData,
         rtData,
         contractorVisitingPerson || null,
-        normalizePhoneForSave(contractorPhone)
+        normalizePhoneForSave(contractorPhone),
+        contractorVisitingPersonEmail || null,
       );
 
       if (result?.success) {
@@ -941,6 +957,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         setContractorInductionExpired(false);
         setAllContractorInductions([]);
         setContractorVisitingPerson('');
+        setContractorVisitingPersonEmail('');
         setContractorPhone('');
         setCurrentScreen('welcome');
         loadSignedInPeople();
@@ -997,7 +1014,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         siteId,
         businessUnitId,
         normalizePhoneForSave(visitorPhone),
-        visitingPerson || null
+        visitingPerson || null,
+        visitingPersonEmail || null,
       );
 
       if (result?.success) {
@@ -1009,6 +1027,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
         setVisitorCompanyError('');
         setVisitorPhoneError('');
         setVisitingPerson('');
+        setVisitingPersonEmail('');
         setCurrentScreen('welcome');
         loadSignedInPeople();
       } else {
@@ -1701,6 +1720,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                 {renderVisitingPersonLookup({
                   value: contractorVisitingPerson,
                   onChangeText: setContractorVisitingPerson,
+                  onVisitingEmailChange: setContractorVisitingPersonEmail,
                   showDropdown: showContractorVisitingDropdown,
                   setShowDropdown: setShowContractorVisitingDropdown,
                 })}
@@ -2028,6 +2048,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           {renderVisitingPersonLookup({
             value: visitingPerson,
             onChangeText: setVisitingPerson,
+            onVisitingEmailChange: setVisitingPersonEmail,
             showDropdown: showVisitorVisitingDropdown,
             setShowDropdown: setShowVisitorVisitingDropdown,
           })}
