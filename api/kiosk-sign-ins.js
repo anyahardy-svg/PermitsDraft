@@ -103,6 +103,7 @@ export default async function handler(req, res) {
       if (data?.id) {
         notification = await runSignInNotification(data.id, {
           visitingPersonEmail: body.visitingPersonEmail || null,
+          signInRecord: data,
         });
       }
 

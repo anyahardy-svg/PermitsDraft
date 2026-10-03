@@ -25,6 +25,7 @@ async function runSignInNotification(signInId, options = {}) {
     } else if (result?.success) {
       console.log('Sign-in notification sent', {
         signInId,
+        personName: options.signInRecord?.contractor_name || options.signInRecord?.visitor_name,
         recipientEmail: result.recipientEmail,
         messageId: result.messageId,
         elapsedMs,

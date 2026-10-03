@@ -168,6 +168,7 @@ module.exports = async function handler(req, res) {
     if (data?.id) {
       notification = await runSignInNotification(data.id, {
         visitingPersonEmail: visitingPersonEmail || null,
+        signInRecord: data,
       });
     }
 

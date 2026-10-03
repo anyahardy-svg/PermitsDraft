@@ -308,15 +308,28 @@ async function loadSignInNotificationContext(signInId, options = {}) {
     throw new Error('Supabase service role is not configured on the server');
   }
 
-  const { data: signInRecord, error: signInError } = await admin
-    .from('sign_ins')
-    .select('*')
-    .eq('id', signInId)
-    .maybeSingle();
-
-  if (signInError) {
-    throw signInError;
+  let signInRecord = options.signInRecord || null;
+  if (signInRecord && String(signInRecord.id) !== String(signInId)) {
+    console.warn('Sign-in notification: signInRecord id mismatch, reloading from database', {
+      signInId,
+      recordId: signInRecord.id,
+    });
+    signInRecord = null;
   }
+
+  if (!signInRecord) {
+    const { data, error: signInError } = await admin
+      .from('sign_ins')
+      .select('*')
+      .eq('id', signInId)
+      .maybeSingle();
+
+    if (signInError) {
+      throw signInError;
+    }
+    signInRecord = data;
+  }
+
   if (!signInRecord) {
     return { success: false, status: 404, error: 'Sign-in record not found' };
   }
