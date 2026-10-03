@@ -7,6 +7,7 @@ const kioskSignIns = fs.readFileSync(path.join(__dirname, '..', 'api', 'kiosk-si
 const emailLib = fs.readFileSync(path.join(__dirname, '..', 'api', 'lib', 'signInNotificationEmail.js'), 'utf8');
 
 assert.match(kioskCheckIn, /await runSignInNotification/);
+assert.match(kioskCheckIn, /signInRecord: data/);
 assert.doesNotMatch(kioskCheckIn, /notifySignIn\(data\.id\)\.catch/);
 assert.match(kioskSignIns, /await runSignInNotification/);
 assert.match(emailLib, /fetchSiteScopedContacts/);
