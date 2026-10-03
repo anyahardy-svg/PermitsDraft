@@ -148,6 +148,10 @@ const transformContractor = (dbContractor) => {
     service_names: dbContractor.service_names || [],
     siteIds: dbContractor.site_ids || [],
     site_ids: dbContractor.site_ids || [],
+    site_inductions: dbContractor.site_inductions || dbContractor.siteInductions || undefined,
+    siteInductions: dbContractor.site_inductions || dbContractor.siteInductions || undefined,
+    site_induction_records: dbContractor.site_induction_records || dbContractor.siteInductionRecords || undefined,
+    siteInductionRecords: dbContractor.site_induction_records || dbContractor.siteInductionRecords || undefined,
     attachments: dbContractor.attachments || [],
     createdAt: dbContractor.created_at,
     created_at: dbContractor.created_at,
@@ -752,11 +756,8 @@ export const searchContractorsForKiosk = async (siteId, searchText, limit = 40) 
 
     const runEdge = async () => {
       const rows = await contractorDataSearchForKiosk(siteId, searchText, limit);
-      const transformed = mapEdgeRowsToApp(rows);
-      const withInductions = await attachSiteInductionsToContractors(transformed);
-      return withInductions
-        .filter((contractor) => contractorMatchesKioskSignInSearch(contractor, siteId))
-        .slice(0, limit);
+      // Edge attaches inductions (service role) and filters eligible sign-ins.
+      return mapEdgeRowsToApp(rows);
     };
 
     return await withContractorDataFallback(
@@ -833,8 +834,7 @@ export const listContractorsForKiosk = async (siteId) => {
     return await withContractorDataFallback(
       async () => {
         const rows = await contractorDataListForKiosk(siteId);
-        const transformed = mapEdgeRowsToApp(rows);
-        return attachSiteInductionsToContractors(transformed);
+        return mapEdgeRowsToApp(rows);
       },
       () => listContractorsForKioskDirect(siteId),
       { label: 'listContractorsForKiosk' },

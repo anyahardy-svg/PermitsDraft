@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "2026-03-23-v5";
+const VERSION = "2026-03-23-v6";
 const IN_QUERY_BATCH_SIZE = 200;
 const PAGE_SIZE = 1000;
 
@@ -114,6 +114,160 @@ async function attachCompanyNames(
     ...row,
     company_name: companyMap[row.company_id as string] || row.company_name || "",
   }));
+}
+
+type SiteInductionRow = {
+  contractor_id?: string;
+  site_id?: string;
+  expires_at?: string | null;
+  inducted_at?: string | null;
+  id?: string;
+  business_unit_id?: string | null;
+  status?: string | null;
+};
+
+function stripContractorJoinFields(row: Record<string, unknown>) {
+  const { contractor_inductions: _ci, ...rest } = row;
+  return rest;
+}
+
+function getExpiryStatus(expiryRaw: string | null | undefined) {
+  if (!expiryRaw) {
+    return "not_inducted";
+  }
+  const expiry = new Date(expiryRaw);
+  if (Number.isNaN(expiry.getTime())) {
+    return "not_inducted";
+  }
+  if (expiry < new Date()) {
+    return "expired";
+  }
+  return "inducted";
+}
+
+function getSiteInductionRecords(contractor: Record<string, unknown>): SiteInductionRow[] {
+  const map = contractor.site_inductions as Record<string, SiteInductionRow> | undefined;
+  if (map && Object.keys(map).length > 0) {
+    return Object.entries(map).map(([siteId, record]) => ({
+      ...(record || {}),
+      site_id: record?.site_id || siteId,
+    }));
+  }
+  const records = contractor.site_induction_records as SiteInductionRow[] | undefined;
+  return records || [];
+}
+
+function hasPerSiteInductionRecords(contractor: Record<string, unknown>) {
+  const map = contractor.site_inductions as Record<string, unknown> | undefined;
+  if (map && Object.keys(map).length > 0) {
+    return true;
+  }
+  const records = contractor.site_induction_records as unknown[] | undefined;
+  return Boolean(records && records.length > 0);
+}
+
+function getSiteInductionStatus(contractor: Record<string, unknown>, siteId: string) {
+  const map = contractor.site_inductions as Record<string, SiteInductionRow> | undefined;
+  const fromMap = map?.[siteId];
+  if (fromMap) {
+    return getExpiryStatus(fromMap.expires_at);
+  }
+  const records = contractor.site_induction_records as SiteInductionRow[] | undefined;
+  const record = records?.find((row) => String(row.site_id) === String(siteId));
+  if (record) {
+    return getExpiryStatus(record.expires_at);
+  }
+  if (hasPerSiteInductionRecords(contractor)) {
+    return "not_inducted";
+  }
+  const siteIds = (contractor.site_ids as string[]) || [];
+  const onSite = Array.isArray(siteIds) && siteIds.some((id) => String(id) === String(siteId));
+  if (!onSite) {
+    return "not_inducted";
+  }
+  return getExpiryStatus(contractor.induction_expiry as string | null | undefined);
+}
+
+function isInductedAnywhere(contractor: Record<string, unknown>) {
+  const records = getSiteInductionRecords(contractor);
+  if (records.length > 0) {
+    return records.some((record) => {
+      const status = getExpiryStatus(record.expires_at);
+      return status === "inducted" || status === "expired";
+    });
+  }
+  const legacyStatus = getExpiryStatus(contractor.induction_expiry as string | null | undefined);
+  return legacyStatus === "inducted" || legacyStatus === "expired";
+}
+
+function contractorMatchesKioskSignInSearch(contractor: Record<string, unknown>, siteId: string) {
+  if (!siteId) {
+    return false;
+  }
+  const siteIds = (contractor.site_ids as string[]) || [];
+  if (Array.isArray(siteIds) && siteIds.some((id) => String(id) === String(siteId))) {
+    return true;
+  }
+  const statusHere = getSiteInductionStatus(contractor, siteId);
+  if (statusHere === "inducted" || statusHere === "expired") {
+    return true;
+  }
+  return isInductedAnywhere(contractor);
+}
+
+async function fetchSiteInductionsGrouped(
+  supabase: SupabaseClient,
+  contractorIds: string[],
+): Promise<Record<string, SiteInductionRow[]>> {
+  const grouped: Record<string, SiteInductionRow[]> = {};
+  const uniqueIds = [...new Set(contractorIds.filter(Boolean))];
+  for (let i = 0; i < uniqueIds.length; i += IN_QUERY_BATCH_SIZE) {
+    const batch = uniqueIds.slice(i, i + IN_QUERY_BATCH_SIZE);
+    const { data, error } = await supabase
+      .from("contractor_inductions")
+      .select("*")
+      .in("contractor_id", batch);
+    if (error) {
+      throw error;
+    }
+    for (const row of data ?? []) {
+      const contractorId = String(row.contractor_id ?? "");
+      if (!contractorId) continue;
+      if (!grouped[contractorId]) {
+        grouped[contractorId] = [];
+      }
+      grouped[contractorId].push(row as SiteInductionRow);
+    }
+  }
+  return grouped;
+}
+
+function attachSiteInductionData(
+  contractor: Record<string, unknown>,
+  records: SiteInductionRow[],
+) {
+  const siteInductions: Record<string, SiteInductionRow> = {};
+  for (const record of records) {
+    if (record.site_id) {
+      siteInductions[String(record.site_id)] = record;
+    }
+  }
+  return {
+    ...contractor,
+    site_inductions: siteInductions,
+    site_induction_records: records,
+  };
+}
+
+async function attachSiteInductionsToContractors(
+  supabase: SupabaseClient,
+  contractors: Record<string, unknown>[],
+) {
+  const ids = contractors.map((row) => String(row.id ?? "")).filter(Boolean);
+  const grouped = await fetchSiteInductionsGrouped(supabase, ids);
+  return contractors.map((row) =>
+    attachSiteInductionData(row, grouped[String(row.id ?? "")] || []),
+  );
 }
 
 async function fetchContractorIdsWithSiteInductionRecord(
@@ -230,7 +384,8 @@ async function listContractorsBySiteInternal(supabase: SupabaseClient, siteId: s
   );
   const bySiteInductionRecord = await fetchContractorsByIds(supabase, inductedOnlyIds);
   const merged = mergeUniqueContractors(bySiteAssignment, bySiteInductionRecord);
-  return attachCompanyNames(supabase, merged);
+  const withCompanies = await attachCompanyNames(supabase, merged);
+  return attachSiteInductionsToContractors(supabase, withCompanies);
 }
 
 async function listContractorsForKioskInternal(supabase: SupabaseClient, siteId: string) {
@@ -284,7 +439,8 @@ async function listContractorsForKioskInternal(supabase: SupabaseClient, siteId:
     byCompany,
     bySiteInductionRecord,
   );
-  return attachCompanyNames(supabase, merged);
+  const withCompanies = await attachCompanyNames(supabase, merged);
+  return attachSiteInductionsToContractors(supabase, withCompanies);
 }
 
 function escapeIlikePattern(value: string) {
@@ -414,11 +570,15 @@ async function searchContractorsForKioskInternal(
   }
 
   const merged = mergeUniqueContractors(
-    siteAssigned || [],
-    inductedAnywhereMatches || [],
-    globalNameMatches || [],
+    (siteAssigned || []).map(stripContractorJoinFields),
+    (inductedAnywhereMatches || []).map(stripContractorJoinFields),
+    (globalNameMatches || []).map(stripContractorJoinFields),
   );
-  return attachCompanyNames(supabase, merged).then((rows) => rows.slice(0, limit));
+  const withCompanies = await attachCompanyNames(supabase, merged);
+  const withInductions = await attachSiteInductionsToContractors(supabase, withCompanies);
+  return withInductions
+    .filter((contractor) => contractorMatchesKioskSignInSearch(contractor, siteId))
+    .slice(0, limit);
 }
 
 function mapUpdatesToDb(updates: Record<string, unknown>) {
