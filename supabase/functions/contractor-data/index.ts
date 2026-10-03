@@ -374,22 +374,31 @@ async function searchContractorsForKioskInternal(
   }
   const pattern = `%${escapeIlikePattern(trimmed)}%`;
 
-  const [{ data: siteAssigned, error: siteError }, { data: globalNameMatches, error: globalError }] =
-    await Promise.all([
-      supabase
-        .from("contractors")
-        .select("*")
-        .contains("site_ids", [siteId])
-        .or(`name.ilike.${pattern},email.ilike.${pattern}`)
-        .order("name", { ascending: true })
-        .limit(limit),
-      supabase
-        .from("contractors")
-        .select("*")
-        .or(`name.ilike.${pattern},email.ilike.${pattern}`)
-        .order("name", { ascending: true })
-        .limit(limit * 2),
-    ]);
+  const [
+    { data: siteAssigned, error: siteError },
+    { data: globalNameMatches, error: globalError },
+    { data: inductedAnywhereMatches, error: inductedAnywhereError },
+  ] = await Promise.all([
+    supabase
+      .from("contractors")
+      .select("*")
+      .contains("site_ids", [siteId])
+      .or(`name.ilike.${pattern},email.ilike.${pattern}`)
+      .order("name", { ascending: true })
+      .limit(limit),
+    supabase
+      .from("contractors")
+      .select("*")
+      .or(`name.ilike.${pattern},email.ilike.${pattern}`)
+      .order("name", { ascending: true })
+      .limit(limit * 3),
+    supabase
+      .from("contractors")
+      .select("*, contractor_inductions!inner(contractor_id)")
+      .or(`name.ilike.${pattern},email.ilike.${pattern}`)
+      .order("name", { ascending: true })
+      .limit(limit * 3),
+  ]);
 
   if (siteError) {
     throw siteError;
@@ -397,34 +406,16 @@ async function searchContractorsForKioskInternal(
   if (globalError) {
     throw globalError;
   }
-
-  const inductedIds = await fetchContractorIdsWithSiteInductionRecord(supabase, siteId);
-  const siteAssignedIds = new Set((siteAssigned || []).map((c) => c.id));
-  const inductedOnlyIds = inductedIds.filter((id) => !siteAssignedIds.has(id));
-
-  const inductedMatches: Record<string, unknown>[] = [];
-  for (
-    let i = 0;
-    i < inductedOnlyIds.length && inductedMatches.length < limit;
-    i += IN_QUERY_BATCH_SIZE
-  ) {
-    const batch = inductedOnlyIds.slice(i, i + IN_QUERY_BATCH_SIZE);
-    const { data, error } = await supabase
-      .from("contractors")
-      .select("*")
-      .in("id", batch)
-      .or(`name.ilike.${pattern},email.ilike.${pattern}`)
-      .order("name", { ascending: true })
-      .limit(limit - inductedMatches.length);
-    if (error) {
-      throw error;
-    }
-    inductedMatches.push(...(data || []));
+  if (inductedAnywhereError) {
+    console.warn(
+      "searchForKiosk: cross-site inducted search failed:",
+      inductedAnywhereError.message,
+    );
   }
 
   const merged = mergeUniqueContractors(
     siteAssigned || [],
-    inductedMatches,
+    inductedAnywhereMatches || [],
     globalNameMatches || [],
   );
   return attachCompanyNames(supabase, merged).then((rows) => rows.slice(0, limit));

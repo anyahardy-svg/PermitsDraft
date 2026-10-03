@@ -71,6 +71,22 @@ module.exports = async function handler(req, res) {
       return res.status(404).json({ error: 'Contractor not found' });
     }
 
+    const contractorSiteIds = Array.isArray(contractor.site_ids) ? contractor.site_ids : [];
+    const siteIdString = String(siteId);
+    const alreadyOnSite = contractorSiteIds.some((id) => String(id) === siteIdString);
+    if (!alreadyOnSite) {
+      const { error: siteAssignError } = await admin
+        .from('contractors')
+        .update({
+          site_ids: [...contractorSiteIds, siteId],
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', contractorId);
+      if (siteAssignError) {
+        console.warn('Could not add site to contractor profile on check-in:', siteAssignError.message);
+      }
+    }
+
     if (contractorPhone && String(contractorPhone).trim()) {
       const trimmed = String(contractorPhone).trim();
       const normalized = trimmed.startsWith('0') ? trimmed.substring(1) : trimmed;
