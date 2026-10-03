@@ -241,39 +241,109 @@ async function getEmailTemplate(type) {
   return FALLBACK_TEMPLATE;
 }
 
-async function loadSignInNotificationContext(signInId) {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+async function fetchSiteScopedContacts(admin, siteId) {
+  const [adminsResult, issuersResult] = await Promise.all([
+    admin
+      .from('admin_users')
+      .select('id, name, email, site_ids')
+      .contains('site_ids', [siteId]),
+    admin
+      .from('permit_issuers')
+      .select('id, name, email, site_ids')
+      .contains('site_ids', [siteId]),
+  ]);
+
+  if (adminsResult.error) {
+    console.warn('Sign-in notification: site admin lookup failed:', adminsResult.error.message);
+  }
+  if (issuersResult.error) {
+    console.warn('Sign-in notification: permit issuer lookup failed:', issuersResult.error.message);
+  }
+
+  return {
+    adminUsers: adminsResult.data || [],
+    permitIssuers: issuersResult.data || [],
+  };
+}
+
+async function lookupRecipientByEmail(admin, siteId, visitingPersonEmail) {
+  const email = String(visitingPersonEmail || '').trim();
+  if (!email || !siteId) {
+    return null;
+  }
+
+  for (const table of ['admin_users', 'permit_issuers']) {
+    const { data, error } = await admin
+      .from(table)
+      .select('id, name, email, site_ids')
+      .ilike('email', email)
+      .limit(3);
+
+    if (error) {
+      console.warn(`Sign-in notification: ${table} email lookup failed:`, error.message);
+      continue;
+    }
+
+    for (const row of data || []) {
+      if (!personAssignedToSite(row, siteId)) {
+        continue;
+      }
+      if (normalizeEmail(row.email) === normalizeEmail(email)) {
+        return {
+          email: row.email,
+          name: row.name,
+          source: table === 'admin_users' ? 'admin' : 'permit_issuer',
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+async function loadSignInNotificationContext(signInId, options = {}) {
+  const { getSupabaseAdmin } = require('../supabaseAdmin');
+  const admin = getSupabaseAdmin();
+  if (!admin) {
     throw new Error('Supabase service role is not configured on the server');
   }
 
-  const signInUrl = `${SUPABASE_URL}/rest/v1/sign_ins?id=eq.${encodeURIComponent(signInId)}&select=*&limit=1`;
-  const signInRows = await fetchJson(signInUrl);
-  const signInRecord = signInRows?.[0];
+  const { data: signInRecord, error: signInError } = await admin
+    .from('sign_ins')
+    .select('*')
+    .eq('id', signInId)
+    .maybeSingle();
+
+  if (signInError) {
+    throw signInError;
+  }
   if (!signInRecord) {
     return { success: false, status: 404, error: 'Sign-in record not found' };
   }
 
-  const siteUrl = `${SUPABASE_URL}/rest/v1/sites?id=eq.${encodeURIComponent(signInRecord.site_id)}&select=id,name,default_notification_manager_id,send_default_sign_in_notifications&limit=1`;
-  const siteRows = await fetchJson(siteUrl);
-  const siteRow = siteRows?.[0];
+  const siteId = signInRecord.site_id;
+  const { data: siteRow, error: siteError } = await admin
+    .from('sites')
+    .select('id, name, default_notification_manager_id, send_default_sign_in_notifications')
+    .eq('id', siteId)
+    .maybeSingle();
+
+  if (siteError) {
+    throw siteError;
+  }
   if (!siteRow) {
     return { success: false, status: 404, error: 'Site not found for sign-in' };
   }
 
   let defaultManager = null;
   if (siteRow.default_notification_manager_id) {
-    const managerUrl = `${SUPABASE_URL}/rest/v1/admin_users?id=eq.${encodeURIComponent(siteRow.default_notification_manager_id)}&select=id,name,email&limit=1`;
-    const managerRows = await fetchJson(managerUrl);
-    defaultManager = managerRows?.[0] || null;
+    const { data: managerRow } = await admin
+      .from('admin_users')
+      .select('id, name, email')
+      .eq('id', siteRow.default_notification_manager_id)
+      .maybeSingle();
+    defaultManager = managerRow || null;
   }
-
-  const adminUsersUrl = `${SUPABASE_URL}/rest/v1/admin_users?select=id,name,email,site_ids`;
-  const permitIssuersUrl = `${SUPABASE_URL}/rest/v1/permit_issuers?select=id,name,email,site_ids`;
-
-  const [adminUsers, permitIssuers] = await Promise.all([
-    fetchJson(adminUsersUrl),
-    fetchJson(permitIssuersUrl),
-  ]);
 
   const site = {
     id: siteRow.id,
@@ -282,12 +352,30 @@ async function loadSignInNotificationContext(signInId) {
     default_notification_manager: defaultManager,
   };
 
+  const needsVisitingLookup =
+    Boolean(options.visitingPersonEmail?.trim()) || Boolean(signInRecord.visiting_person_name?.trim());
+
+  let adminUsers = [];
+  let permitIssuers = [];
+  let preResolvedRecipient = null;
+
+  if (options.visitingPersonEmail?.trim()) {
+    preResolvedRecipient = await lookupRecipientByEmail(admin, siteId, options.visitingPersonEmail);
+  }
+
+  if (needsVisitingLookup && !preResolvedRecipient) {
+    const contacts = await fetchSiteScopedContacts(admin, siteId);
+    adminUsers = contacts.adminUsers;
+    permitIssuers = contacts.permitIssuers;
+  }
+
   return {
     success: true,
     signInRecord,
     site,
-    adminUsers: adminUsers || [],
-    permitIssuers: permitIssuers || [],
+    adminUsers,
+    permitIssuers,
+    preResolvedRecipient,
   };
 }
 
@@ -324,15 +412,20 @@ async function sendSignInNotificationEmail({ recipient, signInRecord, site }) {
 }
 
 async function notifySignIn(signInId, options = {}) {
-  const context = await loadSignInNotificationContext(signInId);
+  const context = await loadSignInNotificationContext(signInId, options);
   if (!context.success) {
     return context;
   }
 
-  const recipient = resolveSignInNotificationRecipient({
-    ...context,
-    visitingPersonEmail: options.visitingPersonEmail || null,
-  });
+  const recipient =
+    context.preResolvedRecipient ||
+    resolveSignInNotificationRecipient({
+      signInRecord: context.signInRecord,
+      site: context.site,
+      adminUsers: context.adminUsers,
+      permitIssuers: context.permitIssuers,
+      visitingPersonEmail: options.visitingPersonEmail || null,
+    });
   if (!recipient?.email) {
     return {
       success: true,

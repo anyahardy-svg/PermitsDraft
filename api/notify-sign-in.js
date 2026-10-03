@@ -1,4 +1,4 @@
-const { notifySignIn } = require('./lib/signInNotificationEmail');
+const { runSignInNotification } = require('./lib/runSignInNotification');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -11,7 +11,10 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Missing signInId' });
     }
 
-    const result = await notifySignIn(signInId);
+    const { visitingPersonEmail } = req.body || {};
+    const result = await runSignInNotification(signInId, {
+      visitingPersonEmail: visitingPersonEmail || null,
+    });
     if (!result.success) {
       return res.status(result.status || 400).json({ error: result.error });
     }

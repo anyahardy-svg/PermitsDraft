@@ -58,6 +58,12 @@ function run() {
   assert.strictEqual(visitingRecipient.email, 'jane@example.com');
   assert.strictEqual(visitingRecipient.source, 'admin');
 
+  const siteWithManager = {
+    id: SITE_ID,
+    send_default_sign_in_notifications: true,
+    default_notification_manager: { id: 'admin-1', name: 'Jane Manager', email: 'jane@example.com' },
+  };
+
   const visitingByEmail = resolveVisitingPersonByEmail('jane@example.com', SITE_ID, adminUsers, permitIssuers);
   assert.strictEqual(visitingByEmail.email, 'jane@example.com');
 
@@ -73,12 +79,6 @@ function run() {
   const issuerRecipient = resolveVisitingPersonRecipient('Pat Issuer', SITE_ID, adminUsers, permitIssuers);
   assert.strictEqual(issuerRecipient.email, 'pat@example.com');
   assert.strictEqual(issuerRecipient.source, 'permit_issuer');
-
-  const siteWithManager = {
-    id: SITE_ID,
-    send_default_sign_in_notifications: true,
-    default_notification_manager: { id: 'admin-1', name: 'Jane Manager', email: 'jane@example.com' },
-  };
 
   const defaultRecipient = resolveDefaultManagerRecipient(siteWithManager);
   assert.strictEqual(defaultRecipient.email, 'jane@example.com');
