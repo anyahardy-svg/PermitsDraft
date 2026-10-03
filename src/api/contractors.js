@@ -5,6 +5,7 @@ import {
   syncSiteInductionRecordsFromProgress,
 } from './contractorInductions';
 import { getSiteInductionStatus, isInductedAnywhere } from '../utils/siteInductionStatus';
+import { contractorMatchesKioskSignInSearch } from '../utils/kioskContractorSearch';
 import {
   contractorDataCreate,
   contractorDataCreateForKiosk,
@@ -684,21 +685,6 @@ function escapeIlikePattern(value) {
   return String(value).replace(/[\\%_]/g, '\\$&');
 }
 
-function contractorMatchesKioskSignInSearch(contractor, siteId) {
-  const siteIds = contractor.site_ids || contractor.siteIds || [];
-  const onSite = Array.isArray(siteIds) && siteIds.includes(siteId);
-  if (onSite) {
-    return true;
-  }
-
-  const statusHere = getSiteInductionStatus(contractor, siteId);
-  if (statusHere === 'inducted' || statusHere === 'expired') {
-    return true;
-  }
-
-  return isInductedAnywhere(contractor);
-}
-
 const searchContractorsForKioskDirect = async (siteId, searchText, limit = 40) => {
   const trimmed = searchText?.trim();
   if (!trimmed || trimmed.length < 2) {
@@ -710,6 +696,7 @@ const searchContractorsForKioskDirect = async (siteId, searchText, limit = 40) =
     const [
       { data: siteAssigned, error: siteError },
       { data: globalNameMatches, error: globalError },
+      { data: inductedAnywhereMatches, error: inductedAnywhereError },
     ] = await Promise.all([
       supabase
         .from('contractors')
@@ -723,7 +710,13 @@ const searchContractorsForKioskDirect = async (siteId, searchText, limit = 40) =
         .select('*')
         .or(`name.ilike.${pattern},email.ilike.${pattern}`)
         .order('name', { ascending: true })
-        .limit(limit * 2),
+        .limit(limit * 3),
+      supabase
+        .from('contractors')
+        .select('*, contractor_inductions!inner(contractor_id)')
+        .or(`name.ilike.${pattern},email.ilike.${pattern}`)
+        .order('name', { ascending: true })
+        .limit(limit * 3),
     ]);
 
     if (siteError) {
@@ -732,33 +725,14 @@ const searchContractorsForKioskDirect = async (siteId, searchText, limit = 40) =
     if (globalError) {
       throw globalError;
     }
-
-    const inductedIds = await fetchContractorIdsWithSiteInductionRecord(siteId);
-    const siteAssignedIds = new Set((siteAssigned || []).map((contractor) => contractor.id));
-    const inductedOnlyIds = inductedIds.filter((contractorId) => !siteAssignedIds.has(contractorId));
-
-    const inductedMatches = [];
-    for (let i = 0; i < inductedOnlyIds.length && inductedMatches.length < limit; i += IN_QUERY_BATCH_SIZE) {
-      const batch = inductedOnlyIds.slice(i, i + IN_QUERY_BATCH_SIZE);
-      const { data, error } = await supabase
-        .from('contractors')
-        .select('*')
-        .in('id', batch)
-        .or(`name.ilike.${pattern},email.ilike.${pattern}`)
-        .order('name', { ascending: true })
-        .limit(limit - inductedMatches.length);
-
-      if (error) {
-        throw error;
-      }
-
-      inductedMatches.push(...(data || []));
+    if (inductedAnywhereError) {
+      console.warn('Kiosk search: could not load cross-site inducted contractors:', inductedAnywhereError.message);
     }
 
     const merged = mergeUniqueContractors(
       siteAssigned || [],
-      inductedMatches,
-      globalNameMatches || []
+      inductedAnywhereMatches || [],
+      globalNameMatches || [],
     );
     const withCompanies = await attachCompanyNames(merged);
     const transformed = withCompanies.map(transformContractor);

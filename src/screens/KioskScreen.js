@@ -19,7 +19,7 @@ import { supabase } from '../supabaseClient';
 import { checkInContractor, checkInVisitor, checkOut, getSignedInPeople } from '../api/signIns';
 import {
   getContractorWithSiteInductions,
-  listContractorsBySite,
+  listContractorsForKiosk,
   searchContractorsForKiosk,
   updateContractor,
 } from '../api/contractors';
@@ -266,7 +266,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     setContractorsLoading(true);
     setContractorsLoadError('');
     try {
-      const contractorsData = await listContractorsBySite(targetSiteId);
+      const contractorsData = await listContractorsForKiosk(targetSiteId);
       setContractors(contractorsData);
       contractorsLoadedSiteIdRef.current = targetSiteId;
       return contractorsData;

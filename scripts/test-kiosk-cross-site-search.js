@@ -13,7 +13,11 @@ const kioskSource = fs.readFileSync(
 
 assert.match(source, /isInductedAnywhere/);
 assert.match(source, /globalNameMatches/);
-assert.match(source, /contractorMatchesKioskSignInSearch/);
+assert.match(source, /contractor_inductions!inner/);
+assert.match(
+  fs.readFileSync(path.join(__dirname, '..', 'src', 'utils', 'kioskContractorSearch.js'), 'utf8'),
+  /isInductedAnywhere/,
+);
 assert.match(kioskSource, /searchContractorsForKiosk\(siteId, trimmed\)/);
 assert.doesNotMatch(
   kioskSource,
