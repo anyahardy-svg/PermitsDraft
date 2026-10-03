@@ -20,7 +20,49 @@ export function isManagerInviteCompanyRoute(pathname) {
   return MANAGER_INVITE_COMPANY_ROUTES.has(pathname);
 }
 
-export function buildInviteCompanyUrl({ siteId, baseUrl } = {}) {
+function trimParam(value) {
+  const text = value != null ? String(value).trim() : '';
+  return text || null;
+}
+
+/**
+ * Parse query params from a public invite-company link.
+ */
+export function parseInviteCompanyLinkParams(search = '') {
+  if (!search) {
+    return {
+      siteId: null,
+      assignedManagerId: null,
+      assignedHsPersonId: null,
+      assignedManagerName: null,
+      assignedHsPersonName: null,
+    };
+  }
+
+  const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
+
+  return {
+    siteId: trimParam(params.get('siteId')),
+    assignedManagerId: trimParam(params.get('managerId') || params.get('assignedManagerId')),
+    assignedHsPersonId: trimParam(params.get('hsPersonId') || params.get('assignedHsPersonId')),
+    assignedManagerName: trimParam(params.get('managerName') || params.get('assignedManagerName')),
+    assignedHsPersonName: trimParam(params.get('hsPersonName') || params.get('assignedHsPersonName')),
+  };
+}
+
+/** @deprecated Use parseInviteCompanyLinkParams */
+export function parseInviteCompanySiteId(search = '') {
+  return parseInviteCompanyLinkParams(search).siteId;
+}
+
+export function buildInviteCompanyUrl({
+  siteId,
+  assignedManagerId,
+  assignedHsPersonId,
+  assignedManagerName,
+  assignedHsPersonName,
+  baseUrl,
+} = {}) {
   const origin = getPublicAppOrigin(
     baseUrl || (typeof window !== 'undefined' ? window.location.origin : undefined),
   );
@@ -28,14 +70,18 @@ export function buildInviteCompanyUrl({ siteId, baseUrl } = {}) {
   if (siteId) {
     params.set('siteId', siteId);
   }
+  if (assignedManagerId) {
+    params.set('managerId', assignedManagerId);
+    if (assignedManagerName) {
+      params.set('managerName', assignedManagerName);
+    }
+  }
+  if (assignedHsPersonId) {
+    params.set('hsPersonId', assignedHsPersonId);
+    if (assignedHsPersonName) {
+      params.set('hsPersonName', assignedHsPersonName);
+    }
+  }
   const query = params.toString();
   return `${origin}${INVITE_COMPANY_PATH}/${query ? `?${query}` : ''}`;
-}
-
-export function parseInviteCompanySiteId(search = '') {
-  if (!search) {
-    return null;
-  }
-  const raw = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search).get('siteId');
-  return raw && String(raw).trim() ? String(raw).trim() : null;
 }
