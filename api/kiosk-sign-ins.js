@@ -100,7 +100,9 @@ export default async function handler(req, res) {
       }
 
       if (data?.id) {
-        notifySignIn(data.id).catch((err) => {
+        notifySignIn(data.id, {
+          visitingPersonEmail: body.visitingPersonEmail || null,
+        }).catch((err) => {
           console.warn('Sign-in notification could not be sent:', err?.message || err);
         });
       }
