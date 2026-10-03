@@ -10070,6 +10070,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     fileInput.click();
   };
 
+  const openCompanyTrainingRecordsReview = async (company) => {
+    if (!company?.id) {
+      return;
+    }
+
+    setCurrentScreen('manage_companies');
+    setSelectedCompanyForTrainingRecords(company);
+    setShowTrainingRecordsModal(true);
+    await Promise.all([
+      refreshTrainingRecordsStatus(company.id),
+      refreshTrainingMatricesStatus(company.id),
+    ]);
+  };
+
   const openCompanyAccreditationReview = async (companyId) => {
     if (!companyId) {
       return;
@@ -10123,12 +10137,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
 
     setAccreditationDeepLinkLoading(true);
-    showProgressMessage('Loading data…');
+    showProgressMessage('Loading approval request…');
 
     if (!adminSessionActive) {
-      return () => {
-        clearProgressMessage();
-      };
+      return undefined;
     }
 
     let cancelled = false;
@@ -10367,10 +10379,23 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           ? 'Manager approval recorded. The H&S reviewer has been notified.'
           : 'Approval recorded successfully.';
 
-      showUserAlert('Success', successMessage);
-      if (resolvedStatus === 'approved') {
+      if (resolvedStatus === 'approved' && stage === 'hs') {
         setShowAccreditationModal(false);
         setSelectedCompanyAccreditationId(null);
+        const companyForTraining = updatedCompanies.find(
+          (c) => c.id === selectedCompanyForAccreditation.id,
+        ) || selectedCompanyForAccreditation;
+        await openCompanyTrainingRecordsReview(companyForTraining);
+        showUserAlert(
+          'Accreditation approved',
+          `${successMessage} Review and approve their training records below.`,
+        );
+      } else {
+        showUserAlert('Success', successMessage);
+        if (resolvedStatus === 'approved') {
+          setShowAccreditationModal(false);
+          setSelectedCompanyAccreditationId(null);
+        }
       }
     } catch (error) {
       showUserAlert('Error', `Failed to approve accreditation: ${error.message}`);
@@ -26410,7 +26435,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         </View>
       </Modal>
 
-      {accreditationDeepLinkLoading && adminSessionActive ? (
+      {accreditationDeepLinkLoading ? (
         <View
           pointerEvents="auto"
           style={{
@@ -26427,7 +26452,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           }}
         >
           <ActivityIndicator size="large" color="#3B82F6" />
-          <Text style={{ marginTop: 12, fontSize: 16, color: '#6B7280' }}>Loading data…</Text>
+          <Text style={{ marginTop: 12, fontSize: 16, color: '#6B7280', textAlign: 'center', paddingHorizontal: 24 }}>
+            {adminSessionActive
+              ? 'Loading approval request…'
+              : 'Loading approval request… Sign in to continue.'}
+          </Text>
         </View>
       ) : null}
     </View>
@@ -27409,7 +27438,7 @@ const AppRouter = ({ initialRoute }) => {
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' }}>
         <ActivityIndicator size="large" color="#3B82F6" />
         <Text style={{ marginTop: 12, fontSize: 16, color: '#6B7280' }}>
-          {isAccreditationEmailDeepLink() ? 'Loading data…' : 'Loading…'}
+          {isAccreditationEmailDeepLink() ? 'Loading approval request…' : 'Loading…'}
         </Text>
       </View>
     );
