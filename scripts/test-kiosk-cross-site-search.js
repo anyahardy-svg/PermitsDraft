@@ -6,6 +6,10 @@ const source = fs.readFileSync(
   path.join(__dirname, '..', 'src', 'api', 'contractors.js'),
   'utf8'
 );
+const edgeSource = fs.readFileSync(
+  path.join(__dirname, '..', 'supabase', 'functions', 'contractor-data', 'index.ts'),
+  'utf8'
+);
 const kioskSource = fs.readFileSync(
   path.join(__dirname, '..', 'src', 'screens', 'KioskScreen.js'),
   'utf8'
@@ -18,6 +22,9 @@ assert.match(
   fs.readFileSync(path.join(__dirname, '..', 'src', 'utils', 'kioskContractorSearch.js'), 'utf8'),
   /isInductedAnywhere/,
 );
+assert.match(edgeSource, /attachSiteInductionsToContractors/);
+assert.match(edgeSource, /contractorMatchesKioskSignInSearch/);
+assert.match(source, /Edge attaches inductions/);
 assert.match(kioskSource, /searchContractorsForKiosk\(siteId, trimmed\)/);
 assert.doesNotMatch(
   kioskSource,
