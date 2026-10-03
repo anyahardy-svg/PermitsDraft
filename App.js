@@ -3560,6 +3560,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Import status states
   const [importStatus, setImportStatus] = useState('idle'); // idle, importing, success, error
   const [importMessage, setImportMessage] = useState('');
+  const [fullScreenProgressMessage, setFullScreenProgressMessage] = useState('');
+  const [savingCompanyForm, setSavingCompanyForm] = useState(false);
+  const [savingContractorForm, setSavingContractorForm] = useState(false);
+
+  const showFullScreenProgress = (message) => {
+    const text = message || 'Please wait…';
+    setFullScreenProgressMessage(text);
+    showProgressMessage(text);
+  };
+
+  const hideFullScreenProgress = () => {
+    setFullScreenProgressMessage('');
+    clearProgressMessage();
+  };
   // Filter state for services directory
   const [selectedService, setSelectedService] = useState('Hot Work');
   const [selectedBusinessUnitFilter, setSelectedBusinessUnitFilter] = useState('All');
@@ -9875,11 +9889,17 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       const reader = new FileReader();
       reader.onload = async (event) => {
         try {
+          setImportStatus('importing');
+          showFullScreenProgress('Reading contractor CSV…');
           const csvText = event.target.result;
           const lines = csvText.trim().split('\n');
           
           if (lines.length < 2) {
+            setImportStatus('error');
+            setImportMessage('File must have header row and at least one data row');
+            hideFullScreenProgress();
             Alert.alert('Error', 'File must have header row and at least one data row');
+            setTimeout(() => setImportStatus('idle'), 4000);
             return;
           }
 
@@ -9921,7 +9941,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           let updatedCount = 0;
           let duplicateCount = 0;
           const processedRowKeys = new Set();
+          setImportMessage('Loading current contractors…');
+          showFullScreenProgress('Loading current contractors…');
           const importContractorsCache = await listContractors();
+          const totalDataRows = lines.length - 1;
 
           for (let i = 1; i < lines.length; i++) {
             const line = lines[i].trim();
@@ -9947,6 +9970,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             
             if (nameIdx >= 0 && values[nameIdx]) {
               const contractorName = formatNameToTitleCase(values[nameIdx]);
+              const rowProgress = `Importing contractor ${i} of ${totalDataRows}: ${contractorName}…`;
+              setImportMessage(rowProgress);
+              showFullScreenProgress(rowProgress);
               const email = emailIdx >= 0 ? values[emailIdx] : '';
               // Apply formatPhoneNumber to add leading 0 if missing
               const rawPhone = phoneIdx >= 0 ? values[phoneIdx] : '';
@@ -10038,9 +10064,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           }
 
           if (newCount === 0 && updatedCount === 0 && duplicateCount === 0) {
+            setImportStatus('error');
+            setImportMessage('No valid contractors found in the CSV file.');
+            hideFullScreenProgress();
             Alert.alert('Info', 'No valid contractors found in the CSV file.');
+            setTimeout(() => setImportStatus('idle'), 4000);
             return;
           }
+
+          setImportMessage('Saving imported contractors…');
+          showFullScreenProgress('Saving imported contractors…');
 
           // Reload contractors from database
           const freshContractors = await listContractors();
@@ -10058,10 +10091,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             if (message) message += ' ';
             message += `${duplicateCount} duplicate(s) in this file.`;
           }
-          
+
+          setImportStatus('success');
+          setImportMessage(message);
+          hideFullScreenProgress();
           Alert.alert('Import Complete', message);
+          setTimeout(() => setImportStatus('idle'), 5000);
         } catch (error) {
+          setImportStatus('error');
+          setImportMessage(error.message || 'Import failed');
+          hideFullScreenProgress();
           Alert.alert('Error', 'Failed to parse file: ' + error.message);
+          setTimeout(() => setImportStatus('idle'), 5000);
         }
       };
       reader.readAsText(file);
@@ -10515,6 +10556,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         Alert.alert('Missing Info', 'Please enter a company name.');
         return;
       }
+      const progressLabel = editingCompany ? 'Updating company…' : 'Adding company…';
+      setSavingCompanyForm(true);
+      showFullScreenProgress(progressLabel);
       try {
         console.log('🏢 [COMPANY] handleAddCompany - editingCompany:', editingCompany);
         console.log('🏢 [COMPANY] currentCompany state:', currentCompany);
@@ -10576,6 +10620,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         setSelectedCompany(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to save company: ' + error.message);
+      } finally {
+        setSavingCompanyForm(false);
+        hideFullScreenProgress();
       }
     };
 
@@ -10704,6 +10751,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           try {
             setImportStatus('importing');
             setImportMessage('📂 Reading CSV file...');
+            showFullScreenProgress('Reading company CSV…');
             console.log('📂 Starting CSV import for companies');
             
             const csvText = event.target.result;
@@ -10712,12 +10760,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             if (lines.length < 2) {
               setImportStatus('error');
               setImportMessage('❌ File must have header row and at least one data row');
+              hideFullScreenProgress();
               setTimeout(() => setImportStatus('idle'), 5000);
               console.error('❌ CSV file too short:', lines.length, 'lines');
               return;
             }
             
-            setImportMessage('📋 Parsing CSV columns...');
+            setImportMessage('📋 Parsing CSV columns…');
+            showFullScreenProgress('Parsing company CSV…');
 
             // Parse header to find column indices
             const headerLine = lines[0];
@@ -10793,6 +10843,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             let skippedCompanyEmailCount = 0;
             const importErrors = [];
             const processedNames = new Set();
+            const totalCompanyRows = lines.length - 1;
 
             for (let i = 1; i < lines.length; i++) {
               const line = lines[i].trim();
@@ -10818,6 +10869,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               
               if (nameIdx >= 0 && values[nameIdx]) {
                 const companyName = values[nameIdx];
+                const companyRowProgress = `Importing company ${i} of ${totalCompanyRows}: ${companyName}…`;
+                setImportMessage(companyRowProgress);
+                showFullScreenProgress(companyRowProgress);
                 const companyEmailResult = resolveCompanyEmailForImport({
                   emailIdx,
                   values,
@@ -10988,12 +11042,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             if (newCount === 0 && updatedCount === 0 && duplicateCount === 0 && errorCount === 0) {
               setImportStatus('error');
               setImportMessage('❌ No valid companies found in the CSV file.');
+              hideFullScreenProgress();
               setTimeout(() => setImportStatus('idle'), 5000);
               console.warn('⚠️ No valid companies found in CSV');
               return;
             }
 
             setImportMessage('🔄 Saving to database...');
+            showFullScreenProgress('Saving imported companies…');
 
             // Reload companies from database
             const freshCompanies = await listCompanies();
@@ -11029,11 +11085,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             console.log('✅ Import Complete:', { newCount, updatedCount, duplicateCount, managerNotFoundCount, hsNotFoundCount, errorCount });
             setImportStatus(errorCount > 0 && updatedCount === 0 && newCount === 0 ? 'error' : 'success');
             setImportMessage(message.trim());
+            hideFullScreenProgress();
             setTimeout(() => setImportStatus('idle'), errorCount > 0 ? 20000 : 5000);
           } catch (error) {
             console.error('🔥 CSV Import Error:', error);
             setImportStatus('error');
             setImportMessage(`❌ Import failed: ${error.message}`);
+            hideFullScreenProgress();
             setTimeout(() => setImportStatus('idle'), 20000);
           }
         };
@@ -11376,8 +11434,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <Text style={{ marginLeft: 8, fontSize: 14, color: '#374151', fontWeight: '600' }}>In RADAR</Text>
               </View>
 
-              <TouchableOpacity style={styles.addButton} onPress={handleAddCompany}>
-                <Text style={styles.addButtonText}>{editingCompany ? 'Update Company' : 'Add Company'}</Text>
+              <TouchableOpacity
+                style={[styles.addButton, savingCompanyForm && { opacity: 0.7 }]}
+                onPress={handleAddCompany}
+                disabled={savingCompanyForm}
+              >
+                <Text style={styles.addButtonText}>
+                  {savingCompanyForm
+                    ? (editingCompany ? 'Updating…' : 'Adding…')
+                    : (editingCompany ? 'Update Company' : 'Add Company')}
+                </Text>
               </TouchableOpacity>
               {editingCompany && (
                 <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingCompany(false); setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: 'D', inRadar: true }); setSelectedCompany(null); }}>
@@ -12616,6 +12682,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                       }
 
                       setCreatingAndSendingInvitation(true);
+                      showFullScreenProgress('Creating company…');
                       try {
                         // Step 1: Create the new company
                         const newCompany = await createCompany({ 
@@ -12630,6 +12697,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         if (!newCompany || !newCompany.id) {
                           throw new Error('Failed to create company');
                         }
+
+                        showFullScreenProgress('Sending accreditation invitation…');
 
                         // Step 2: Send the accreditation invitation
                         let deadline = null;
@@ -12672,6 +12741,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         Alert.alert('Error', 'Failed to create company or send invitation: ' + error.message);
                       } finally {
                         setCreatingAndSendingInvitation(false);
+                        hideFullScreenProgress();
                       }
                     }}
                     disabled={creatingAndSendingInvitation}
@@ -13900,6 +13970,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         return;
       }
       
+      const contractorProgressLabel = editingContractor ? 'Updating contractor…' : 'Adding contractor…';
+      setSavingContractorForm(true);
+      showFullScreenProgress(contractorProgressLabel);
       try {
         console.log('🍎 Looking up company:', currentContractor.company, ', manuallyEntered:', currentContractor.companyManuallyEntered);
         
@@ -13909,6 +13982,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           if (currentContractor.companyManuallyEntered) {
             // Company was manually entered - upsert with tracking flags
             console.log('📝 Manually entered company - upserting with tracking');
+            showFullScreenProgress('Creating company…');
             const company = await upsertCompany({
               name: currentContractor.company,
               manuallyCreated: true,
@@ -13916,6 +13990,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             });
             if (!company) {
               window.alert('Error: Could not create company.');
+              setSavingContractorForm(false);
+              hideFullScreenProgress();
               return;
             }
             companyId = company.id;
@@ -13926,6 +14002,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             console.log('✅ Company lookup result:', company);
             if (!company) {
               window.alert(`Company Not Found: Your company "${currentContractor.company}" could not be found. Please check the company name or create a new company first.`);
+              setSavingContractorForm(false);
+              hideFullScreenProgress();
               return;
             }
             companyId = company.id;
@@ -13952,9 +14030,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             console.log('📅 Converted date:', dateStr, '→', isoDate);
           } else {
             Alert.alert('Invalid Date', 'Please enter date in DD/MM/YYYY format (e.g., 25/12/2025)');
+            setSavingContractorForm(false);
+            hideFullScreenProgress();
             return;
           }
         }
+
+        showFullScreenProgress(editingContractor ? 'Saving contractor changes…' : 'Creating contractor…');
 
         const contractorPayload = {
           name: formatNameToTitleCase(currentContractor.name),
@@ -13978,15 +14060,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           savedContractorId = currentContractor.id;
         } else {
           console.log('➕ Creating new contractor');
+          showFullScreenProgress('Creating contractor record…');
           const result = await createContractor(contractorPayload);
           console.log('✅ Contractor created:', result);
           savedContractorId = result?.id;
         }
 
         if (savedContractorId) {
+          showFullScreenProgress('Saving induction completions…');
           await saveContractorCompletedInductions(savedContractorId, selectedInductionIds);
         }
 
+        showFullScreenProgress('Refreshing contractor list…');
         const freshContractors = await listContractors();
         setContractors(freshContractors);
         const completedMap = await getCompletedInductionsByContractor();
@@ -14011,6 +14096,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       } catch (error) {
         console.error('❌ Contractor save error:', error);
         window.alert('Error: Failed to save contractor: ' + error.message);
+      } finally {
+        setSavingContractorForm(false);
+        hideFullScreenProgress();
       }
     };
 
@@ -14057,6 +14145,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           try {
             setImportStatus('importing');
             setImportMessage('Reading CSV file...');
+            showFullScreenProgress('Reading contractor CSV…');
 
             const csvText = event.target.result.replace(/^\ufeff/, '');
             const rawLines = csvText.trim().split(/\r?\n/);
@@ -14066,6 +14155,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             if (lines.length < 2) {
               setImportStatus('error');
               setImportMessage('Error: CSV must have header row and at least one data row');
+              hideFullScreenProgress();
               setTimeout(() => setImportStatus('idle'), 3000);
               return;
             }
@@ -14189,7 +14279,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               completedInductionsIdx, inductionIdx, businessUnitIdx,
             });
 
-            setImportMessage('Loading current contractors...');
+            setImportMessage('Loading current contractors…');
+            showFullScreenProgress('Loading current contractors…');
             const importContractorsCache = await listContractors();
             const sitesForImport = sites.length > 0 ? sites : await listSites();
             const businessUnitsForImport = businessUnits.length > 0 ? businessUnits : await listBusinessUnits();
@@ -14287,6 +14378,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 dataRowCount: lines.length - 1,
               });
               setImportMessage(errorMsg);
+              hideFullScreenProgress();
               setTimeout(() => setImportStatus('idle'), 5000);
               return;
             }
@@ -14377,7 +14469,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 });
 
                 const actionLabel = existingContractor ? 'Updating' : 'Importing';
-                setImportMessage(`${actionLabel} ${idx + 1} of ${rowsToProcess.length}: ${contractor.name}...`);
+                const contractorImportProgress = `${actionLabel} ${idx + 1} of ${rowsToProcess.length}: ${contractor.name}…`;
+                setImportMessage(contractorImportProgress);
+                showFullScreenProgress(contractorImportProgress);
                 
                 // Track if this is a newly created company
                 if (company.manually_created && !processedCompanies.has(company.id)) {
@@ -14492,6 +14586,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 console.error(`Failed to import ${contractor.name}:`, err);
                 setImportStatus('error');
                 setImportMessage(`Error importing ${contractor.name}: ${err.message}`);
+                hideFullScreenProgress();
                 setTimeout(() => setImportStatus('idle'), 4000);
                 return;
               }
@@ -14524,11 +14619,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             
             setImportStatus('success');
             setImportMessage(message);
+            hideFullScreenProgress();
             setTimeout(() => setImportStatus('idle'), 3000);
           } catch (error) {
             console.error('Import error:', error);
             setImportStatus('error');
             setImportMessage('Failed to parse file: ' + error.message);
+            hideFullScreenProgress();
             setTimeout(() => setImportStatus('idle'), 4000);
           }
         };
@@ -15038,8 +15135,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 keyboardType="decimal-pad"
               />
 
-              <TouchableOpacity style={styles.addButton} onPress={handleAddContractor}>
-                <Text style={styles.addButtonText}>{editingContractor ? 'Update Contractor' : 'Add Contractor'}</Text>
+              <TouchableOpacity
+                style={[styles.addButton, savingContractorForm && { opacity: 0.7 }]}
+                onPress={handleAddContractor}
+                disabled={savingContractorForm}
+              >
+                <Text style={styles.addButtonText}>
+                  {savingContractorForm
+                    ? (editingContractor ? 'Updating…' : 'Adding…')
+                    : (editingContractor ? 'Update Contractor' : 'Add Contractor')}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], completedInductionIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
                 <Text style={styles.addButtonText}>Cancel</Text>
@@ -25114,6 +25219,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     );
   };
 
+  const fullScreenOverlayMessage = (() => {
+    if (accreditationDeepLinkLoading) {
+      return adminSessionActive
+        ? 'Loading approval request…'
+        : 'Loading approval request… Sign in to continue.';
+    }
+    if (fullScreenProgressMessage) {
+      return fullScreenProgressMessage;
+    }
+    if (
+      importStatus === 'importing'
+      && (currentScreen === 'manage_companies' || currentScreen === 'manage_contractors')
+    ) {
+      return importMessage || 'Importing…';
+    }
+    return '';
+  })();
+
   // Main render logic
   return (
     <View style={styles.screenContainer}>
@@ -26435,7 +26558,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         </View>
       </Modal>
 
-      {accreditationDeepLinkLoading ? (
+      {fullScreenOverlayMessage ? (
         <View
           pointerEvents="auto"
           style={{
@@ -26453,9 +26576,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         >
           <ActivityIndicator size="large" color="#3B82F6" />
           <Text style={{ marginTop: 12, fontSize: 16, color: '#6B7280', textAlign: 'center', paddingHorizontal: 24 }}>
-            {adminSessionActive
-              ? 'Loading approval request…'
-              : 'Loading approval request… Sign in to continue.'}
+            {fullScreenOverlayMessage}
           </Text>
         </View>
       ) : null}
