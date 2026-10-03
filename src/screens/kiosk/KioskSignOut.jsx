@@ -30,8 +30,8 @@ const KioskSignOut = () => {
   const loadSignedInPeople = async () => {
     if (!siteId) return;
     try {
-      const people = await getSignedInPeople(siteId);
-      setSignedInPeople(people || []);
+      const result = await getSignedInPeople(siteId);
+      setSignedInPeople(result?.success ? (result.data || []) : []);
     } catch (error) {
       console.error('Failed to load signed in people:', error);
     }
@@ -50,10 +50,10 @@ const KioskSignOut = () => {
     setBusy(true);
     showProgressMessage('Signing out…');
     try {
-      const { error } = await checkOut(selectedPerson.id);
+      const result = await checkOut(selectedPerson.id, siteId);
 
-      if (error) {
-        showTransientMessage(error, 3000);
+      if (!result?.success) {
+        showTransientMessage(result?.error || 'Sign-out failed', 3000);
         return;
       }
 

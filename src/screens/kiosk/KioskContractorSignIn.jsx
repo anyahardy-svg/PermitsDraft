@@ -21,7 +21,7 @@ import {
 
 const KioskContractorSignIn = () => {
   const navigate = useNavigate();
-  const { contractors, styles } = useContext(KioskContext);
+  const { siteId, businessUnitId, contractors, styles } = useContext(KioskContext);
 
   const [contractorSearch, setContractorSearch] = useState('');
   const [filteredContractors, setFilteredContractors] = useState([]);
@@ -50,11 +50,8 @@ const KioskContractorSignIn = () => {
       const searchLower = text.toLowerCase();
       const filtered = contractors.filter((c) => {
         const contractorName = (c.name || '').toLowerCase();
-        const contractorEmail = (c.email || '').toLowerCase();
-        return (
-          contractorName.includes(searchLower) ||
-          (contractorEmail && contractorEmail.includes(searchLower))
-        );
+        const companyName = (c.companyName || c.company_name || c.company || '').toLowerCase();
+        return contractorName.includes(searchLower) || companyName.includes(searchLower);
       });
       setFilteredContractors(filtered);
     } else {
@@ -75,12 +72,18 @@ const KioskContractorSignIn = () => {
     setBusy(true);
     showProgressMessage('Signing in…');
     try {
-      const { data, error } = await checkInContractor({
-        contractor_id: selectedContractor.id,
-        check_in_time: new Date().toISOString(),
-      });
-      if (error) {
-        showTransientMessage(error, 3000);
+      if (!siteId) {
+        showTransientMessage('Site is not loaded yet. Please try again.', 3000);
+        return;
+      }
+
+      const result = await checkInContractor(
+        selectedContractor.id,
+        siteId,
+        businessUnitId || null,
+      );
+      if (!result?.success) {
+        showTransientMessage(result?.error || 'Check-in failed', 3000);
         return;
       }
       showTransientMessage(`${selectedContractor.name} checked in`);
@@ -111,7 +114,7 @@ const KioskContractorSignIn = () => {
         <Text style={styles.label}>Search for Contractor:</Text>
         <TextInput
           style={styles.input}
-          placeholder="Type contractor name or email..."
+          placeholder="Type contractor name or company..."
           value={contractorSearch}
           onChangeText={handleContractorSearch}
           editable={!busy}
@@ -138,8 +141,11 @@ const KioskContractorSignIn = () => {
                 disabled={busy}
               >
                 <Text style={styles.contractorName}>{item.name}</Text>
-                <Text style={styles.contractorEmail}>{item.email}</Text>
-                {item.company && <Text style={styles.contractorCompany}>{item.company}</Text>}
+                {(item.companyName || item.company_name || item.company) && (
+                  <Text style={styles.contractorCompany}>
+                    {item.companyName || item.company_name || item.company}
+                  </Text>
+                )}
               </TouchableOpacity>
             )}
           />

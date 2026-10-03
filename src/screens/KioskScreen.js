@@ -586,13 +586,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     const matchesContractorSearch = (contractor) => {
       const searchLower = trimmed.toLowerCase();
       const contractorName = (contractor.name || '').toLowerCase();
-      const contractorEmail = (contractor.email || '').toLowerCase();
       const companyName = (contractor.companyName || contractor.company_name || contractor.company || '').toLowerCase();
-      return (
-        contractorName.includes(searchLower)
-        || contractorEmail.includes(searchLower)
-        || companyName.includes(searchLower)
-      );
+      return contractorName.includes(searchLower) || companyName.includes(searchLower);
     };
 
     const filtered = contractors.filter(matchesContractorSearch);
@@ -1056,7 +1051,10 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
     setKioskActionBusy(true);
     showProgressMessage('Signing out…');
     try {
-      await checkOut(signInId, flagReturned, rtReturned);
+      const result = await checkOut(signInId, siteId, flagReturned, rtReturned);
+      if (!result?.success) {
+        throw new Error(result?.error || 'Sign-out failed');
+      }
       const personName =
         selectedPerson?.contractor_name ||
         selectedPerson?.visitor_name ||
@@ -1488,7 +1486,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           ) : null}
           <TextInput
             style={styles.input}
-            placeholder="Search by name, email, or company..."
+            placeholder="Search by name or company..."
             value={contractorSearch}
             onChangeText={handleContractorSearch}
           />
@@ -1541,7 +1539,6 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                   onPress={() => handleSelectContractor(item)}
                 >
                   <Text style={styles.contractorName}>{item.name}</Text>
-                  <Text style={styles.contractorEmail}>{item.email}</Text>
                   {(item.companyName || item.company_name || item.company) && (
                     <Text style={styles.contractorCompany}>
                       {item.companyName || item.company_name || item.company}
