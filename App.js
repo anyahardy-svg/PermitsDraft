@@ -63,7 +63,7 @@ import InviteNewCompanyScreen from './src/screens/InviteNewCompanyScreen';
 import {
   isInviteCompanyRoute,
   isManagerInviteCompanyRoute,
-  parseInviteCompanySiteId,
+  parseInviteCompanyLinkParams,
 } from './src/utils/inviteCompanyRoute';
 import {
   isAccreditationApprovalRoute,
@@ -723,7 +723,7 @@ function WebSignaturePad({ signatureRef, onSignatureChange, width = 300, height 
   );
 }
 
-const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, initialCompanyAccreditationId, initialSupplierId, initialSupplierToken, initialAccreditationApprovalToken, initialContractorAdminTab, initialContractorParams, initialManagerHubView, initialInviteCompanySiteId }) => {
+const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, initialCompanyAccreditationId, initialSupplierId, initialSupplierToken, initialAccreditationApprovalToken, initialContractorAdminTab, initialContractorParams, initialManagerHubView, initialInviteCompanyLinkParams }) => {
   // Helper function to format dates from yyyy-MM-dd to dd/MM/yyyy
   const formatDateNZ = (dateStr) => {
     if (!dateStr) return '';
@@ -25900,7 +25900,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         <View style={{ flex: 1, backgroundColor: '#F9FAFB', width: '100%' }}>
           <InviteNewCompanyScreen
             mode="public"
-            siteId={initialInviteCompanySiteId}
+            inviteLinkParams={initialInviteCompanyLinkParams}
           />
         </View>
       );
@@ -27512,9 +27512,9 @@ const AppRouter = ({ initialRoute }) => {
     return 'dashboard';
   };
 
-  const getInitialInviteCompanySiteId = () => {
+  const getInitialInviteCompanyLinkParams = () => {
     if (typeof window !== 'undefined' && isInviteCompanyRoute(window.location.pathname)) {
-      return parseInviteCompanySiteId(window.location.search);
+      return parseInviteCompanyLinkParams(window.location.search);
     }
     return null;
   };
@@ -27531,7 +27531,7 @@ const AppRouter = ({ initialRoute }) => {
   const initialSupplierToken = getInitialSupplierToken();
   const initialAccreditationApprovalToken = getInitialAccreditationApprovalToken();
   const initialManagerHubView = getInitialManagerHubView();
-  const initialInviteCompanySiteId = getInitialInviteCompanySiteId();
+  const initialInviteCompanyLinkParams = getInitialInviteCompanyLinkParams();
   const initialContractorAdminTab = getInitialContractorAdminTab();
   
   // Extract contractor details from URL query params if present
@@ -27693,7 +27693,7 @@ const AppRouter = ({ initialRoute }) => {
     }} initialRoute={forceRoute} />;
   } else {
     // Normal permit management app
-    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} initialCompanyAccreditationId={initialCompanyAccreditationId} initialSupplierId={initialSupplierId} initialSupplierToken={initialSupplierToken} initialAccreditationApprovalToken={initialAccreditationApprovalToken} initialContractorAdminTab={initialContractorAdminTab} initialContractorParams={initialContractorParams} initialManagerHubView={initialManagerHubView} initialInviteCompanySiteId={initialInviteCompanySiteId} />;
+    mainContent = <PermitManagementApp initialAdminRoute={initialAdminRoute} initialCompanyAccreditationId={initialCompanyAccreditationId} initialSupplierId={initialSupplierId} initialSupplierToken={initialSupplierToken} initialAccreditationApprovalToken={initialAccreditationApprovalToken} initialContractorAdminTab={initialContractorAdminTab} initialContractorParams={initialContractorParams} initialManagerHubView={initialManagerHubView} initialInviteCompanyLinkParams={initialInviteCompanyLinkParams} />;
   }
 
   // For kiosk: show a Permits button. For main app: show mode toggle

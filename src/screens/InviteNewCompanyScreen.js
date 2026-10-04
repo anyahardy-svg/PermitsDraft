@@ -12,7 +12,7 @@ import {
 import { getAllAdminUsers } from '../api/adminAuth';
 import { inviteNewCompany } from '../api/inviteCompanyApi';
 import { getDefaultAccreditationDeadline } from '../utils/accreditation';
-import { buildInviteCompanyUrl } from '../utils/inviteCompanyRoute';
+import { buildInviteCompanyUrl, parseInviteCompanyLinkParams } from '../utils/inviteCompanyRoute';
 
 const emptyForm = () => ({
   companyName: '',
@@ -28,6 +28,7 @@ export default function InviteNewCompanyScreen({
   mode = 'public',
   siteId = null,
   siteName = '',
+  inviteLinkParams = null,
   loggedInAdmin = null,
   onBack,
   onSuccess,
@@ -38,14 +39,79 @@ export default function InviteNewCompanyScreen({
   const [adminUsers, setAdminUsers] = useState([]);
   const [loadingAdmins, setLoadingAdmins] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [linkAssigneeLabels, setLinkAssigneeLabels] = useState({
+    managerName: '',
+    hsPersonName: '',
+  });
 
   const isManagerMode = mode === 'manager';
   const showAssigneeFields = isManagerMode && loggedInAdmin?.id;
 
-  const shareableLink = useMemo(
-    () => buildInviteCompanyUrl({ siteId: siteId || undefined }),
-    [siteId],
+  const resolvedSiteId = siteId || inviteLinkParams?.siteId || null;
+
+  const lookupAdminName = useCallback(
+    (adminId) => {
+      if (!adminId) {
+        return '';
+      }
+      const match = adminUsers.find((user) => user.id === adminId);
+      return match?.name || '';
+    },
+    [adminUsers],
   );
+
+  const shareableLink = useMemo(() => {
+    const managerId = form.assignedManagerId || null;
+    const hsPersonId = form.assignedHsPersonId || null;
+    return buildInviteCompanyUrl({
+      siteId: resolvedSiteId || undefined,
+      assignedManagerId: managerId || undefined,
+      assignedHsPersonId: hsPersonId || undefined,
+      assignedManagerName: lookupAdminName(managerId) || undefined,
+      assignedHsPersonName: lookupAdminName(hsPersonId) || undefined,
+    });
+  }, [
+    form.assignedHsPersonId,
+    form.assignedManagerId,
+    lookupAdminName,
+    resolvedSiteId,
+  ]);
+
+  useEffect(() => {
+    if (isManagerMode) {
+      return;
+    }
+
+    const fromProps = inviteLinkParams || {};
+    const fromWindow =
+      typeof window !== 'undefined'
+        ? parseInviteCompanyLinkParams(window.location.search)
+        : null;
+    const merged = {
+      siteId: fromProps.siteId || fromWindow?.siteId || null,
+      assignedManagerId: fromProps.assignedManagerId || fromWindow?.assignedManagerId || '',
+      assignedHsPersonId: fromProps.assignedHsPersonId || fromWindow?.assignedHsPersonId || '',
+      assignedManagerName: fromProps.assignedManagerName || fromWindow?.assignedManagerName || '',
+      assignedHsPersonName: fromProps.assignedHsPersonName || fromWindow?.assignedHsPersonName || '',
+    };
+
+    if (
+      merged.assignedManagerId
+      || merged.assignedHsPersonId
+      || merged.assignedManagerName
+      || merged.assignedHsPersonName
+    ) {
+      setForm((prev) => ({
+        ...prev,
+        assignedManagerId: merged.assignedManagerId || prev.assignedManagerId,
+        assignedHsPersonId: merged.assignedHsPersonId || prev.assignedHsPersonId,
+      }));
+      setLinkAssigneeLabels({
+        managerName: merged.assignedManagerName || '',
+        hsPersonName: merged.assignedHsPersonName || '',
+      });
+    }
+  }, [inviteLinkParams, isManagerMode]);
 
   useEffect(() => {
     if (!showAssigneeFields) {
@@ -120,7 +186,7 @@ export default function InviteNewCompanyScreen({
         contactName: form.contactName,
         contractor_type: form.contractor_type,
         deadline: form.deadline,
-        siteId,
+        siteId: resolvedSiteId,
         assignedManagerId: form.assignedManagerId || null,
         assignedHsPersonId: form.assignedHsPersonId || null,
         includeAdminSession: isManagerMode,
@@ -207,6 +273,31 @@ export default function InviteNewCompanyScreen({
               {copiedLink ? 'Copied!' : 'Copy link for anyone to use'}
             </Text>
           </TouchableOpacity>
+        </View>
+      ) : null}
+
+      {!isManagerMode && (linkAssigneeLabels.managerName || linkAssigneeLabels.hsPersonName) ? (
+        <View
+          style={{
+            backgroundColor: '#F0FDF4',
+            borderRadius: 8,
+            padding: 12,
+            marginBottom: 16,
+            borderWidth: 1,
+            borderColor: '#BBF7D0',
+          }}
+        >
+          <Text style={{ fontWeight: '600', color: '#14532D', marginBottom: 6 }}>Accreditation approvals</Text>
+          {linkAssigneeLabels.managerName ? (
+            <Text style={{ color: '#166534', fontSize: 14 }}>
+              Site manager: {linkAssigneeLabels.managerName}
+            </Text>
+          ) : null}
+          {linkAssigneeLabels.hsPersonName ? (
+            <Text style={{ color: '#166534', fontSize: 14, marginTop: 4 }}>
+              H&amp;S person: {linkAssigneeLabels.hsPersonName}
+            </Text>
+          ) : null}
         </View>
       ) : null}
 

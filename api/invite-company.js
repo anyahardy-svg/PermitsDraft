@@ -27,6 +27,27 @@ function normalizeContractorType(value) {
   return VALID_CONTRACTOR_TYPES.has(type) ? type : 'D';
 }
 
+async function resolveAdminAssigneeId(adminClient, assigneeId) {
+  if (!assigneeId) {
+    return null;
+  }
+
+  const { data, error } = await adminClient
+    .from('admin_users')
+    .select('id')
+    .eq('id', assigneeId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+  if (!data?.id) {
+    return { error: 'Invalid approval assignee on invite link', status: 400 };
+  }
+
+  return data.id;
+}
+
 function getRequestOrigin(req) {
   const configured = (process.env.REACT_APP_BASE_URL || '').replace(/\/$/, '');
   if (configured) {
@@ -90,20 +111,34 @@ module.exports = async function handler(req, res) {
 
       managerId = assignedManagerId || (access.manager?.role === 'manager' ? requestingAdminId : null);
       hsPersonId = assignedHsPersonId || null;
-    } else if (siteId) {
-      const { data: siteRow, error: siteError } = await admin
-        .from('sites')
-        .select('id')
-        .eq('id', siteId)
-        .maybeSingle();
+    } else {
+      if (siteId) {
+        const { data: siteRow, error: siteError } = await admin
+          .from('sites')
+          .select('id')
+          .eq('id', siteId)
+          .maybeSingle();
 
-      if (siteError) {
-        throw siteError;
+        if (siteError) {
+          throw siteError;
+        }
+        if (!siteRow) {
+          return res.status(400).json({ error: 'Invalid site' });
+        }
+        siteIds = [siteId];
       }
-      if (!siteRow) {
-        return res.status(400).json({ error: 'Invalid site' });
+
+      const resolvedManager = await resolveAdminAssigneeId(admin, assignedManagerId || null);
+      if (resolvedManager && typeof resolvedManager === 'object' && resolvedManager.error) {
+        return res.status(resolvedManager.status || 400).json({ error: resolvedManager.error });
       }
-      siteIds = [siteId];
+      managerId = resolvedManager || null;
+
+      const resolvedHs = await resolveAdminAssigneeId(admin, assignedHsPersonId || null);
+      if (resolvedHs && typeof resolvedHs === 'object' && resolvedHs.error) {
+        return res.status(resolvedHs.status || 400).json({ error: resolvedHs.error });
+      }
+      hsPersonId = resolvedHs || null;
     }
 
     const insertPayload = {
