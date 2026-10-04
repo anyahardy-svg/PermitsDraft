@@ -9,10 +9,12 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { getAllAdminUsers } from '../api/adminAuth';
-import { inviteNewCompany } from '../api/inviteCompanyApi';
+import { getAllAdminUsers, listAdminUsersForKioskSite } from '../api/adminAuth';
+import { fetchInviteCompanyApprovers, inviteNewCompany } from '../api/inviteCompanyApi';
 import { getDefaultAccreditationDeadline } from '../utils/accreditation';
 import { buildInviteCompanyUrl, parseInviteCompanyLinkParams } from '../utils/inviteCompanyRoute';
+import PublicFormLayout from '../components/PublicFormLayout';
+import { PUBLIC_PAGE_THEME } from '../constants/contractorHQBrand';
 
 const emptyForm = () => ({
   companyName: '',
@@ -39,13 +41,14 @@ export default function InviteNewCompanyScreen({
   const [adminUsers, setAdminUsers] = useState([]);
   const [loadingAdmins, setLoadingAdmins] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [linkAssigneeLabels, setLinkAssigneeLabels] = useState({
+  const [approversError, setApproversError] = useState('');
+  const [assigneesLockedFromLink, setAssigneesLockedFromLink] = useState(false);
+  const [linkAssigneeNames, setLinkAssigneeNames] = useState({
     managerName: '',
     hsPersonName: '',
   });
 
   const isManagerMode = mode === 'manager';
-  const showAssigneeFields = isManagerMode && loggedInAdmin?.id;
 
   const resolvedSiteId = siteId || inviteLinkParams?.siteId || null;
 
@@ -106,41 +109,86 @@ export default function InviteNewCompanyScreen({
         assignedManagerId: merged.assignedManagerId || prev.assignedManagerId,
         assignedHsPersonId: merged.assignedHsPersonId || prev.assignedHsPersonId,
       }));
-      setLinkAssigneeLabels({
+      if (merged.assignedManagerId || merged.assignedHsPersonId) {
+        setAssigneesLockedFromLink(true);
+      }
+      setLinkAssigneeNames({
         managerName: merged.assignedManagerName || '',
         hsPersonName: merged.assignedHsPersonName || '',
       });
     }
   }, [inviteLinkParams, isManagerMode]);
 
-  useEffect(() => {
-    if (!showAssigneeFields) {
-      return;
-    }
+  const approverOptions = useMemo(() => {
+    const byId = new Map((adminUsers || []).map((user) => [user.id, user]));
 
+    const ensureOption = (id, name, fallbackLabel) => {
+      if (!id) {
+        return;
+      }
+      if (!byId.has(id)) {
+        byId.set(id, {
+          id,
+          name: name || fallbackLabel,
+          email: '',
+          role: '',
+        });
+      }
+    };
+
+    ensureOption(form.assignedManagerId, linkAssigneeNames.managerName, 'Approval manager');
+    ensureOption(form.assignedHsPersonId, linkAssigneeNames.hsPersonName, 'H&S advisor');
+
+    return Array.from(byId.values()).sort((a, b) =>
+      (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }),
+    );
+  }, [
+    adminUsers,
+    form.assignedHsPersonId,
+    form.assignedManagerId,
+    linkAssigneeNames.hsPersonName,
+    linkAssigneeNames.managerName,
+  ]);
+
+  useEffect(() => {
     let cancelled = false;
-    setLoadingAdmins(true);
-    getAllAdminUsers(loggedInAdmin.id)
-      .then((users) => {
-        if (!cancelled) {
-          setAdminUsers(users || []);
+
+    async function loadApprovers() {
+      setLoadingAdmins(true);
+      setApproversError('');
+      try {
+        let users = [];
+        if (isManagerMode && loggedInAdmin?.id) {
+          if (resolvedSiteId) {
+            users = await listAdminUsersForKioskSite(resolvedSiteId);
+          } else {
+            users = await getAllAdminUsers(loggedInAdmin.id);
+          }
+        } else if (resolvedSiteId) {
+          const result = await fetchInviteCompanyApprovers(resolvedSiteId);
+          users = result.approvers || [];
         }
-      })
-      .catch(() => {
+        if (!cancelled) {
+          setAdminUsers(users);
+        }
+      } catch (loadError) {
         if (!cancelled) {
           setAdminUsers([]);
+          setApproversError(loadError?.message || 'Could not load approval contacts');
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) {
           setLoadingAdmins(false);
         }
-      });
+      }
+    }
+
+    loadApprovers();
 
     return () => {
       cancelled = true;
     };
-  }, [loggedInAdmin?.id, showAssigneeFields]);
+  }, [isManagerMode, loggedInAdmin?.id, resolvedSiteId]);
 
   useEffect(() => {
     if (!loggedInAdmin?.id || form.assignedManagerId) {
@@ -151,21 +199,25 @@ export default function InviteNewCompanyScreen({
     }
   }, [loggedInAdmin, form.assignedManagerId]);
 
+  const theme = PUBLIC_PAGE_THEME;
+
   const inputStyle = parentStyles?.input || {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 12,
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 4,
+    backgroundColor: '#F8FAFC',
+    fontSize: 15,
   };
 
   const labelStyle = parentStyles?.label || {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: '#334155',
     marginBottom: 6,
+    marginTop: 12,
   };
 
   const handleSubmit = async () => {
@@ -224,26 +276,13 @@ export default function InviteNewCompanyScreen({
     Alert.alert('Share link', shareableLink);
   }, [shareableLink]);
 
-  return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: '#F9FAFB' }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 32, maxWidth: 640, alignSelf: 'center', width: '100%' }}
-    >
-      {onBack ? (
-        <TouchableOpacity onPress={onBack} style={{ marginBottom: 12 }}>
-          <Text style={{ color: '#2563EB', fontWeight: '600' }}>← Back</Text>
-        </TouchableOpacity>
-      ) : null}
+  const pageTitle = 'Invite new company';
+  const pageSubtitle = isManagerMode
+    ? `Create a contractor company and send an accreditation invitation${siteName ? ` for ${siteName}` : ''}.`
+    : 'Submit your company details and we’ll email you a secure link to complete contractor accreditation.';
 
-      <Text style={{ fontSize: 22, fontWeight: '700', color: '#111827', marginBottom: 8 }}>
-        Invite New Company
-      </Text>
-      <Text style={{ color: '#6B7280', marginBottom: 16, lineHeight: 20 }}>
-        {isManagerMode
-          ? `Create a new contractor company and email them an accreditation invitation${siteName ? ` for ${siteName}` : ''}.`
-          : 'Submit your company details to receive an accreditation invitation by email.'}
-      </Text>
-
+  const formBody = (
+    <>
       {isManagerMode ? (
         <View
           style={{
@@ -276,32 +315,7 @@ export default function InviteNewCompanyScreen({
         </View>
       ) : null}
 
-      {!isManagerMode && (linkAssigneeLabels.managerName || linkAssigneeLabels.hsPersonName) ? (
-        <View
-          style={{
-            backgroundColor: '#F0FDF4',
-            borderRadius: 8,
-            padding: 12,
-            marginBottom: 16,
-            borderWidth: 1,
-            borderColor: '#BBF7D0',
-          }}
-        >
-          <Text style={{ fontWeight: '600', color: '#14532D', marginBottom: 6 }}>Accreditation approvals</Text>
-          {linkAssigneeLabels.managerName ? (
-            <Text style={{ color: '#166534', fontSize: 14 }}>
-              Site manager: {linkAssigneeLabels.managerName}
-            </Text>
-          ) : null}
-          {linkAssigneeLabels.hsPersonName ? (
-            <Text style={{ color: '#166534', fontSize: 14, marginTop: 4 }}>
-              H&amp;S person: {linkAssigneeLabels.hsPersonName}
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
-
-      <Text style={labelStyle}>Company name *</Text>
+      <Text style={{ ...labelStyle, marginTop: 0 }}>Company name *</Text>
       <TextInput
         style={inputStyle}
         value={form.companyName}
@@ -363,63 +377,131 @@ export default function InviteNewCompanyScreen({
         editable={!submitting}
       />
 
-      {showAssigneeFields ? (
-        loadingAdmins ? (
-          <ActivityIndicator color="#2563EB" style={{ marginVertical: 12 }} />
-        ) : (
-          <>
-            <Text style={labelStyle}>Assigned manager (optional)</Text>
-            <View style={{ marginBottom: 12, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
+      <Text style={{ ...labelStyle, fontSize: 15, color: '#0F172A' }}>Accreditation approvals</Text>
+      <Text style={{ fontSize: 13, color: '#64748B', marginBottom: 8, lineHeight: 18 }}>
+        Choose who will approve this company&apos;s accreditation after they submit.
+      </Text>
+      {!resolvedSiteId ? (
+        <Text style={{ fontSize: 13, color: '#B45309', marginBottom: 12, lineHeight: 18 }}>
+          Use a site-specific invite link from your site manager to pick approval manager and H&amp;S advisor here.
+        </Text>
+      ) : null}
+      {approversError ? (
+        <Text style={{ fontSize: 13, color: '#B91C1C', marginBottom: 12 }}>{approversError}</Text>
+      ) : null}
+      {loadingAdmins ? (
+        <ActivityIndicator color="#2563EB" style={{ marginVertical: 12 }} />
+      ) : (
+        <>
+          <Text style={labelStyle}>Approval manager (optional)</Text>
+          <View style={{ marginBottom: 12, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, overflow: 'hidden' }}>
+            {Platform.OS === 'web' ? (
               <select
-                style={{ padding: 12, fontSize: 14, width: '100%', height: 44 }}
+                style={{
+                  padding: 12,
+                  fontSize: 14,
+                  width: '100%',
+                  height: 44,
+                  backgroundColor: assigneesLockedFromLink ? '#F1F5F9' : '#F8FAFC',
+                }}
                 value={form.assignedManagerId || ''}
                 onChange={(event) => setForm({ ...form, assignedManagerId: event.target.value })}
-                disabled={submitting}
+                disabled={submitting || !resolvedSiteId || assigneesLockedFromLink}
               >
-                <option value="">Select manager…</option>
-                {adminUsers.map((admin) => (
+                <option value="">Select approval manager…</option>
+                {approverOptions.map((admin) => (
                   <option key={`invite-company-manager-${admin.id}`} value={admin.id}>
-                    {admin.name} ({admin.email}) - {admin.role}
+                    {admin.email
+                      ? `${admin.name} (${admin.email})${admin.role ? ` — ${admin.role}` : ''}`
+                      : admin.name}
                   </option>
                 ))}
               </select>
-            </View>
+            ) : (
+              <TextInput
+                style={inputStyle}
+                value={form.assignedManagerId}
+                onChangeText={(text) => setForm({ ...form, assignedManagerId: text })}
+                editable={!submitting && Boolean(resolvedSiteId) && !assigneesLockedFromLink}
+                placeholder="Manager admin user ID"
+              />
+            )}
+          </View>
 
-            <Text style={labelStyle}>Assigned H&amp;S person (optional)</Text>
-            <View style={{ marginBottom: 12, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
+          <Text style={labelStyle}>Approval H&amp;S advisor (optional)</Text>
+          <View style={{ marginBottom: 12, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, overflow: 'hidden' }}>
+            {Platform.OS === 'web' ? (
               <select
-                style={{ padding: 12, fontSize: 14, width: '100%', height: 44 }}
+                style={{
+                  padding: 12,
+                  fontSize: 14,
+                  width: '100%',
+                  height: 44,
+                  backgroundColor: assigneesLockedFromLink ? '#F1F5F9' : '#F8FAFC',
+                }}
                 value={form.assignedHsPersonId || ''}
                 onChange={(event) => setForm({ ...form, assignedHsPersonId: event.target.value })}
-                disabled={submitting}
+                disabled={submitting || !resolvedSiteId || assigneesLockedFromLink}
               >
-                <option value="">Select H&amp;S person…</option>
-                {adminUsers.map((admin) => (
+                <option value="">Select H&amp;S advisor…</option>
+                {approverOptions.map((admin) => (
                   <option key={`invite-company-hs-${admin.id}`} value={admin.id}>
-                    {admin.name} ({admin.email}) - {admin.role}
+                    {admin.email
+                      ? `${admin.name} (${admin.email})${admin.role ? ` — ${admin.role}` : ''}`
+                      : admin.name}
                   </option>
                 ))}
               </select>
-            </View>
-          </>
-        )
-      ) : null}
+            ) : (
+              <TextInput
+                style={inputStyle}
+                value={form.assignedHsPersonId}
+                onChangeText={(text) => setForm({ ...form, assignedHsPersonId: text })}
+                editable={!submitting && Boolean(resolvedSiteId) && !assigneesLockedFromLink}
+                placeholder="H&S advisor admin user ID"
+              />
+            )}
+          </View>
+          {assigneesLockedFromLink ? (
+            <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 8 }}>
+              Approvers were preset on your invite link and cannot be changed here.
+            </Text>
+          ) : null}
+        </>
+      )}
 
       <TouchableOpacity
         onPress={handleSubmit}
         disabled={submitting}
         style={{
-          backgroundColor: submitting ? '#9CA3AF' : '#8B5CF6',
-          paddingVertical: 14,
-          borderRadius: 8,
+          backgroundColor: submitting ? '#94A3B8' : theme.accent,
+          paddingVertical: 16,
+          borderRadius: 12,
           alignItems: 'center',
-          marginTop: 8,
+          marginTop: 20,
+          ...(Platform.OS === 'web'
+            ? { boxShadow: submitting ? undefined : '0 10px 24px rgba(79, 70, 229, 0.35)' }
+            : null),
         }}
       >
         <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 16 }}>
-          {submitting ? 'Sending invitation…' : '+ Create & Invite'}
+          {submitting ? 'Sending invitation…' : 'Create company & send invite'}
         </Text>
       </TouchableOpacity>
-    </ScrollView>
+    </>
+  );
+
+  if (isManagerMode) {
+    return (
+      <PublicFormLayout compact title={pageTitle} subtitle={pageSubtitle}>
+        {formBody}
+      </PublicFormLayout>
+    );
+  }
+
+  return (
+    <PublicFormLayout title={pageTitle} subtitle={pageSubtitle}>
+      {formBody}
+    </PublicFormLayout>
   );
 }

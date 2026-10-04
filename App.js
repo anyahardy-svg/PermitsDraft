@@ -25897,12 +25897,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       );
     case 'invite_company_public':
       return (
-        <View style={{ flex: 1, backgroundColor: '#F9FAFB', width: '100%' }}>
-          <InviteNewCompanyScreen
-            mode="public"
-            inviteLinkParams={initialInviteCompanyLinkParams}
-          />
-        </View>
+        <InviteNewCompanyScreen
+          mode="public"
+          inviteLinkParams={initialInviteCompanyLinkParams}
+        />
       );
     case 'supplier_accreditation_public':
       return (

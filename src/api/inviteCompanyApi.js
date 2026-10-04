@@ -22,6 +22,28 @@ function parseDeadlineToIso(deadlineText) {
   return null;
 }
 
+export async function fetchInviteCompanyApprovers(siteId) {
+  if (!siteId) {
+    return { approvers: [], siteName: null };
+  }
+
+  const response = await fetch('/api/invite-company-approvers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ siteId }),
+  });
+
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(body.error || `Failed to load approvers (${response.status})`);
+  }
+
+  return {
+    approvers: body.approvers || [],
+    siteName: body.siteName || null,
+  };
+}
+
 export async function inviteNewCompany({
   companyName,
   email,

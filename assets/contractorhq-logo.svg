@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 80" role="img" aria-label="Contractor HQ">
+  <defs>
+    <linearGradient id="chq-mark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="chq-shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="8" width="64" height="64" rx="18" fill="url(#chq-mark)"/>
+  <rect x="4" y="8" width="64" height="32" rx="18" fill="url(#chq-shine)"/>
+  <path fill="#FFFFFF" d="M36 24c-10.5 0-19 6.2-19 13.8V42h38v-4.2C55 30.2 46.5 24 36 24zm-11 14.5v-2.2c0-4.8 4.9-8.7 11-8.7s11 3.9 11 8.7v2.2H25z"/>
+  <path fill="#FFFFFF" opacity="0.9" d="M22 42h28l-2.5 4.5c-1.2 2.1-3.4 3.5-5.8 3.5h-11c-2.4 0-4.6-1.4-5.8-3.5L22 42z"/>
+  <rect x="30" y="20" width="12" height="4" rx="2" fill="#FFFFFF" opacity="0.85"/>
+  <text x="88" y="46" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#0F172A">Contractor</text>
+  <text x="248" y="46" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="28" font-weight="800" fill="#2563EB">HQ</text>
+  <text x="88" y="66" font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#64748B" letter-spacing="0.12em">WORKFORCE ACCREDITATION</text>
+</svg>
