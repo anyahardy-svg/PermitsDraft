@@ -10,7 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { getAllAdminUsers, listAdminUsersForKioskSite } from '../api/adminAuth';
-import { fetchInviteCompanyApprovers, inviteNewCompany } from '../api/inviteCompanyApi';
+import { inviteNewCompany } from '../api/inviteCompanyApi';
 import { getDefaultAccreditationDeadline } from '../utils/accreditation';
 import { buildInviteCompanyUrl, parseInviteCompanyLinkParams } from '../utils/inviteCompanyRoute';
 import PublicFormLayout from '../components/PublicFormLayout';
@@ -154,19 +154,20 @@ export default function InviteNewCompanyScreen({
     let cancelled = false;
 
     async function loadApprovers() {
+      if (!isManagerMode) {
+        return;
+      }
+
       setLoadingAdmins(true);
       setApproversError('');
       try {
         let users = [];
-        if (isManagerMode && loggedInAdmin?.id) {
+        if (loggedInAdmin?.id) {
           if (resolvedSiteId) {
             users = await listAdminUsersForKioskSite(resolvedSiteId);
           } else {
             users = await getAllAdminUsers(loggedInAdmin.id);
           }
-        } else if (resolvedSiteId) {
-          const result = await fetchInviteCompanyApprovers(resolvedSiteId);
-          users = result.approvers || [];
         }
         if (!cancelled) {
           setAdminUsers(users);
@@ -377,98 +378,102 @@ export default function InviteNewCompanyScreen({
         editable={!submitting}
       />
 
-      <Text style={{ ...labelStyle, fontSize: 15, color: '#0F172A' }}>Accreditation approvals</Text>
-      <Text style={{ fontSize: 13, color: '#64748B', marginBottom: 8, lineHeight: 18 }}>
-        Choose who will approve this company&apos;s accreditation after they submit.
-      </Text>
-      {!resolvedSiteId ? (
-        <Text style={{ fontSize: 13, color: '#B45309', marginBottom: 12, lineHeight: 18 }}>
-          Use a site-specific invite link from your site manager to pick approval manager and H&amp;S advisor here.
-        </Text>
-      ) : null}
-      {approversError ? (
-        <Text style={{ fontSize: 13, color: '#B91C1C', marginBottom: 12 }}>{approversError}</Text>
-      ) : null}
-      {loadingAdmins ? (
-        <ActivityIndicator color="#2563EB" style={{ marginVertical: 12 }} />
-      ) : (
+      {isManagerMode ? (
         <>
-          <Text style={labelStyle}>Approval manager (optional)</Text>
-          <View style={{ marginBottom: 12, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, overflow: 'hidden' }}>
-            {Platform.OS === 'web' ? (
-              <select
-                style={{
-                  padding: 12,
-                  fontSize: 14,
-                  width: '100%',
-                  height: 44,
-                  backgroundColor: assigneesLockedFromLink ? '#F1F5F9' : '#F8FAFC',
-                }}
-                value={form.assignedManagerId || ''}
-                onChange={(event) => setForm({ ...form, assignedManagerId: event.target.value })}
-                disabled={submitting || !resolvedSiteId || assigneesLockedFromLink}
-              >
-                <option value="">Select approval manager…</option>
-                {approverOptions.map((admin) => (
-                  <option key={`invite-company-manager-${admin.id}`} value={admin.id}>
-                    {admin.email
-                      ? `${admin.name} (${admin.email})${admin.role ? ` — ${admin.role}` : ''}`
-                      : admin.name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <TextInput
-                style={inputStyle}
-                value={form.assignedManagerId}
-                onChangeText={(text) => setForm({ ...form, assignedManagerId: text })}
-                editable={!submitting && Boolean(resolvedSiteId) && !assigneesLockedFromLink}
-                placeholder="Manager admin user ID"
-              />
-            )}
-          </View>
-
-          <Text style={labelStyle}>Approval H&amp;S advisor (optional)</Text>
-          <View style={{ marginBottom: 12, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, overflow: 'hidden' }}>
-            {Platform.OS === 'web' ? (
-              <select
-                style={{
-                  padding: 12,
-                  fontSize: 14,
-                  width: '100%',
-                  height: 44,
-                  backgroundColor: assigneesLockedFromLink ? '#F1F5F9' : '#F8FAFC',
-                }}
-                value={form.assignedHsPersonId || ''}
-                onChange={(event) => setForm({ ...form, assignedHsPersonId: event.target.value })}
-                disabled={submitting || !resolvedSiteId || assigneesLockedFromLink}
-              >
-                <option value="">Select H&amp;S advisor…</option>
-                {approverOptions.map((admin) => (
-                  <option key={`invite-company-hs-${admin.id}`} value={admin.id}>
-                    {admin.email
-                      ? `${admin.name} (${admin.email})${admin.role ? ` — ${admin.role}` : ''}`
-                      : admin.name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <TextInput
-                style={inputStyle}
-                value={form.assignedHsPersonId}
-                onChangeText={(text) => setForm({ ...form, assignedHsPersonId: text })}
-                editable={!submitting && Boolean(resolvedSiteId) && !assigneesLockedFromLink}
-                placeholder="H&S advisor admin user ID"
-              />
-            )}
-          </View>
-          {assigneesLockedFromLink ? (
-            <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 8 }}>
-              Approvers were preset on your invite link and cannot be changed here.
+          <Text style={{ ...labelStyle, fontSize: 15, color: '#0F172A' }}>Accreditation approvals</Text>
+          <Text style={{ fontSize: 13, color: '#64748B', marginBottom: 8, lineHeight: 18 }}>
+            Choose who will approve this company&apos;s accreditation after they submit.
+          </Text>
+          {!resolvedSiteId ? (
+            <Text style={{ fontSize: 13, color: '#B45309', marginBottom: 12, lineHeight: 18 }}>
+              Pick a site in the manager hub so approval manager and H&amp;S advisor lists can load.
             </Text>
           ) : null}
+          {approversError ? (
+            <Text style={{ fontSize: 13, color: '#B91C1C', marginBottom: 12 }}>{approversError}</Text>
+          ) : null}
+          {loadingAdmins ? (
+            <ActivityIndicator color="#2563EB" style={{ marginVertical: 12 }} />
+          ) : (
+            <>
+              <Text style={labelStyle}>Approval manager (optional)</Text>
+              <View style={{ marginBottom: 12, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, overflow: 'hidden' }}>
+                {Platform.OS === 'web' ? (
+                  <select
+                    style={{
+                      padding: 12,
+                      fontSize: 14,
+                      width: '100%',
+                      height: 44,
+                      backgroundColor: assigneesLockedFromLink ? '#F1F5F9' : '#F8FAFC',
+                    }}
+                    value={form.assignedManagerId || ''}
+                    onChange={(event) => setForm({ ...form, assignedManagerId: event.target.value })}
+                    disabled={submitting || !resolvedSiteId || assigneesLockedFromLink}
+                  >
+                    <option value="">Select approval manager…</option>
+                    {approverOptions.map((admin) => (
+                      <option key={`invite-company-manager-${admin.id}`} value={admin.id}>
+                        {admin.email
+                          ? `${admin.name} (${admin.email})${admin.role ? ` — ${admin.role}` : ''}`
+                          : admin.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <TextInput
+                    style={inputStyle}
+                    value={form.assignedManagerId}
+                    onChangeText={(text) => setForm({ ...form, assignedManagerId: text })}
+                    editable={!submitting && Boolean(resolvedSiteId) && !assigneesLockedFromLink}
+                    placeholder="Manager admin user ID"
+                  />
+                )}
+              </View>
+
+              <Text style={labelStyle}>Approval H&amp;S advisor (optional)</Text>
+              <View style={{ marginBottom: 12, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, overflow: 'hidden' }}>
+                {Platform.OS === 'web' ? (
+                  <select
+                    style={{
+                      padding: 12,
+                      fontSize: 14,
+                      width: '100%',
+                      height: 44,
+                      backgroundColor: assigneesLockedFromLink ? '#F1F5F9' : '#F8FAFC',
+                    }}
+                    value={form.assignedHsPersonId || ''}
+                    onChange={(event) => setForm({ ...form, assignedHsPersonId: event.target.value })}
+                    disabled={submitting || !resolvedSiteId || assigneesLockedFromLink}
+                  >
+                    <option value="">Select H&amp;S advisor…</option>
+                    {approverOptions.map((admin) => (
+                      <option key={`invite-company-hs-${admin.id}`} value={admin.id}>
+                        {admin.email
+                          ? `${admin.name} (${admin.email})${admin.role ? ` — ${admin.role}` : ''}`
+                          : admin.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <TextInput
+                    style={inputStyle}
+                    value={form.assignedHsPersonId}
+                    onChangeText={(text) => setForm({ ...form, assignedHsPersonId: text })}
+                    editable={!submitting && Boolean(resolvedSiteId) && !assigneesLockedFromLink}
+                    placeholder="H&S advisor admin user ID"
+                  />
+                )}
+              </View>
+              {assigneesLockedFromLink ? (
+                <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 8 }}>
+                  Approvers were preset on your invite link and cannot be changed here.
+                </Text>
+              ) : null}
+            </>
+          )}
         </>
-      )}
+      ) : null}
 
       <TouchableOpacity
         onPress={handleSubmit}
