@@ -13,6 +13,8 @@ import { getAllAdminUsers } from '../api/adminAuth';
 import { inviteNewCompany } from '../api/inviteCompanyApi';
 import { getDefaultAccreditationDeadline } from '../utils/accreditation';
 import { buildInviteCompanyUrl, parseInviteCompanyLinkParams } from '../utils/inviteCompanyRoute';
+import PublicFormLayout from '../components/PublicFormLayout';
+import { PUBLIC_PAGE_THEME } from '../constants/contractorHQBrand';
 
 const emptyForm = () => ({
   companyName: '',
@@ -151,21 +153,25 @@ export default function InviteNewCompanyScreen({
     }
   }, [loggedInAdmin, form.assignedManagerId]);
 
+  const theme = PUBLIC_PAGE_THEME;
+
   const inputStyle = parentStyles?.input || {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 12,
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 4,
+    backgroundColor: '#F8FAFC',
+    fontSize: 15,
   };
 
   const labelStyle = parentStyles?.label || {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: '#334155',
     marginBottom: 6,
+    marginTop: 12,
   };
 
   const handleSubmit = async () => {
@@ -224,26 +230,13 @@ export default function InviteNewCompanyScreen({
     Alert.alert('Share link', shareableLink);
   }, [shareableLink]);
 
-  return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: '#F9FAFB' }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 32, maxWidth: 640, alignSelf: 'center', width: '100%' }}
-    >
-      {onBack ? (
-        <TouchableOpacity onPress={onBack} style={{ marginBottom: 12 }}>
-          <Text style={{ color: '#2563EB', fontWeight: '600' }}>← Back</Text>
-        </TouchableOpacity>
-      ) : null}
+  const pageTitle = 'Invite new company';
+  const pageSubtitle = isManagerMode
+    ? `Create a contractor company and send an accreditation invitation${siteName ? ` for ${siteName}` : ''}.`
+    : 'Submit your company details and we’ll email you a secure link to complete contractor accreditation.';
 
-      <Text style={{ fontSize: 22, fontWeight: '700', color: '#111827', marginBottom: 8 }}>
-        Invite New Company
-      </Text>
-      <Text style={{ color: '#6B7280', marginBottom: 16, lineHeight: 20 }}>
-        {isManagerMode
-          ? `Create a new contractor company and email them an accreditation invitation${siteName ? ` for ${siteName}` : ''}.`
-          : 'Submit your company details to receive an accreditation invitation by email.'}
-      </Text>
-
+  const formBody = (
+    <>
       {isManagerMode ? (
         <View
           style={{
@@ -409,17 +402,34 @@ export default function InviteNewCompanyScreen({
         onPress={handleSubmit}
         disabled={submitting}
         style={{
-          backgroundColor: submitting ? '#9CA3AF' : '#8B5CF6',
-          paddingVertical: 14,
-          borderRadius: 8,
+          backgroundColor: submitting ? '#94A3B8' : theme.accent,
+          paddingVertical: 16,
+          borderRadius: 12,
           alignItems: 'center',
-          marginTop: 8,
+          marginTop: 20,
+          ...(Platform.OS === 'web'
+            ? { boxShadow: submitting ? undefined : '0 10px 24px rgba(79, 70, 229, 0.35)' }
+            : null),
         }}
       >
         <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 16 }}>
-          {submitting ? 'Sending invitation…' : '+ Create & Invite'}
+          {submitting ? 'Sending invitation…' : 'Create company & send invite'}
         </Text>
       </TouchableOpacity>
-    </ScrollView>
+    </>
+  );
+
+  if (isManagerMode) {
+    return (
+      <PublicFormLayout compact title={pageTitle} subtitle={pageSubtitle}>
+        {formBody}
+      </PublicFormLayout>
+    );
+  }
+
+  return (
+    <PublicFormLayout title={pageTitle} subtitle={pageSubtitle}>
+      {formBody}
+    </PublicFormLayout>
   );
 }
