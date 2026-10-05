@@ -135,7 +135,6 @@ export default function CompanyAccreditationScreen({
 }) {
   const scrollViewRef = useRef(null);
   const canvasRef = useRef(null);
-  const [signatureCanvasEpoch, setSignatureCanvasEpoch] = useState(0);
   const storedSignatureRef = useRef(null);
   const signatureUpdateSourceRef = useRef('load');
   const handleSaveRef = useRef(async () => {});
@@ -1137,10 +1136,6 @@ export default function CompanyAccreditationScreen({
 
       if (reviewMode && (publicLiabilityEvidenceUrl || motorVehicleEvidenceUrl || data.professional_indemnity_insurance_url)) {
         setExpandedSections(prev => ({ ...prev, 24: true }));
-      }
-
-      if (reviewMode && data.hs_agreement_signature) {
-        setExpandedSections(prev => ({ ...prev, 26: true }));
       }
 
       // Load section 25 (Contact Information)
@@ -4642,7 +4637,6 @@ export default function CompanyAccreditationScreen({
 
       contextRef.current = ctx;
       debugLog('✅ Canvas initialized');
-      setSignatureCanvasEpoch((epoch) => epoch + 1);
 
       if (storedSignatureRef.current) {
         debugLog('🖼️ Drawing stored signature after canvas init');
@@ -4715,7 +4709,6 @@ export default function CompanyAccreditationScreen({
     ctx.fillRect(0, 0, actualWidth, actualHeight);
     
     contextRef.current = ctx;
-    setSignatureCanvasEpoch((epoch) => epoch + 1);
     debugLog('🖼️ Context reinitialized with canvas size:', {w: actualWidth, h: actualHeight});
 
     let rafId = requestAnimationFrame(() => {
@@ -4877,7 +4870,7 @@ export default function CompanyAccreditationScreen({
         canvas._handlers = null;
       }
     };
-  }, [expandedSections[26], loading, signatureCanvasEpoch]);
+  }, [expandedSections[26], loading]);
 
   const handleClearSignature = () => {
     if (canvasRef.current && contextRef.current) {
@@ -4895,12 +4888,6 @@ export default function CompanyAccreditationScreen({
 
   // Section 26: H&S Agreement
   const renderSection26HSAgreement = () => {
-    const hsValidationData = getHSAgreementDataForValidation();
-    const hsAgreementComplete = validateHSAgreementComplete(hsValidationData) === null;
-    const signedDateLabel = company?.hs_agreement_signed_date
-      ? formatDateNZ(company.hs_agreement_signed_date)
-      : null;
-
     return (
       <View key={26}>
         <TouchableOpacity
@@ -4924,17 +4911,9 @@ export default function CompanyAccreditationScreen({
             elevation: 4
           }}
         >
-          <View style={{ flex: 1, paddingRight: 8 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
-              Section 26: Health & Safety Agreement
-            </Text>
-            {hsAgreementComplete && (
-              <Text style={{ fontSize: 13, color: '#047857', marginTop: 4, fontWeight: '600' }}>
-                Signed{section26.hs_agreement_accepted_by ? ` by ${section26.hs_agreement_accepted_by}` : ''}
-                {signedDateLabel ? ` on ${signedDateLabel}` : ''}
-              </Text>
-            )}
-          </View>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
+            Section 26: Health & Safety Agreement
+          </Text>
           <Text style={{ fontSize: 18, color: '#0284C7' }}>
             {expandedSections[26] ? '▼' : '▶'}
           </Text>
@@ -4942,25 +4921,6 @@ export default function CompanyAccreditationScreen({
 
         {expandedSections[26] && (
           <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
-            {hsAgreementComplete && (
-              <View style={{ marginBottom: 16, padding: 12, backgroundColor: '#ECFDF5', borderRadius: 6, borderWidth: 1, borderColor: '#6EE7B7' }}>
-                <Text style={{ fontSize: 15, fontWeight: '600', color: '#047857', marginBottom: 8 }}>
-                  Agreement signed
-                </Text>
-                {section26.hs_agreement_signature && React.createElement('img', {
-                  src: section26.hs_agreement_signature,
-                  alt: 'Health and Safety agreement signature',
-                  style: {
-                    width: '100%',
-                    maxHeight: '160px',
-                    objectFit: 'contain',
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #D1D5DB',
-                    borderRadius: '6px',
-                  },
-                })}
-              </View>
-            )}
             {/* Display Agreement Document */}
             {section26.hs_agreement_document && (
               <View style={{ marginBottom: 16, maxHeight: 300, backgroundColor: '#FFFFFF', borderRadius: 6, padding: 12, borderWidth: 1, borderColor: '#E5E7EB' }}>
@@ -5075,11 +5035,11 @@ export default function CompanyAccreditationScreen({
   }
 
   return (
-    <View style={[styles.container, { flex: 1 }]}>
+    <View style={[styles.container, { flex: 1, minHeight: 0 }]}>
       <ScrollView 
         ref={scrollViewRef}
-        style={[styles.screenContainer, { flex: 1 }]}
-        contentContainerStyle={{ paddingBottom: 80, flexGrow: 1 }}
+        style={[styles.screenContainer, { flex: 1, minHeight: 0 }]}
+        contentContainerStyle={{ paddingBottom: 24, flexGrow: 1 }}
         scrollEnabled={true}
         nestedScrollEnabled={true}
         onScroll={(event) => setScrollOffset(event.nativeEvent.contentOffset.y)}
@@ -5668,8 +5628,8 @@ export default function CompanyAccreditationScreen({
         </View>
       </ScrollView>
 
-      {/* Status Badge and Buttons */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16 }}>
+      {/* Status Badge and Buttons — flexShrink keeps Save/Submit visible above the fold on web */}
+      <View style={{ flexShrink: 0, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
         {/* Status Badge */}
         <View style={{
           backgroundColor: ['completed', 'approved'].includes(accreditationStatus) ? '#D1FAE5' : '#FEF3C7',
