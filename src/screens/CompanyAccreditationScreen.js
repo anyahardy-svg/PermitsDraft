@@ -5662,8 +5662,8 @@ export default function CompanyAccreditationScreen({
           )}
         </View>
 
-        {/* Save Button */}
-        {!reviewMode && (
+        {/* Save Button — shown in admin review (kiosk modal) as well as contractor portal */}
+        {!['approved'].includes(accreditationStatus) && (
           <TouchableOpacity
             style={[styles.addButton, { marginBottom: 10 }]}
             onPress={handleSave}
@@ -5676,7 +5676,7 @@ export default function CompanyAccreditationScreen({
         )}
 
         {/* Submit Button - Only show if not completed */}
-        {!reviewMode && !['completed', 'approved'].includes(accreditationStatus) && (
+        {!['completed', 'approved'].includes(accreditationStatus) && (
           <TouchableOpacity
             style={[styles.addButton, { backgroundColor: '#10B981' }]}
             onPress={handleSubmitAsComplete}
