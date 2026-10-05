@@ -55,6 +55,14 @@ const showUserMessage = (title, message) => {
   Alert.alert(title || 'Notice', message);
 };
 
+const configureSignatureCanvasContext = (ctx) => {
+  if (!ctx) return;
+  ctx.strokeStyle = '#1F2937';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+};
+
 const drawStoredSignatureOnCanvas = (canvas, ctx, signatureData, onSuccess) => {
   if (!canvas || !ctx || !signatureData) return;
 
@@ -127,6 +135,7 @@ export default function CompanyAccreditationScreen({
 }) {
   const scrollViewRef = useRef(null);
   const canvasRef = useRef(null);
+  const [signatureCanvasEpoch, setSignatureCanvasEpoch] = useState(0);
   const storedSignatureRef = useRef(null);
   const signatureUpdateSourceRef = useRef('load');
   const handleSaveRef = useRef(async () => {});
@@ -1128,6 +1137,10 @@ export default function CompanyAccreditationScreen({
 
       if (reviewMode && (publicLiabilityEvidenceUrl || motorVehicleEvidenceUrl || data.professional_indemnity_insurance_url)) {
         setExpandedSections(prev => ({ ...prev, 24: true }));
+      }
+
+      if (reviewMode && data.hs_agreement_signature) {
+        setExpandedSections(prev => ({ ...prev, 26: true }));
       }
 
       // Load section 25 (Contact Information)
@@ -3031,6 +3044,7 @@ export default function CompanyAccreditationScreen({
     hs_agreement_acknowledged: !!(
       section26.hs_agreement_acknowledged || company?.hs_agreement_acknowledged
     ),
+    hs_agreement_accepted: !!company?.hs_agreement_accepted,
   });
 
   const performSubmitAsComplete = async () => {
@@ -4622,15 +4636,13 @@ export default function CompanyAccreditationScreen({
 
       // Get context and set it up
       const ctx = canvas.getContext('2d');
-      ctx.strokeStyle = '#1F2937';
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
+      configureSignatureCanvasContext(ctx);
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, actualWidth, actualHeight);
 
       contextRef.current = ctx;
       debugLog('✅ Canvas initialized');
+      setSignatureCanvasEpoch((epoch) => epoch + 1);
 
       if (storedSignatureRef.current) {
         debugLog('🖼️ Drawing stored signature after canvas init');
@@ -4698,14 +4710,12 @@ export default function CompanyAccreditationScreen({
       return;
     }
     
-    ctx.strokeStyle = '#1F2937';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    configureSignatureCanvasContext(ctx);
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, actualWidth, actualHeight);
     
     contextRef.current = ctx;
+    setSignatureCanvasEpoch((epoch) => epoch + 1);
     debugLog('🖼️ Context reinitialized with canvas size:', {w: actualWidth, h: actualHeight});
 
     let rafId = requestAnimationFrame(() => {
@@ -4730,10 +4740,20 @@ export default function CompanyAccreditationScreen({
     }
 
     // Define event handlers first (hoisting)
-    const attachEventListeners = (canvas, ctx) => {
+    const attachEventListeners = (canvas) => {
       debugLog('✅ Event listeners attached to canvas');
 
+      const getDrawingContext = () => {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+        configureSignatureCanvasContext(ctx);
+        contextRef.current = ctx;
+        return ctx;
+      };
+
       function handleMouseDown(e) {
+        const ctx = getDrawingContext();
+        if (!ctx) return;
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) * (canvas.width / rect.width);
         const y = (e.clientY - rect.top) * (canvas.height / rect.height);
@@ -4744,6 +4764,8 @@ export default function CompanyAccreditationScreen({
 
       function handleMouseMove(e) {
         if (!isDrawingRef.current) return;
+        const ctx = getDrawingContext();
+        if (!ctx) return;
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) * (canvas.width / rect.width);
         const y = (e.clientY - rect.top) * (canvas.height / rect.height);
@@ -4753,8 +4775,9 @@ export default function CompanyAccreditationScreen({
 
       function handleMouseUp() {
         if (!isDrawingRef.current) return;
+        const ctx = getDrawingContext();
         isDrawingRef.current = false;
-        ctx.closePath();
+        ctx?.closePath();
         const signatureData = canvas.toDataURL('image/png');
         signatureUpdateSourceRef.current = 'draw';
         setSection26(prev => ({ ...prev, hs_agreement_signature: signatureData }));
@@ -4763,6 +4786,8 @@ export default function CompanyAccreditationScreen({
 
       function handleTouchStart(e) {
         e.preventDefault();
+        const ctx = getDrawingContext();
+        if (!ctx) return;
         const rect = canvas.getBoundingClientRect();
         const touch = e.touches[0];
         const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
@@ -4775,6 +4800,8 @@ export default function CompanyAccreditationScreen({
       function handleTouchMove(e) {
         e.preventDefault();
         if (!isDrawingRef.current) return;
+        const ctx = getDrawingContext();
+        if (!ctx) return;
         const rect = canvas.getBoundingClientRect();
         const touch = e.touches[0];
         const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
@@ -4786,8 +4813,9 @@ export default function CompanyAccreditationScreen({
       function handleTouchEnd(e) {
         e.preventDefault();
         if (!isDrawingRef.current) return;
+        const ctx = getDrawingContext();
         isDrawingRef.current = false;
-        ctx.closePath();
+        ctx?.closePath();
         const signatureData = canvas.toDataURL('image/png');
         signatureUpdateSourceRef.current = 'draw';
         setSection26(prev => ({ ...prev, hs_agreement_signature: signatureData }));
@@ -4827,11 +4855,11 @@ export default function CompanyAccreditationScreen({
             console.error('❌ Canvas initialization failed after retry');
             return;
           }
-          attachEventListeners(canvas2, ctx2);
+          attachEventListeners(canvas2);
         }, 100);
         return;
       }
-      attachEventListeners(canvas, ctx);
+      attachEventListeners(canvas);
     }, 150);
 
     return () => {
@@ -4849,7 +4877,7 @@ export default function CompanyAccreditationScreen({
         canvas._handlers = null;
       }
     };
-  }, [expandedSections[26], loading]);
+  }, [expandedSections[26], loading, signatureCanvasEpoch]);
 
   const handleClearSignature = () => {
     if (canvasRef.current && contextRef.current) {
@@ -4867,6 +4895,12 @@ export default function CompanyAccreditationScreen({
 
   // Section 26: H&S Agreement
   const renderSection26HSAgreement = () => {
+    const hsValidationData = getHSAgreementDataForValidation();
+    const hsAgreementComplete = validateHSAgreementComplete(hsValidationData) === null;
+    const signedDateLabel = company?.hs_agreement_signed_date
+      ? formatDateNZ(company.hs_agreement_signed_date)
+      : null;
+
     return (
       <View key={26}>
         <TouchableOpacity
@@ -4890,9 +4924,17 @@ export default function CompanyAccreditationScreen({
             elevation: 4
           }}
         >
-          <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
-            Section 26: Health & Safety Agreement
-          </Text>
+          <View style={{ flex: 1, paddingRight: 8 }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#0284C7' }}>
+              Section 26: Health & Safety Agreement
+            </Text>
+            {hsAgreementComplete && (
+              <Text style={{ fontSize: 13, color: '#047857', marginTop: 4, fontWeight: '600' }}>
+                Signed{section26.hs_agreement_accepted_by ? ` by ${section26.hs_agreement_accepted_by}` : ''}
+                {signedDateLabel ? ` on ${signedDateLabel}` : ''}
+              </Text>
+            )}
+          </View>
           <Text style={{ fontSize: 18, color: '#0284C7' }}>
             {expandedSections[26] ? '▼' : '▶'}
           </Text>
@@ -4900,6 +4942,25 @@ export default function CompanyAccreditationScreen({
 
         {expandedSections[26] && (
           <View style={{ paddingHorizontal: 12, paddingBottom: 20, marginBottom: 12, backgroundColor: '#FAFAFA', borderRadius: 8, padding: 12 }}>
+            {hsAgreementComplete && (
+              <View style={{ marginBottom: 16, padding: 12, backgroundColor: '#ECFDF5', borderRadius: 6, borderWidth: 1, borderColor: '#6EE7B7' }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: '#047857', marginBottom: 8 }}>
+                  Agreement signed
+                </Text>
+                {section26.hs_agreement_signature && React.createElement('img', {
+                  src: section26.hs_agreement_signature,
+                  alt: 'Health and Safety agreement signature',
+                  style: {
+                    width: '100%',
+                    maxHeight: '160px',
+                    objectFit: 'contain',
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '6px',
+                  },
+                })}
+              </View>
+            )}
             {/* Display Agreement Document */}
             {section26.hs_agreement_document && (
               <View style={{ marginBottom: 16, maxHeight: 300, backgroundColor: '#FFFFFF', borderRadius: 6, padding: 12, borderWidth: 1, borderColor: '#E5E7EB' }}>

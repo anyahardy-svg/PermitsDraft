@@ -91,6 +91,7 @@ export async function recordHSAgreementAcceptance(companyId, acceptanceData) {
       .from('companies')
       .update({
         hs_agreement_accepted: true,
+        hs_agreement_acknowledged: true,
         hs_agreement_signed_date: new Date().toISOString(),
         hs_agreement_signature: acceptanceData.signature, // base64 canvas drawing
         hs_agreement_accepted_by: acceptanceData.acceptedBy, // name of person
