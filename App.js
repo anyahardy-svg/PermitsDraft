@@ -11995,12 +11995,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
               {/* Admin Action Buttons - Floating */}
               {(() => {
-                const reviewStatus = displayedAccreditationStatus || companyAccreditationData?.accreditation_status;
-                const showEditorActions = companyAccreditationData && !['approved', 'needs_revision'].includes(reviewStatus);
-                const showApprovalActions = companyAccreditationData && getAccreditationApprovalStage(reviewStatus);
+                const reviewStatus =
+                  displayedAccreditationStatus
+                  || companyAccreditationData?.accreditation_status
+                  || 'in-progress';
+                const showApprovalActions = Boolean(getAccreditationApprovalStage(reviewStatus));
                 const approvalButtonLabel = reviewStatus === 'pending_hs' ? 'Approve (H&S)' : 'Approve (Manager)';
 
-                if (!showEditorActions && !showApprovalActions) {
+                if (!showApprovalActions) {
                   return null;
                 }
 
@@ -12010,52 +12012,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   bottom: 0,
                   left: 0,
                   right: 0,
+                  zIndex: 50,
                   backgroundColor: 'white',
                   borderTopWidth: 1,
                   borderTopColor: '#E5E7EB',
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                   paddingBottom: 16,
-                  gap: 10
+                  gap: 10,
+                  ...(typeof window !== 'undefined' ? { boxShadow: '0 -4px 12px rgba(0,0,0,0.08)' } : {}),
                 }}>
-                  {showEditorActions && (
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <TouchableOpacity
-                      style={{
-                        flex: 1,
-                        paddingVertical: 12,
-                        backgroundColor: '#3B82F6',
-                        borderRadius: 8,
-                        alignItems: 'center',
-                        opacity: (!accreditationAdminActions || accreditationAdminActions.saving || accreditationAdminActions.submitting || !accreditationAdminActions.hasLoadedCompanyData) ? 0.6 : 1,
-                      }}
-                      onPress={() => accreditationAdminActions?.save?.()}
-                      disabled={!accreditationAdminActions || accreditationAdminActions.saving || accreditationAdminActions.submitting || !accreditationAdminActions.hasLoadedCompanyData}
-                    >
-                      <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                        {accreditationAdminActions?.saving ? 'Saving...' : 'Save'}
-                      </Text>
-                    </TouchableOpacity>
-                    {accreditationAdminActions?.canSubmit && (
-                      <TouchableOpacity
-                        style={{
-                          flex: 1,
-                          paddingVertical: 12,
-                          backgroundColor: '#059669',
-                          borderRadius: 8,
-                          alignItems: 'center',
-                          opacity: (!accreditationAdminActions || accreditationAdminActions.saving || accreditationAdminActions.submitting || !accreditationAdminActions.hasLoadedCompanyData) ? 0.6 : 1,
-                        }}
-                        onPress={() => accreditationAdminActions?.submitAsComplete?.()}
-                        disabled={!accreditationAdminActions || accreditationAdminActions.saving || accreditationAdminActions.submitting || !accreditationAdminActions.hasLoadedCompanyData}
-                      >
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                          {accreditationAdminActions?.submitting ? 'Submitting...' : 'Submit as Complete'}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                  )}
                   {showApprovalActions && (
                   <View style={{ flexDirection: 'row', gap: 10 }}>
                     <TouchableOpacity
