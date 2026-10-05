@@ -10416,7 +10416,20 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const handleApproveCompanyAccreditation = async () => {
     if (!selectedCompanyForAccreditation) return;
 
-    const hsAgreementError = validateHSAgreementComplete(companyAccreditationData || {});
+    let accreditationForHsCheck = companyAccreditationData || {};
+    try {
+      const freshAccreditation = await getCompanyAccreditation(selectedCompanyForAccreditation.id);
+      if (freshAccreditation) {
+        accreditationForHsCheck = { ...accreditationForHsCheck, ...freshAccreditation };
+        setCompanyAccreditationData((prev) => (
+          prev ? { ...prev, ...freshAccreditation } : freshAccreditation
+        ));
+      }
+    } catch (refreshError) {
+      console.warn('Could not refresh accreditation before H&S check:', refreshError?.message);
+    }
+
+    const hsAgreementError = validateHSAgreementComplete(accreditationForHsCheck);
     if (hsAgreementError) {
       showUserAlert(
         'Section 26 not signed',
