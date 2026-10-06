@@ -34,5 +34,19 @@ export function getScreenPath(screen) {
   if (screen === 'manager_hub') {
     return '/manager/';
   }
+  if (screen === 'admin') {
+    return '/admin/';
+  }
   return null;
+}
+
+/**
+ * Which admin UI to show when the URL is /manager (depends on role, not the path alone).
+ * Site managers stay on manager_hub; super admins use the main admin panel.
+ */
+export function resolveManagerPathAdminScreen(adminData) {
+  if (!adminData) {
+    return 'manager_hub';
+  }
+  return getPostAdminLoginScreen(adminData, '/manager/');
 }
