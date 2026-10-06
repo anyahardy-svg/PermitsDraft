@@ -28,3 +28,9 @@ $$;
 
 REVOKE ALL ON FUNCTION public.current_contractor_company_ids() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.current_contractor_company_ids() TO authenticated;
+
+-- Rollback (restores pre-fix behaviour; only if you must revert):
+-- Redefine current_contractor_company_ids() using the body from
+-- migrations/lock-down-anon-companies.sql (contractors table only).
+-- Field contractors and existing site-manager flows are unchanged by this migration;
+-- it only adds the same company membership paths already used for ContractorHQ login.
