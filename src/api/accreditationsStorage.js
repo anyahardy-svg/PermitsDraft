@@ -58,13 +58,36 @@ export async function getSignedAccreditationsUrl(
   return { url: data?.signedUrl || null, error: null };
 }
 
-export async function openAccreditationFile(fileRef) {
+function isLegacyPublicAccreditationUrl(fileRef) {
+  return (
+    typeof fileRef === 'string'
+    && fileRef.includes('://')
+    && fileRef.includes('/object/public/accreditations/')
+  );
+}
+
+/**
+ * Open an accreditation file in a new tab. Pass targetWindow from a synchronous click handler
+ * (window.open('about:blank')) so pop-up blockers allow the tab after async signed-URL fetch.
+ */
+export async function openAccreditationFile(fileRef, targetWindow = null) {
+  const legacyPublicUrl = isLegacyPublicAccreditationUrl(fileRef) ? fileRef.trim() : null;
   const { url, error } = await getSignedAccreditationsUrl(fileRef);
-  if (!url) {
+  const openUrl = url || legacyPublicUrl;
+
+  if (!openUrl) {
     throw new Error(error || 'Could not open document');
   }
-  if (typeof window !== 'undefined' && window.open) {
-    window.open(url, '_blank', 'noopener,noreferrer');
+
+  if (typeof window !== 'undefined') {
+    if (targetWindow && !targetWindow.closed) {
+      targetWindow.location.href = openUrl;
+    } else if (window.open) {
+      const opened = window.open(openUrl, '_blank', 'noopener,noreferrer');
+      if (!opened) {
+        throw new Error('Could not open document (allow pop-ups for this site)');
+      }
+    }
   }
-  return url;
+  return openUrl;
 }
