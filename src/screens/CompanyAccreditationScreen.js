@@ -1489,7 +1489,7 @@ export default function CompanyAccreditationScreen({
         
         // Persist immediately so admin review and storage stay in sync
         debugLog('💾 Persisting certificate upload immediately...');
-        await persistAccreditationChanges(
+        const persistResult = await persistAccreditationChanges(
           buildCertificateSaveOverrides(systemKey, { url: uploadResult.url, checked: true }),
           { force: true }
         );
@@ -1500,6 +1500,13 @@ export default function CompanyAccreditationScreen({
             scrollViewRef.current?.scrollTo({ y: scrollOffset, animated: true });
           }
         }, 100);
+        if (!persistResult?.success) {
+          Alert.alert(
+            'Saved to storage only',
+            `${systemLabel} uploaded to storage but could not be linked to your company record: ${persistResult?.error || 'Save failed'}. Ask your administrator to run the company RLS fix migration, then upload again.`,
+          );
+          return;
+        }
         Alert.alert('Success ✅', `${systemLabel} certificate uploaded successfully!`);
       } else {
         debugLog('❌ Upload failed:', uploadResult);
@@ -2921,8 +2928,12 @@ export default function CompanyAccreditationScreen({
   // Pass { force: true } to save during admin review (uploads, explicit user actions).
   const persistAccreditationChanges = async (overrides = null, options = {}) => {
     const { force = false } = options;
-    if (!currentCompanyId || !hasLoadedCompanyData) return;
-    if (reviewMode && !force) return;
+    if (!currentCompanyId || !hasLoadedCompanyData) {
+      return { success: false, error: 'Company data is not ready to save yet' };
+    }
+    if (reviewMode && !force) {
+      return { success: false, error: 'Review mode blocks incidental saves' };
+    }
     
     try {
       setIsPersistingChanges(true);
@@ -2955,11 +2966,14 @@ export default function CompanyAccreditationScreen({
             onStatusUpdate(saveStatus);
           }
         }
-      } else {
-        console.error('❌ Persist failed:', result.error);
+        return { success: true };
       }
+
+      console.error('❌ Persist failed:', result.error);
+      return { success: false, error: result.error || 'Could not save accreditation changes' };
     } catch (error) {
       console.error('❌ Persist error:', error);
+      return { success: false, error: error?.message || 'Could not save accreditation changes' };
     } finally {
       setIsPersistingChanges(false);
     }

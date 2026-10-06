@@ -314,6 +314,9 @@ const updateContractorDirect = async (contractorId, updates) => {
     .eq('id', contractorId)
     .select();
   if (error) throw error;
+  if (!data?.length) {
+    return null;
+  }
 
   const contractor = data[0];
   if (contractor?.company_id) {

@@ -121,6 +121,13 @@ export const updateCompanyAccreditation = async (companyId, accreditationData) =
     debugLog('📥 Supabase update response:', { updated: data?.length || 0, error });
 
     if (error) throw error;
+    if (!data?.length) {
+      return {
+        success: false,
+        error:
+          'Could not save to your company record (no rows updated). If you log in as a company contact, your administrator may need to apply the company RLS fix migration.',
+      };
+    }
     return { success: true, data: data[0] };
   } catch (error) {
     console.error('Error updating accreditation:', error.message);
