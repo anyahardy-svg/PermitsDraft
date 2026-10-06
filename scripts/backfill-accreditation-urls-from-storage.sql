@@ -107,8 +107,32 @@ FROM latest l
 ORDER BY l.company_name, l.target_column;
 
 -- =============================================================================
+-- VERIFY (one company): DB columns vs storage — run after PREVIEW or APPLY
+-- Example: Dowdell & Associates Ltd (DAL)
+-- =============================================================================
+
+-- SELECT
+--   id,
+--   name,
+--   totika_prequalified,
+--   left(coalesce(totika_certificate_url, ''), 80) AS totika_url,
+--   sitewise_prequalified,
+--   left(coalesce(sitewise_certificate_url, ''), 80) AS sitewise_url,
+--   iso_9001_certified,
+--   left(coalesce(iso_9001_certificate_url, ''), 80) AS iso_9001_url,
+--   left(coalesce(health_safety_policy_url, ''), 80) AS hs_policy_url,
+--   left(coalesce(public_liability_insurance_evidence_url, ''), 80) AS pli_url
+-- FROM public.companies
+-- WHERE id = '67969028-617c-46d0-ae92-0c2db70448ef';
+
+-- PREVIEW row count (e.g. ~866) only lists mappable storage files.
+-- The admin UI shows "Click to upload" until *_certificate_url / *_policy_url columns are non-null.
+-- That requires running the APPLY block below (it is commented out by default).
+
+-- =============================================================================
 -- APPLY: backfill NULL URL columns only (does not overwrite existing URLs)
 -- Review PREVIEW output first. Run as one transaction.
+-- Remove the surrounding comment markers before executing.
 -- =============================================================================
 
 /*
