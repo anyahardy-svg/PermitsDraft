@@ -7,6 +7,39 @@ export function isTypeDContractor(contractorType) {
   return normalizeContractorType(contractorType) === 'D';
 }
 
+const CONTRACTOR_TYPE_LABELS = {
+  A: 'A - Major Work',
+  B: 'B - High Risk',
+  C: 'C - Medium Risk',
+  D: 'D - Low Risk',
+};
+
+export function getContractorTypeLabel(contractorType) {
+  const normalized = normalizeContractorType(contractorType);
+  return CONTRACTOR_TYPE_LABELS[normalized] || normalized;
+}
+
+/** Section 3 keys that hide Sections 5–19 when checked (non–Type D). */
+export const SAFETY_ACCREDITATION_SYSTEM_KEYS = [
+  'aep_accredited',
+  'iso_45001_certified',
+  'totika_prequalified',
+  'she_prequal_qualified',
+  'impac_prequalified',
+  'sitewise_prequalified',
+  'rapid_prequalified',
+];
+
+export function hasSafetyAccreditationSystemSelected(accreditedSystems = {}) {
+  return SAFETY_ACCREDITATION_SYSTEM_KEYS.some(
+    (key) => accreditedSystems[key]?.checked,
+  );
+}
+
+export function hasAnyAccreditationSystemSelected(accreditedSystems = {}) {
+  return Object.values(accreditedSystems).some((sys) => sys?.checked);
+}
+
 export function isSection1Complete(selectedBusinessUnits = {}) {
   return Object.values(selectedBusinessUnits).some(Boolean);
 }

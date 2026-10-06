@@ -22,8 +22,12 @@ When contractor type is **A, B, or C**, the full conditional form applies (secti
 
 ContractorHQ and kiosk admin **must** use the same rules above. Do not fork section visibility by hostname. Differences users see are almost always:
 
-1. **`contractor_type` in the database** is not `D` for that company, or
+1. **`contractor_type` in the database** is not `D` for that company (e.g. **C = Medium Risk** uses the full pathway), or
 2. **Different frontend builds** on subdomains (stale deploy / cache).
+
+## User-visible “why hidden” copy
+
+For non–Type D, show the amber **Why some sections are hidden** panel (company type label + Section 3-driven rules). Do not hide sections without explanation when changing visibility logic.
 
 Default in code when `contractor_type` is missing is **`D`** until company load completes; after load, the **stored** type wins.
 
