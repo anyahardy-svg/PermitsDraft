@@ -3219,7 +3219,7 @@ export default function CompanyAccreditationScreen({
       visible: true,
       title: 'Submit Accreditation',
       message: isTypeDAccreditation
-        ? 'Submit your Type D accreditation? Sections 1 and 2, plus Sections 23–26, will be reviewed and approved automatically.'
+        ? 'Submit your Type D accreditation? Sections 1–4 and 23–26 will be reviewed and approved automatically.'
         : 'Are you sure you want to submit this accreditation as complete? You will be able to edit it later if needed.',
       onConfirm: async () => {
         debugLog('🟢 User confirmed submission');
@@ -5222,21 +5222,25 @@ export default function CompanyAccreditationScreen({
         {/* Section Navigation */}
         {/* Collapsible Sections */}
         <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-          {isTypeDAccreditation && (
+          {hasLoadedCompanyData && (
             <View style={{
-              backgroundColor: '#EFF6FF',
+              backgroundColor: isTypeDAccreditation ? '#EFF6FF' : '#F3F4F6',
               borderLeftWidth: 4,
-              borderLeftColor: '#3B82F6',
+              borderLeftColor: isTypeDAccreditation ? '#3B82F6' : '#6B7280',
               borderRadius: 8,
               paddingHorizontal: 14,
               paddingVertical: 12,
               marginBottom: 16,
             }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#1E40AF', marginBottom: 6 }}>
-                Type D (Low Risk) accreditation
+              <Text style={{ fontSize: 15, fontWeight: '700', color: isTypeDAccreditation ? '#1E40AF' : '#374151', marginBottom: 6 }}>
+                {isTypeDAccreditation
+                  ? 'Type D (Low Risk) accreditation'
+                  : `Type ${contractorType} accreditation (full pathway)`}
               </Text>
-              <Text style={{ fontSize: 14, color: '#1E3A8A', lineHeight: 20 }}>
-                Sections 5–22 are not applicable for Type D contractors. Please complete Sections 1–4, then Sections 23–26 below (incidents, insurance, contact information, and the Health & Safety Agreement).
+              <Text style={{ fontSize: 14, color: isTypeDAccreditation ? '#1E3A8A' : '#4B5563', lineHeight: 20 }}>
+                {isTypeDAccreditation
+                  ? 'Sections 5–22 are not applicable. Complete Sections 1–4, then Sections 23–26 (incidents, insurance, contact information, and the Health & Safety Agreement).'
+                  : 'Sections 5–22 appear based on Section 3 selections. Low-risk contractors should be set to Type D on the company record.'}
               </Text>
             </View>
           )}
