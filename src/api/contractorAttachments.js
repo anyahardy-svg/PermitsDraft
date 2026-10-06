@@ -27,7 +27,12 @@ const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
 async function persistAttachments(contractorId, attachments) {
   const updated = await updateContractor(contractorId, { attachments });
-  return normalizeContractorAttachments(updated?.attachments ?? attachments);
+  if (!updated) {
+    throw new Error(
+      'Could not save attachments to your contractor profile (no rows updated). Check that your login email matches your contractor record.',
+    );
+  }
+  return normalizeContractorAttachments(updated.attachments ?? attachments);
 }
 
 async function persistCompanyAttachments(companyId, attachments) {
@@ -44,8 +49,13 @@ async function persistCompanyAttachments(companyId, attachments) {
   if (error) {
     throw new Error(error.message || 'Could not save company attachments');
   }
+  if (!data) {
+    throw new Error(
+      'Could not save attachments to your company profile (no rows updated). If you log in as a company contact, your administrator may need to apply the company RLS fix migration.',
+    );
+  }
 
-  return normalizeContractorAttachments(data?.attachments ?? attachments);
+  return normalizeContractorAttachments(data.attachments ?? attachments);
 }
 
 export async function loadContractorAttachments(contractorId) {
