@@ -87,8 +87,9 @@ WHERE
 ORDER BY accreditation_last_updated DESC NULLS LAST, name;
 
 -- =============================================================================
--- STEP 3: Storage vs DB — objects in accreditations bucket with no URL on company row
---         (requires read access to storage.objects; folder = sanitized company name)
+-- STEP 3: Storage vs DB (ALL companies that have accreditations bucket files)
+-- NOTE: This is NOT the orphan list. It returns ~every company with storage activity.
+--       Row count ~300+ is normal. Use STEP 3B for "storage but DB not linked".
 -- =============================================================================
 
 WITH storage_by_company AS (
@@ -99,22 +100,17 @@ WITH storage_by_company AS (
     max(o.created_at) AS last_upload
   FROM storage.objects o
   WHERE o.bucket_id = 'accreditations'
-    AND o.name LIKE '%/%'  -- company/folder/...
+    AND o.name LIKE '%/%'
   GROUP BY 1
 ),
 companies_norm AS (
   SELECT
     id,
     name,
-    lower(
-      regexp_replace(
-        regexp_replace(
-          regexp_replace(lower(trim(name)), '[^a-z0-9]', '_', 'g'),
-          '_+', '_', 'g'
-        ),
-        '(^_|_$)', '', 'g'
-      )
-    ) AS storage_folder,
+    trim(both '_' from regexp_replace(
+      regexp_replace(lower(trim(name)), '[^a-z0-9]+', '_', 'g'),
+      '_+', '_', 'g'
+    )) AS storage_folder,
     totika_certificate_url,
     sitewise_certificate_url,
     iso_9001_certificate_url,
@@ -141,6 +137,105 @@ FROM storage_by_company s
 JOIN companies_norm c ON c.storage_folder = s.storage_folder
 WHERE s.object_count > 0
 ORDER BY s.last_upload DESC;
+
+-- =============================================================================
+-- STEP 3B: ORPHANS ONLY — files in storage, zero accreditation URLs in DB
+-- (Run this for "who needs re-upload or backfill" — expect far fewer than Step 3)
+-- =============================================================================
+
+WITH storage_by_company AS (
+  SELECT
+    split_part(o.name, '/', 1) AS storage_folder,
+    count(*) AS object_count,
+    max(o.created_at) AS last_upload
+  FROM storage.objects o
+  WHERE o.bucket_id = 'accreditations'
+    AND o.name LIKE '%/%'
+  GROUP BY 1
+),
+companies_norm AS (
+  SELECT
+    id,
+    name,
+    contact_email,
+    accreditation_last_updated,
+    trim(both '_' from regexp_replace(
+      regexp_replace(lower(trim(name)), '[^a-z0-9]+', '_', 'g'),
+      '_+', '_', 'g'
+    )) AS storage_folder,
+    totika_certificate_url,
+    sitewise_certificate_url,
+    iso_9001_certificate_url,
+    iso_45001_certificate_url,
+    health_safety_policy_url,
+    public_liability_insurance_evidence_url,
+    motor_vehicle_insurance_evidence_url,
+    jsonb_array_length(coalesce(attachments, '[]'::jsonb)) AS attachment_count
+  FROM public.companies
+)
+SELECT
+  c.id,
+  c.name,
+  c.contact_email,
+  c.accreditation_last_updated,
+  s.object_count,
+  s.last_upload
+FROM storage_by_company s
+JOIN companies_norm c ON c.storage_folder = s.storage_folder
+WHERE s.object_count > 0
+  AND c.totika_certificate_url IS NULL
+  AND c.sitewise_certificate_url IS NULL
+  AND c.iso_9001_certificate_url IS NULL
+  AND c.iso_45001_certificate_url IS NULL
+  AND c.health_safety_policy_url IS NULL
+  AND c.public_liability_insurance_evidence_url IS NULL
+  AND c.motor_vehicle_insurance_evidence_url IS NULL
+  AND c.attachment_count = 0
+ORDER BY s.last_upload DESC;
+
+-- =============================================================================
+-- STEP 3C: PARTIAL orphans — storage + accreditation activity but Step 2 gaps
+-- (e.g. Dowdell: ISO URL saved but Totika/SiteWise/PLI missing — NOT in 3B)
+-- =============================================================================
+
+WITH storage_by_company AS (
+  SELECT split_part(o.name, '/', 1) AS storage_folder, count(*) AS object_count
+  FROM storage.objects o
+  WHERE o.bucket_id = 'accreditations' AND o.name LIKE '%/%'
+  GROUP BY 1
+),
+companies_norm AS (
+  SELECT
+    c.*,
+    trim(both '_' from regexp_replace(
+      regexp_replace(lower(trim(c.name)), '[^a-z0-9]+', '_', 'g'),
+      '_+', '_', 'g'
+    )) AS storage_folder
+  FROM public.companies c
+)
+SELECT
+  c.id,
+  c.name,
+  c.contact_email,
+  s.object_count,
+  c.totika_prequalified,
+  c.totika_certificate_url IS NULL AS totika_url_missing,
+  c.sitewise_prequalified,
+  c.sitewise_certificate_url IS NULL AS sitewise_url_missing,
+  c.health_safety_policy_exists,
+  c.health_safety_policy_url IS NULL AS hs_policy_url_missing,
+  c.public_liability_expiry,
+  c.public_liability_insurance_evidence_url IS NULL AS pli_url_missing
+FROM storage_by_company s
+JOIN companies_norm c ON c.storage_folder = s.storage_folder
+WHERE s.object_count > 0
+  AND (
+    (c.totika_prequalified AND c.totika_certificate_url IS NULL)
+    OR (c.sitewise_prequalified AND c.sitewise_certificate_url IS NULL)
+    OR (c.health_safety_policy_exists AND c.health_safety_policy_url IS NULL)
+    OR (c.public_liability_expiry IS NOT NULL AND c.public_liability_insurance_evidence_url IS NULL)
+  )
+ORDER BY c.name;
 
 -- =============================================================================
 -- STEP 4: Narrow list — at-risk login AND (missing URLs OR storage without DB)
