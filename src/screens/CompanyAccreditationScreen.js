@@ -84,9 +84,16 @@ const openAccreditationDocument = async (fileRef) => {
     Alert.alert('Error', 'Cannot open document - URL not available');
     return;
   }
+  let viewTab = null;
+  if (typeof window !== 'undefined' && window.open) {
+    viewTab = window.open('about:blank', '_blank', 'noopener,noreferrer');
+  }
   try {
-    await openAccreditationFile(fileRef);
+    await openAccreditationFile(fileRef, viewTab);
   } catch (error) {
+    if (viewTab && !viewTab.closed) {
+      viewTab.close();
+    }
     Alert.alert('Error', error?.message || 'Cannot open document');
   }
 };
@@ -2262,9 +2269,14 @@ export default function CompanyAccreditationScreen({
                   borderLeftColor: '#10B981'
                 }}>
                   <Text style={{ fontSize: 18, color: '#166534', fontWeight: '600', marginBottom: 4 }}>✓ {documentType} Uploaded</Text>
-                  <TouchableOpacity onPress={() => {
-                    openAccreditationDocument(documentFileRef);
-                  }}>
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      if (e?.stopPropagation) {
+                        e.stopPropagation();
+                      }
+                      openAccreditationDocument(documentFileRef);
+                    }}
+                  >
                     <Text style={{ fontSize: 15, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>📄 View / Download</Text>
                   </TouchableOpacity>
                   {supportsExpandActions && !isSection && (
