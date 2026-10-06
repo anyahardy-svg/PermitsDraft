@@ -1,7 +1,9 @@
 const assert = require('assert');
 const {
   getPostAdminLoginScreen,
+  getScreenPath,
   isAdminPanelPath,
+  resolveManagerPathAdminScreen,
 } = require('../src/utils/managerHubRoutes');
 
 const accredPath = '/admin/companies/abc-123/accreditation/';

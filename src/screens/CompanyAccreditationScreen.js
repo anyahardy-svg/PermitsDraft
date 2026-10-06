@@ -1954,7 +1954,10 @@ export default function CompanyAccreditationScreen({
 
         // Persist immediately so admin review and storage stay in sync
         debugLog('💾 Persisting insurance document upload immediately...');
-        await persistAccreditationChanges({ [evidenceUrlField]: uploadResult.url }, { force: true });
+        const persistResult = await persistAccreditationChanges(
+          { [evidenceUrlField]: uploadResult.url },
+          { force: true },
+        );
         
         // Restore scroll position after state update
         setTimeout(() => {
@@ -1962,6 +1965,13 @@ export default function CompanyAccreditationScreen({
             scrollViewRef.current?.scrollTo({ y: scrollOffset, animated: true });
           }
         }, 100);
+        if (!persistResult?.success) {
+          Alert.alert(
+            'Saved to storage only',
+            `${insuranceLabel} uploaded to storage but could not be linked to your company record: ${persistResult?.error || 'Save failed'}.`,
+          );
+          return;
+        }
         Alert.alert('Success ✅', `${insuranceLabel} certificate uploaded successfully!`);
       } else {
         debugLog('❌ Upload failed:', uploadResult);
@@ -2198,11 +2208,13 @@ export default function CompanyAccreditationScreen({
   // Unified helper function to render document toggle button and UI
   const renderDocumentToggle = (documentKey, itemData, itemLabel, handleUploadFn, handleDeleteFn = null, documentType = 'Evidence', showOnlyIcon = false) => {
     const isDocUIExpanded = expandedEvidenceUI === documentKey;
-    const hasDocument = itemData?.url || itemData?.evidence || itemData?.certificateUrl;
+    const documentFileRef = itemData?.certificateUrl || itemData?.evidence || itemData?.url || null;
+    const hasDocument = !!documentFileRef;
     const needsDocument = itemData?.score > 1 && !hasDocument;
     const isUploading = uploadingDocumentKey === documentKey;
     const isSection = documentKey.startsWith('section');
-    const supportsExpandActions = isSection || documentKey.startsWith('certificate-');
+    const supportsExpandActions =
+      isSection || documentKey.startsWith('certificate-') || documentKey.startsWith('policy-');
 
     // Show loading indicator when uploading
     if (isUploading) {
@@ -2217,7 +2229,7 @@ export default function CompanyAccreditationScreen({
     // If showOnlyIcon is true, show simple paperclip icon with status
     if (showOnlyIcon) {
       // Show uploaded document
-      if (hasDocument && (itemData?.evidence || itemData?.certificateUrl)) {
+      if (hasDocument) {
         return (
           <View>
             <TouchableOpacity
@@ -2251,7 +2263,7 @@ export default function CompanyAccreditationScreen({
                 }}>
                   <Text style={{ fontSize: 18, color: '#166534', fontWeight: '600', marginBottom: 4 }}>✓ {documentType} Uploaded</Text>
                   <TouchableOpacity onPress={() => {
-                    openAccreditationDocument(itemData.certificateUrl || itemData.evidence);
+                    openAccreditationDocument(documentFileRef);
                   }}>
                     <Text style={{ fontSize: 15, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>📄 View / Download</Text>
                   </TouchableOpacity>

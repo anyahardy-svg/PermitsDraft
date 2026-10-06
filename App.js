@@ -106,7 +106,13 @@ import TrainingRecordsScreen from './src/screens/TrainingRecordsScreen';
 import AdminLoginScreen from './src/screens/AdminLoginScreen';
 import AdminDashboard from './src/screens/AdminDashboard';
 import ManagerHubScreen from './src/screens/manager/ManagerHubScreen';
-import { getPostAdminLoginScreen, isAdminPanelPath, isManagerHubPath } from './src/utils/managerHubRoutes';
+import {
+  getPostAdminLoginScreen,
+  getScreenPath,
+  isAdminPanelPath,
+  isManagerHubPath,
+  resolveManagerPathAdminScreen,
+} from './src/utils/managerHubRoutes';
 import { buildAdminPasswordSetupUrl, resolveAdminInviteRedirectUrl } from './src/utils/adminSetupRoute';
 import EmailTemplatesScreen from './src/screens/EmailTemplatesScreen';
 import AdminJoinRequestsScreen from './src/screens/AdminJoinRequestsScreen';
@@ -2644,6 +2650,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
   };
 
+  const openAdminScreenForManagerUrl = (adminData) => {
+    const screen = resolveManagerPathAdminScreen(adminData);
+    setCurrentScreen(screen);
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const targetPath = getScreenPath(screen);
+    if (targetPath && window.location.pathname !== targetPath) {
+      window.history.replaceState({}, '', targetPath);
+    }
+  };
+
   const handleAdminLoginSuccess = (adminData) => {
     setLoggedInAdmin(adminData);
     setAdminSessionActive(true);
@@ -2724,12 +2742,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           lastActivityTimeRef.current = sessionData.lastActivity || Date.now();
           setDeviceType('laptop');
           if (
-            adminData?.role === 'super_admin'
-            && typeof window !== 'undefined'
+            typeof window !== 'undefined'
             && (window.location.pathname === '/manager' || window.location.pathname === '/manager/')
           ) {
-            setCurrentScreen('admin');
-            window.history.replaceState({}, '', '/admin/');
+            openAdminScreenForManagerUrl(adminData);
           }
           console.log('%c✅ ADMIN SESSION RESTORED (LAPTOP)', 'color: #10B981; font-weight: bold; font-size: 14px;');
           console.log(`   Admin: ${adminData?.name || 'Unknown'}`);
@@ -4120,7 +4136,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       if (!adminSessionActive) {
         setShowAdminLoginModal(true);
       } else {
-        setCurrentScreen('manager_hub');
+        openAdminScreenForManagerUrl(loggedInAdmin);
       }
       return;
     }
@@ -4364,10 +4380,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         return;
       }
 
-      // Check for manager hub route
+      // Check for manager hub route (site managers only; super admins belong on /admin/)
       if (pathname === '/manager' || pathname === '/manager/') {
-        console.log('✅ Setting initial screen to manager_hub from URL');
-        setCurrentScreen('manager_hub');
+        if (!adminSessionActive) {
+          setShowAdminLoginModal(true);
+        } else {
+          console.log('✅ Resolving /manager screen from admin role');
+          openAdminScreenForManagerUrl(loggedInAdmin);
+        }
         return;
       }
 
@@ -4422,7 +4442,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             setShowAdminLoginModal(true);
             return;
           }
-          setCurrentScreen('manager_hub');
+          openAdminScreenForManagerUrl(loggedInAdmin);
           return;
         }
 
