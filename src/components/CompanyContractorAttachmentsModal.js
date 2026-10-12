@@ -13,6 +13,7 @@ import {
   loadCompanyContractorAttachments,
   openContractorAttachment,
 } from '../api/contractorAttachments';
+import ContractorAttachmentsSection from './ContractorAttachmentsSection';
 
 export default function CompanyContractorAttachmentsModal({
   visible,
@@ -45,6 +46,7 @@ export default function CompanyContractorAttachmentsModal({
   }, [refresh]);
 
   const totalCount = countCompanyContractorAttachments(groups);
+  const contractorGroups = groups.filter((group) => group.contractorId);
 
   const handleOpen = async (attachment) => {
     try {
@@ -88,9 +90,37 @@ export default function CompanyContractorAttachmentsModal({
         </View>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+          <View
+            style={{
+              backgroundColor: 'white',
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+              padding: 16,
+              marginBottom: 20,
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 4 }}>
+              Company documents
+            </Text>
+            <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 12, lineHeight: 18 }}>
+              Upload files to the company profile (visible here and in the contractor portal). Per-contractor files are added when editing a contractor record.
+            </Text>
+            <ContractorAttachmentsSection
+              companyId={company.id}
+              companyName={company.name || ''}
+              onAttachmentsChange={() => refresh()}
+              hint="PDF or image — e.g. traffic management plans, method statements, insurance summaries."
+            />
+          </View>
+
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#374151', marginBottom: 10 }}>
+            All uploaded files
+          </Text>
+
           {loading ? (
             <ActivityIndicator size="large" color="#6366F1" style={{ marginTop: 24 }} />
-          ) : groups.length === 0 ? (
+          ) : contractorGroups.length === 0 ? (
             <View
               style={{
                 backgroundColor: 'white',
@@ -101,11 +131,11 @@ export default function CompanyContractorAttachmentsModal({
               }}
             >
               <Text style={{ color: '#6B7280', textAlign: 'center', fontSize: 14 }}>
-                No contractor attachments for this company yet.
+                No per-contractor attachments yet. Edit a contractor under this company to add individual files.
               </Text>
             </View>
           ) : (
-            groups.map((group) => (
+            contractorGroups.map((group) => (
               <View
                 key={group.contractorId || 'company-documents'}
                 style={{

@@ -25,6 +25,7 @@ export default function ContractorAttachmentsSection({
   styles = {},
   disabled = false,
   hint = 'Upload PDFs or images such as traffic management plans, method statements, or other supporting documents.',
+  onAttachmentsChange = null,
 }) {
   const useCompanyAttachments = !contractorId && !!companyId;
   const attachmentOwnerReady = !!(contractorId || companyId);
@@ -97,6 +98,7 @@ export default function ContractorAttachmentsSection({
             label,
           });
         setAttachments(updated);
+        onAttachmentsChange?.(updated);
         setLabel('');
         Alert.alert('Success', 'Attachment uploaded');
       } catch (error) {
@@ -132,6 +134,7 @@ export default function ContractorAttachmentsSection({
           ? await deleteCompanyAttachment(companyId, attachment.id)
           : await deleteContractorAttachment(contractorId, attachment.id);
         setAttachments(updated);
+        onAttachmentsChange?.(updated);
       } catch (error) {
         Alert.alert('Error', error?.message || 'Could not delete attachment');
       } finally {

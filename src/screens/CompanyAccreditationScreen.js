@@ -31,6 +31,9 @@ import {
   getSiteSelectionValidationError,
   getTypeDSubmitValidationError,
   isTypeDContractor,
+  getContractorTypeLabel,
+  hasSafetyAccreditationSystemSelected,
+  hasAnyAccreditationSystemSelected,
 } from '../utils/contractorAccreditationRequirements';
 import { mergeSiteIds } from '../utils/siteIds';
 
@@ -84,9 +87,16 @@ const openAccreditationDocument = async (fileRef) => {
     Alert.alert('Error', 'Cannot open document - URL not available');
     return;
   }
+  let viewTab = null;
+  if (typeof window !== 'undefined' && window.open) {
+    viewTab = window.open('about:blank', '_blank', 'noopener,noreferrer');
+  }
   try {
-    await openAccreditationFile(fileRef);
+    await openAccreditationFile(fileRef, viewTab);
   } catch (error) {
+    if (viewTab && !viewTab.closed) {
+      viewTab.close();
+    }
     Alert.alert('Error', error?.message || 'Cannot open document');
   }
 };
@@ -2262,9 +2272,14 @@ export default function CompanyAccreditationScreen({
                   borderLeftColor: '#10B981'
                 }}>
                   <Text style={{ fontSize: 18, color: '#166534', fontWeight: '600', marginBottom: 4 }}>✓ {documentType} Uploaded</Text>
-                  <TouchableOpacity onPress={() => {
-                    openAccreditationDocument(documentFileRef);
-                  }}>
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      if (e?.stopPropagation) {
+                        e.stopPropagation();
+                      }
+                      openAccreditationDocument(documentFileRef);
+                    }}
+                  >
                     <Text style={{ fontSize: 15, color: '#3B82F6', fontWeight: '600', textDecorationLine: 'underline' }}>📄 View / Download</Text>
                   </TouchableOpacity>
                   {supportsExpandActions && !isSection && (
@@ -3032,6 +3047,13 @@ export default function CompanyAccreditationScreen({
 
   const contractorType = company?.contractor_type || 'D';
   const isTypeDAccreditation = isTypeDContractor(contractorType);
+  const contractorTypeLabel = getContractorTypeLabel(contractorType);
+  const anyAccreditationSystemSelected = hasAnyAccreditationSystemSelected(accreditedSystems);
+  const safetyAccreditationSelected = hasSafetyAccreditationSystemSelected(accreditedSystems);
+  const showSection4Policies =
+    !anyAccreditationSystemSelected || isTypeDAccreditation;
+  const iso9001Selected = accreditedSystems.iso_9001_certified?.checked || false;
+  const iso14001Selected = accreditedSystems.iso_14001_certified?.checked || false;
 
   const getSelectedBusinessUnitsForValidation = () => {
     if (Object.values(selectedBusinessUnits).some(Boolean)) {
@@ -3207,7 +3229,7 @@ export default function CompanyAccreditationScreen({
       visible: true,
       title: 'Submit Accreditation',
       message: isTypeDAccreditation
-        ? 'Submit your Type D accreditation? Sections 1 and 2, plus Sections 23–26, will be reviewed and approved automatically.'
+        ? 'Submit your Type D accreditation? Sections 1–4 and 23–26 will be reviewed and approved automatically.'
         : 'Are you sure you want to submit this accreditation as complete? You will be able to edit it later if needed.',
       onConfirm: async () => {
         debugLog('🟢 User confirmed submission');
@@ -5210,21 +5232,25 @@ export default function CompanyAccreditationScreen({
         {/* Section Navigation */}
         {/* Collapsible Sections */}
         <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-          {isTypeDAccreditation && (
+          {hasLoadedCompanyData && (
             <View style={{
-              backgroundColor: '#EFF6FF',
+              backgroundColor: isTypeDAccreditation ? '#EFF6FF' : '#F3F4F6',
               borderLeftWidth: 4,
-              borderLeftColor: '#3B82F6',
+              borderLeftColor: isTypeDAccreditation ? '#3B82F6' : '#6B7280',
               borderRadius: 8,
               paddingHorizontal: 14,
               paddingVertical: 12,
               marginBottom: 16,
             }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#1E40AF', marginBottom: 6 }}>
-                Type D (Low Risk) accreditation
+              <Text style={{ fontSize: 15, fontWeight: '700', color: isTypeDAccreditation ? '#1E40AF' : '#374151', marginBottom: 6 }}>
+                {isTypeDAccreditation
+                  ? contractorTypeLabel
+                  : `${contractorTypeLabel} (full pathway)`}
               </Text>
-              <Text style={{ fontSize: 14, color: '#1E3A8A', lineHeight: 20 }}>
-                Sections 5–22 are not applicable for Type D contractors. Please complete Sections 1–4, then Sections 23–26 below (incidents, insurance, contact information, and the Health & Safety Agreement).
+              <Text style={{ fontSize: 14, color: isTypeDAccreditation ? '#1E3A8A' : '#4B5563', lineHeight: 20 }}>
+                {isTypeDAccreditation
+                  ? 'Sections 5–22 are not applicable. Complete Sections 1–4, then Sections 23–26 (incidents, insurance, contact information, and the Health & Safety Agreement).'
+                  : 'This company is not Type D (Low Risk). Section layout follows Section 3 checkboxes. To use the simplified 1–4 and 23–26 form, set Contractor Type to D in admin.'}
               </Text>
             </View>
           )}
@@ -5476,8 +5502,57 @@ export default function CompanyAccreditationScreen({
             </View>
           )}
 
+          {hasLoadedCompanyData && !isTypeDAccreditation && (
+            <View style={{
+              backgroundColor: '#FFFBEB',
+              borderLeftWidth: 4,
+              borderLeftColor: '#F59E0B',
+              borderRadius: 8,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              marginBottom: 16,
+            }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#92400E', marginBottom: 8 }}>
+                Why some sections are hidden
+              </Text>
+              <Text style={{ fontSize: 14, color: '#78350F', lineHeight: 21, marginBottom: 6 }}>
+                {`Company type is ${contractorTypeLabel}. This is not the Type D (Low Risk) short form.`}
+              </Text>
+              {!showSection4Policies && (
+                <Text style={{ fontSize: 14, color: '#78350F', lineHeight: 21, marginBottom: 4 }}>
+                  • Section 4 (Policies) is hidden because you selected accreditation systems in Section 3. Policy evidence is expected through those programmes instead.
+                </Text>
+              )}
+              {safetyAccreditationSelected && (
+                <Text style={{ fontSize: 14, color: '#78350F', lineHeight: 21, marginBottom: 4 }}>
+                  • Sections 5–19 are hidden because a pre-qualification (e.g. Totika, SiteWise) is selected in Section 3. Those manual assessment sections only apply without those selections.
+                </Text>
+              )}
+              {!iso9001Selected && (
+                <Text style={{ fontSize: 14, color: '#78350F', lineHeight: 21, marginBottom: 4 }}>
+                  • Section 21 (Quality Management) is shown because ISO 9001 is not selected in Section 3.
+                </Text>
+              )}
+              {iso9001Selected && (
+                <Text style={{ fontSize: 14, color: '#78350F', lineHeight: 21, marginBottom: 4 }}>
+                  • Section 21 is hidden because ISO 9001 is selected in Section 3.
+                </Text>
+              )}
+              {!iso14001Selected && (
+                <Text style={{ fontSize: 14, color: '#78350F', lineHeight: 21, marginBottom: 4 }}>
+                  • Section 22 (Environmental Management) is shown because ISO 14001 is not selected in Section 3.
+                </Text>
+              )}
+              {iso14001Selected && (
+                <Text style={{ fontSize: 14, color: '#78350F', lineHeight: 21 }}>
+                  • Section 22 is hidden because ISO 14001 is selected in Section 3.
+                </Text>
+              )}
+            </View>
+          )}
+
           {/* SECTION 4: Policies - show for Type D, otherwise only when no accreditation systems selected */}
-          {(!Object.values(accreditedSystems).some(sys => sys.checked) || isTypeDAccreditation) && (
+          {showSection4Policies && (
             <>
               <TouchableOpacity
                 onPress={() => toggleSection(4)}

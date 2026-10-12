@@ -1,0 +1,42 @@
+---
+description: Type D (low risk) accreditation — same section layout on ContractorHQ and kiosk admin
+globs: src/screens/CompanyAccreditationScreen.js, src/utils/contractorAccreditationRequirements.js
+alwaysApply: false
+---
+
+# Type D (low risk) accreditation UI
+
+One component drives all surfaces: `CompanyAccreditationScreen` (ContractorHQ contractor tab, kiosk/admin modal with `reviewMode`, and `/admin/companies/:id/accreditation/`).
+
+## Section layout (Type D only)
+
+When `companies.contractor_type` is **`D`** (`isTypeDContractor`):
+
+- **Show:** Sections **1–4** (business units, services, accreditation systems, policies), then **23–26** (incidents, insurance, contact, H&S agreement).
+- **Hide:** Sections **5–22** (do not render `renderSections__719()`).
+- Show the blue **Type D (Low Risk)** info banner.
+
+When contractor type is **A, B, or C**, the full conditional form applies (sections 5–22 depend on Section 3 checkboxes). That is **not** the low-risk layout.
+
+## Parity rule
+
+ContractorHQ and kiosk admin **must** use the same rules above. Do not fork section visibility by hostname. Differences users see are almost always:
+
+1. **`contractor_type` in the database** is not `D` for that company (e.g. **C = Medium Risk** uses the full pathway), or
+2. **Different frontend builds** on subdomains (stale deploy / cache).
+
+## User-visible “why hidden” copy
+
+For non–Type D, show the amber **Why some sections are hidden** panel (company type label + Section 3-driven rules). Do not hide sections without explanation when changing visibility logic.
+
+Default in code when `contractor_type` is missing is **`D`** until company load completes; after load, the **stored** type wins.
+
+## Section 4 (Policies)
+
+For Type D, Section 4 is **always** shown (`isTypeDAccreditation`).
+
+For non–Type D, Section 4 is hidden when any Section 3 accreditation checkbox is checked.
+
+## Do not confuse with save policy
+
+See `accreditation-save-policy.mdc` — no background autosave on this form.

@@ -9,8 +9,10 @@ import {
   buildCompanyAttachmentStoragePath,
   buildContractorAttachmentStoragePath,
 } from '../utils/storagePaths';
+import { companyDataUpdateAccreditation } from './companyData';
 import { getCompany } from './companies';
 import { getContractor, listContractorsByCompany, updateContractor } from './contractors';
+import { getRequestingAdminId, isAdminSessionActive } from './contractorData';
 import {
   TRAINING_RECORDS_BUCKET,
   openTrainingRecordsFile,
@@ -25,6 +27,10 @@ export { normalizeContractorAttachments, countCompanyContractorAttachments };
 
 const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
+function shouldPersistCompanyAttachmentsViaAdminEdge() {
+  return Boolean(getRequestingAdminId() || isAdminSessionActive());
+}
+
 async function persistAttachments(contractorId, attachments) {
   const updated = await updateContractor(contractorId, { attachments });
   if (!updated) {
@@ -36,6 +42,17 @@ async function persistAttachments(contractorId, attachments) {
 }
 
 async function persistCompanyAttachments(companyId, attachments) {
+  if (shouldPersistCompanyAttachmentsViaAdminEdge()) {
+    try {
+      const row = await companyDataUpdateAccreditation(companyId, { attachments });
+      if (row) {
+        return normalizeContractorAttachments(row.attachments ?? attachments);
+      }
+    } catch (edgeError) {
+      console.warn('company-data updateAccreditation (attachments) failed:', edgeError?.message);
+    }
+  }
+
   if (!supabase) {
     throw new Error('Supabase client is not configured');
   }
@@ -51,7 +68,7 @@ async function persistCompanyAttachments(companyId, attachments) {
   }
   if (!data) {
     throw new Error(
-      'Could not save attachments to your company profile (no rows updated). If you log in as a company contact, your administrator may need to apply the company RLS fix migration.',
+      'Could not save attachments to the company record (no rows updated). If you log in as a company contact, your administrator may need to apply the company RLS fix migration.',
     );
   }
 
