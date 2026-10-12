@@ -1,6 +1,7 @@
 import { sendSupplierInvitation } from './sendgrid';
 import { createEmptyProduct } from '../schemas/supplierSchema';
 import { normalizeSupplierFormProducts } from '../utils/supplierFormDataNormalize';
+import { getNzYmd } from '../utils/nzDates';
 
 const LEGACY_PRODUCT_FIELD_IDS = [
   'product_name',
@@ -433,7 +434,7 @@ export async function inviteSupplier({
     supplier: {
       ...supplier,
       invitation_sent_at: new Date().toISOString(),
-      accreditation_deadline: deadline ? new Date(deadline).toISOString().split('T')[0] : supplier.accreditation_deadline,
+      accreditation_deadline: deadline ? getNzYmd(new Date(deadline)) : supplier.accreditation_deadline,
       contact_email: email,
     },
     emailSent: true,

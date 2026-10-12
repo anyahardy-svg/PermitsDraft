@@ -20,6 +20,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { jsPDF } from 'jspdf';
 import { supabase as supabaseClient } from './src/supabaseClient';
+import { getNzYmd } from './src/utils/nzDates';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
 import { getJseaTemplates, saveJseaTemplate, savePermitAsTemplate, getTemplates, filterJseaTemplatesForLoader } from './src/api/templates';
 import { uploadAttachment, uploadMultipleAttachments } from './src/api/attachments';
@@ -354,7 +355,7 @@ const isValidDateFormat = (dateString) => {
 // Custom DateTimePicker Component
 const DateTimePicker = ({ visible, onClose, onSelect, mode = 'date', currentValue }) => {
   const formatDate = (date) => {
-    return date.toISOString().split('T')[0];
+    return getNzYmd(date);
   };
   const formatTime = (hour, minute) => {
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
@@ -1182,7 +1183,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Date/time state for new permit
   const now = new Date();
   const pad = (n) => n.toString().padStart(2, '0');
-  const defaultDate = now.toISOString().split('T')[0];
+  const defaultDate = getNzYmd(now);
   const defaultTime = pad(now.getHours()) + ':' + pad(now.getMinutes());
   const formattedDefaultDate = formatDateNZ(defaultDate);
 
@@ -5216,7 +5217,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 linked_items: [isolation.linked_item_1, isolation.linked_item_2, isolation.linked_item_3, isolation.linked_item_4, isolation.linked_item_5, isolation.linked_item_6, isolation.linked_item_7, isolation.linked_item_8, isolation.linked_item_9, isolation.linked_item_10].filter(Boolean),
                                 key_procedure: isolation.key_procedure,
                                 isolatedBy: '',
-                                date: new Date().toISOString().split('T')[0],
+                                date: getNzYmd(),
                                 source: 'register'
                               };
                               setFormData(prev => ({ ...prev, isolations: [...(prev.isolations || []), newIsolation] }));
@@ -8791,7 +8792,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             
             const isHighRisk = determineNeedsInspection();
             const newStatus = isHighRisk ? 'pending_inspection' : 'active';
-            const approvedDate = new Date().toISOString().split('T')[0];
+            const approvedDate = getNzYmd();
             
             try {
               console.log('Approving permit:', editData.id, 'New status:', newStatus);
@@ -17207,7 +17208,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         
         const isHighRisk = determineNeedsInspection();
         const newStatus = isHighRisk ? 'pending_inspection' : 'active';
-        const approvedDate = new Date().toISOString().split('T')[0];
+        const approvedDate = getNzYmd();
 
         // Save all edited permit data (JSEA, specializedPermits, etc.) when approving
         const permitUpdate = {
@@ -18168,7 +18169,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 linked_items: [isolation.linked_item_1, isolation.linked_item_2, isolation.linked_item_3, isolation.linked_item_4, isolation.linked_item_5, isolation.linked_item_6, isolation.linked_item_7, isolation.linked_item_8, isolation.linked_item_9, isolation.linked_item_10].filter(Boolean),
                                 key_procedure: isolation.key_procedure,
                                 isolatedBy: '',
-                                date: new Date().toISOString().split('T')[0],
+                                date: getNzYmd(),
                                 source: 'register'
                               };
                               setEditData(prev => ({ ...prev, isolations: [...(prev.isolations || []), newIsolation] }));
@@ -18389,7 +18390,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   </View>
                 )) : <Text style={[styles.detailText, { color: '#9CA3AF', fontStyle: 'italic' }]}>No isolations added</Text>}
 
-                <TouchableOpacity style={[styles.addButton, { marginTop: 8 }]} onPress={() => setEditData(prev => ({ ...prev, isolations: [...(prev.isolations || []), { what: '', locked_out_by: [], date: new Date().toISOString().split('T')[0], source: 'manual' }] }))}>
+                <TouchableOpacity style={[styles.addButton, { marginTop: 8 }]} onPress={() => setEditData(prev => ({ ...prev, isolations: [...(prev.isolations || []), { what: '', locked_out_by: [], date: getNzYmd(), source: 'manual' }] }))}>
                   <Text style={styles.addButtonText}>+ Add Custom Isolation</Text>
                 </TouchableOpacity>
               </View>
@@ -20188,7 +20189,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       site_id: permit.site_id || initialSiteId || ''
     });
     const [inspector, setInspector] = React.useState('');
-    const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
+    const [date, setDate] = React.useState(getNzYmd());
     const [comments, setComments] = React.useState('');
     const [showStartDatePicker, setShowStartDatePicker] = React.useState(false);
     const [showStartTimePicker, setShowStartTimePicker] = React.useState(false);
@@ -21149,7 +21150,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 linked_items: [isolation.linked_item_1, isolation.linked_item_2, isolation.linked_item_3, isolation.linked_item_4, isolation.linked_item_5, isolation.linked_item_6, isolation.linked_item_7, isolation.linked_item_8, isolation.linked_item_9, isolation.linked_item_10].filter(Boolean),
                                 key_procedure: isolation.key_procedure,
                                 isolatedBy: '',
-                                date: new Date().toISOString().split('T')[0],
+                                date: getNzYmd(),
                                 source: 'register'
                               };
                               setEditData(prev => ({ ...prev, isolations: [...(prev.isolations || []), newIsolation] }));
@@ -21372,7 +21373,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   </View>
                 )) : <Text style={[styles.detailText, { color: '#9CA3AF', fontStyle: 'italic' }]}>No isolations added</Text>}
 
-                <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({ ...prev, isolations: [...(prev.isolations || []), { what: '', isolatedBy: '', date: new Date().toISOString().split('T')[0], source: 'manual' }] }))}>
+                <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({ ...prev, isolations: [...(prev.isolations || []), { what: '', isolatedBy: '', date: getNzYmd(), source: 'manual' }] }))}>
                   <Text style={styles.addButtonText}>+ Add Custom Isolation</Text>
                 </TouchableOpacity>
               </View>
@@ -23802,7 +23803,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 linked_items: [isolation.linked_item_1, isolation.linked_item_2, isolation.linked_item_3, isolation.linked_item_4, isolation.linked_item_5, isolation.linked_item_6, isolation.linked_item_7, isolation.linked_item_8, isolation.linked_item_9, isolation.linked_item_10].filter(Boolean),
                                 key_procedure: isolation.key_procedure,
                                 isolatedBy: '',
-                                date: new Date().toISOString().split('T')[0],
+                                date: getNzYmd(),
                                 source: 'register'
                               };
                               setEditData(prev => ({ ...prev, isolations: [...(prev.isolations || []), newIsolation] }));
@@ -24023,7 +24024,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   </View>
                 )) : <Text style={[styles.detailText, { color: '#9CA3AF', fontStyle: 'italic' }]}>No isolations added</Text>}
 
-                <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({ ...prev, isolations: [...(prev.isolations || []), { what: '', isolatedBy: '', date: new Date().toISOString().split('T')[0], source: 'manual' }] }))}>
+                <TouchableOpacity style={styles.addButton} onPress={() => setEditData(prev => ({ ...prev, isolations: [...(prev.isolations || []), { what: '', isolatedBy: '', date: getNzYmd(), source: 'manual' }] }))}>
                   <Text style={styles.addButtonText}>+ Add Custom Isolation</Text>
                 </TouchableOpacity>
               </View>
@@ -24671,7 +24672,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     }
                     
                     const now = new Date();
-                    const dateStr = now.toISOString().split('T')[0];
+                    const dateStr = getNzYmd(now);
                     const timeStr = now.toTimeString().split(' ')[0];
                     const selectedIssuer = permitIssuersForSite.find(i => i.id === issuerIdSelected);
                     
@@ -24720,7 +24721,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     }
                     
                     const now = new Date();
-                    const dateStr = now.toISOString().split('T')[0];
+                    const dateStr = getNzYmd(now);
                     const timeStr = now.toTimeString().split(' ')[0];
                     const selectedReceiver = contractorsForSite.find(c => c.id === receiverIdSelected);
                     
@@ -24829,7 +24830,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const issuerSignatureData = issuerSignatureRef.current?.toDataURL();
                 if (issuerSignatureData) {
                   const now = new Date();
-                  const dateStr = now.toISOString().split('T')[0];
+                  const dateStr = getNzYmd(now);
                   const timeStr = now.toTimeString().split(' ')[0];
                   const selectedIssuer = permitIssuersForSite.find(i => i.id === issuerIdSelected);
                   
@@ -24851,7 +24852,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const receiverSignatureData = receiverSignatureRef.current?.toDataURL();
                 if (receiverSignatureData) {
                   const now = new Date();
-                  const dateStr = now.toISOString().split('T')[0];
+                  const dateStr = getNzYmd(now);
                   const timeStr = now.toTimeString().split(' ')[0];
                   const selectedReceiver = contractorsForSite.find(c => c.id === receiverIdSelected);
                   

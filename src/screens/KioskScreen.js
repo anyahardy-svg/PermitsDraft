@@ -58,6 +58,7 @@ import {
   getSiteInductionExpiry,
   getSiteInductionStatus,
 } from '../utils/siteInductionStatus';
+import { formatDateNz } from '../utils/nzDates';
 import {
   consumeKioskReloadResume,
   reloadKioskPage,
@@ -774,7 +775,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
 
       if (isInductedHere || isExpired) {
         const expiryDate = siteExpiry
-          ? new Date(siteExpiry).toLocaleDateString('en-NZ')
+          ? formatDateNz(siteExpiry)
           : null;
         setContractorInductionExpiry(expiryDate);
         setContractorInductionExpired(isExpired);
@@ -1578,7 +1579,8 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
               <Text style={styles.selectedName}>{selectedContractor.name}</Text>
               <Text style={styles.selectedCompany}>Company: {selectedContractor.companyName || 'N/A'}</Text>
               <Text style={styles.selectedDateTime}>
-                Date & Time: {new Date().toLocaleString('en-NZ', { 
+                Date & Time: {new Date().toLocaleString('en-NZ', {
+                  timeZone: 'Pacific/Auckland',
                   year: 'numeric', 
                   month: 'short', 
                   day: 'numeric',
@@ -1630,7 +1632,7 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
                       <View style={{ marginTop: 8 }}>
                         <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Inducted at other sites:</Text>
                         {allContractorInductions.map((induction, idx) => {
-                          const expiryDate = new Date(induction.expires_at).toLocaleDateString('en-NZ');
+                          const expiryDate = formatDateNz(induction.expires_at);
                           const isExpired = induction.expires_at && new Date(induction.expires_at) < new Date();
                           const siteName =
                             induction.name ||

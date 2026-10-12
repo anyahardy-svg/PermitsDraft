@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../supabaseClient';
+import { getNzYmd, getNzYmdDaysFrom } from '../utils/nzDates';
 
 /**
  * Send password setup email to a new contractor (admin-initiated)
@@ -141,12 +142,8 @@ Winstone Contractors Hub
  */
 export async function sendExpiringInsuranceNotifications() {
   try {
-    const today = new Date();
-    const sevenDaysFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-    
-    // Format dates as YYYY-MM-DD
-    const todayStr = today.toISOString().split('T')[0];
-    const sevenDaysStr = sevenDaysFromNow.toISOString().split('T')[0];
+    const todayStr = getNzYmd();
+    const sevenDaysStr = getNzYmdDaysFrom(new Date(), 7);
 
     // Find all companies with expiring insurance
     const { data: expiringCompanies, error: queryError } = await supabase

@@ -13,6 +13,7 @@ const {
   syncInvitedAdminAuthUser,
 } = require('./supabaseAdmin');
 const { prepareEmailHtml, buildEmailFooterText } = require('./lib/emailWrapper');
+const { getNzYmd } = require('./lib/nzDates');
 const { enrichAdminPasswordResetEmailHtml } = require('./lib/adminPasswordResetEmail');
 const {
   buildInvitationTemplateVariables,
@@ -527,7 +528,7 @@ export default async function handler(req, res) {
         } else {
           // Update companies table with invitation sent timestamp and deadline
           if (companyId) {
-            const deadlineDate = resolvedInvitationDeadline.toISOString().split('T')[0];
+            const deadlineDate = getNzYmd(resolvedInvitationDeadline);
             const updateUrl = `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`;
             const updateResponse = await fetch(updateUrl, {
               method: 'PATCH',
@@ -626,7 +627,7 @@ export default async function handler(req, res) {
         if (!SUPABASE_URL || !(SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY)) {
           console.error('❌ Supabase credentials not available for supplier DB update');
         } else if (supplierId) {
-          const deadlineDate = resolvedInvitationDeadline.toISOString().split('T')[0];
+          const deadlineDate = getNzYmd(resolvedInvitationDeadline);
           const updateUrl = `${SUPABASE_URL}/rest/v1/suppliers?id=eq.${supplierId}`;
           const updateResponse = await fetch(updateUrl, {
             method: 'PATCH',
