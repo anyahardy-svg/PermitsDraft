@@ -1,3 +1,5 @@
+import { formatDateNz, getNzYmd, isYmdString } from './nzDates.js';
+
 export const INDUCTION_EXPIRING_SOON_DAYS = 30;
 
 function getSiteInductionRecord(contractor, siteId) {
@@ -25,12 +27,17 @@ function getExpiryStatus(expiryRaw) {
     return 'not_inducted';
   }
 
+  const todayYmd = getNzYmd();
+  if (isYmdString(String(expiryRaw).trim())) {
+    return String(expiryRaw).trim() < todayYmd ? 'expired' : 'inducted';
+  }
+
   const expiry = new Date(expiryRaw);
   if (Number.isNaN(expiry.getTime())) {
     return 'not_inducted';
   }
 
-  if (expiry < new Date()) {
+  if (getNzYmd(expiry) < todayYmd) {
     return 'expired';
   }
 
@@ -75,16 +82,7 @@ export function getSiteInductionExpiry(contractor, siteId) {
 }
 
 export function formatInductionExpiry(expiryRaw) {
-  if (!expiryRaw) {
-    return '—';
-  }
-
-  const date = new Date(expiryRaw);
-  if (Number.isNaN(date.getTime())) {
-    return String(expiryRaw);
-  }
-
-  return date.toLocaleDateString('en-NZ');
+  return formatDateNz(expiryRaw);
 }
 
 function getSiteInductionRecords(contractor) {

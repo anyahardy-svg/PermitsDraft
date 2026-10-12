@@ -3,18 +3,14 @@ import { resolveAccreditationDisplayStatus } from '../utils/accreditation';
 import { fetchAllPaginated } from './pagination';
 import { listCompanies } from './companies';
 import { getRequestingAdminId, isAdminSessionActive } from './contractorData';
+import { formatDateNz } from '../utils/nzDates';
 
 function formatDate(dateValue) {
   if (!dateValue) {
     return '';
   }
-
-  const date = new Date(dateValue);
-  if (Number.isNaN(date.getTime())) {
-    return String(dateValue);
-  }
-
-  return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+  const formatted = formatDateNz(dateValue);
+  return formatted === '—' ? '' : formatted;
 }
 
 function isAccreditedCompany(company) {

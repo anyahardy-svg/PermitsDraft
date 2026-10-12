@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getNzYmd } from "../_shared/nzDates.ts";
 
 const VERSION = "2026-03-23-v6";
 const IN_QUERY_BATCH_SIZE = 200;
@@ -669,7 +670,7 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: true, data: withCompanies, version: VERSION });
       }
 
-      const today = new Date().toISOString().split("T")[0];
+      const today = getNzYmd();
       const rows = await fetchAllPaginated<Record<string, unknown>>(supabase, (from, to) =>
         supabase
           .from("contractors")

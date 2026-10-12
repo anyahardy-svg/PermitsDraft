@@ -8,6 +8,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { searchSignInHistory } from '../../api/signIns';
+import {
+  addDaysToYmd,
+  displayToYmd,
+  getNzDayRangeUtc,
+  getNzWeekStartYmd,
+  getNzYmd,
+  ymdToDisplay,
+} from '../../utils/nzDates';
 
 const SEARCH_MODES = [
   { id: 'week', label: 'Week' },
@@ -18,31 +26,7 @@ const SEARCH_MODES = [
 ];
 
 function parseDateInput(value) {
-  if (!value) {
-    return null;
-  }
-  const parts = value.split(/[/-]/).map((p) => parseInt(p, 10));
-  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) {
-    return null;
-  }
-  const [day, month, year] = parts;
-  const date = new Date(year, month - 1, day);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return date;
-}
-
-function startOfDay(date) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function addDays(date, days) {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
+  return displayToYmd(value);
 }
 
 function formatDateTime(value) {
@@ -53,7 +37,7 @@ function formatDateTime(value) {
   if (Number.isNaN(date.getTime())) {
     return String(value);
   }
-  return date.toLocaleString('en-NZ');
+  return date.toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland' });
 }
 
 function formatDuration(minutes) {
@@ -68,24 +52,18 @@ function formatDuration(minutes) {
   return mins ? `${hours}h ${mins}m` : `${hours}h`;
 }
 
-function getDefaultWeekStart() {
-  const today = startOfDay(new Date());
-  const day = today.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  return addDays(today, diff);
+function getDefaultWeekStartYmd() {
+  return getNzWeekStartYmd(new Date());
 }
 
-function toInputDate(date) {
-  const d = String(date.getDate()).padStart(2, '0');
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const y = date.getFullYear();
-  return `${d}/${m}/${y}`;
+function toInputDate(ymd) {
+  return ymdToDisplay(ymd);
 }
 
 export default function ManagerSignInsPanel({ siteId, onBack, styles }) {
   const [mode, setMode] = useState('week');
-  const [weekStartInput, setWeekStartInput] = useState(toInputDate(getDefaultWeekStart()));
-  const [singleDateInput, setSingleDateInput] = useState(toInputDate(new Date()));
+  const [weekStartInput, setWeekStartInput] = useState(toInputDate(getDefaultWeekStartYmd()));
+  const [singleDateInput, setSingleDateInput] = useState(toInputDate(getNzYmd()));
   const [rangeStartInput, setRangeStartInput] = useState('');
   const [rangeEndInput, setRangeEndInput] = useState('');
   const [personQuery, setPersonQuery] = useState('');
@@ -101,40 +79,42 @@ export default function ManagerSignInsPanel({ siteId, onBack, styles }) {
     const filters = {};
 
     if (mode === 'week') {
-      const weekStart = parseDateInput(weekStartInput);
-      if (!weekStart) {
+      const weekStartYmd = parseDateInput(weekStartInput);
+      if (!weekStartYmd) {
         throw new Error('Enter a valid week start date (DD/MM/YYYY)');
       }
-      filters.startDate = startOfDay(weekStart).toISOString();
-      filters.endDate = addDays(startOfDay(weekStart), 7).toISOString();
+      const weekEndYmd = addDaysToYmd(weekStartYmd, 7);
+      filters.startDate = getNzDayRangeUtc(weekStartYmd).startIso;
+      filters.endDate = getNzDayRangeUtc(weekEndYmd).startIso;
     } else if (mode === 'date') {
-      const day = parseDateInput(singleDateInput);
-      if (!day) {
+      const dayYmd = parseDateInput(singleDateInput);
+      if (!dayYmd) {
         throw new Error('Enter a valid date (DD/MM/YYYY)');
       }
-      filters.startDate = startOfDay(day).toISOString();
-      filters.endDate = addDays(startOfDay(day), 1).toISOString();
+      const range = getNzDayRangeUtc(dayYmd);
+      filters.startDate = range.startIso;
+      filters.endDate = range.endIso;
     } else if (mode === 'range') {
-      const start = parseDateInput(rangeStartInput);
-      const end = parseDateInput(rangeEndInput);
-      if (!start || !end) {
+      const startYmd = parseDateInput(rangeStartInput);
+      const endYmd = parseDateInput(rangeEndInput);
+      if (!startYmd || !endYmd) {
         throw new Error('Enter valid start and end dates (DD/MM/YYYY)');
       }
-      filters.startDate = startOfDay(start).toISOString();
-      filters.endDate = addDays(startOfDay(end), 1).toISOString();
+      filters.startDate = getNzDayRangeUtc(startYmd).startIso;
+      filters.endDate = getNzDayRangeUtc(addDaysToYmd(endYmd, 1)).startIso;
     } else if (mode === 'person') {
       const q = personQuery.trim();
       if (!q) {
         throw new Error('Enter a person name to search');
       }
       filters.personQuery = q;
-      const optStart = parseDateInput(optionalStartInput);
-      const optEnd = parseDateInput(optionalEndInput);
-      if (optStart) {
-        filters.startDate = startOfDay(optStart).toISOString();
+      const optStartYmd = parseDateInput(optionalStartInput);
+      const optEndYmd = parseDateInput(optionalEndInput);
+      if (optStartYmd) {
+        filters.startDate = getNzDayRangeUtc(optStartYmd).startIso;
       }
-      if (optEnd) {
-        filters.endDate = addDays(startOfDay(optEnd), 1).toISOString();
+      if (optEndYmd) {
+        filters.endDate = getNzDayRangeUtc(addDaysToYmd(optEndYmd, 1)).startIso;
       }
     } else if (mode === 'company') {
       const q = companyQuery.trim();
@@ -142,13 +122,13 @@ export default function ManagerSignInsPanel({ siteId, onBack, styles }) {
         throw new Error('Enter a company name to search');
       }
       filters.companyQuery = q;
-      const optStart = parseDateInput(optionalStartInput);
-      const optEnd = parseDateInput(optionalEndInput);
-      if (optStart) {
-        filters.startDate = startOfDay(optStart).toISOString();
+      const optStartYmd = parseDateInput(optionalStartInput);
+      const optEndYmd = parseDateInput(optionalEndInput);
+      if (optStartYmd) {
+        filters.startDate = getNzDayRangeUtc(optStartYmd).startIso;
       }
-      if (optEnd) {
-        filters.endDate = addDays(startOfDay(optEnd), 1).toISOString();
+      if (optEndYmd) {
+        filters.endDate = getNzDayRangeUtc(addDaysToYmd(optEndYmd, 1)).startIso;
       }
     }
 

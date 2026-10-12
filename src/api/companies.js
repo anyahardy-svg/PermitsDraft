@@ -2,6 +2,7 @@ import { supabase } from '../supabaseClient';
 import { resolveAccreditationDisplayStatus } from '../utils/accreditation';
 import { validateHSAgreementComplete } from '../utils/hsAgreementValidation';
 import { fetchAllPaginated } from './pagination';
+import { getNzYmd } from '../utils/nzDates';
 import {
   companyDataApproveAccreditation,
   companyDataCreate,
@@ -636,7 +637,7 @@ export const approveCompanyAccreditation = async (companyId, approvedBy) => {
           if (fetchError) throw fetchError;
           const hsAgreementError = validateHSAgreementComplete(currentData || {});
           if (hsAgreementError) throw new Error(hsAgreementError);
-          const today = new Date().toISOString().split('T')[0];
+          const today = getNzYmd();
           const updateData = {
             accreditation_status: 'approved',
             in_radar: false,
@@ -660,7 +661,7 @@ export const approveCompanyAccreditation = async (companyId, approvedBy) => {
       };
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getNzYmd();
     const updateData = {
       accreditation_status: 'approved',
       in_radar: false,

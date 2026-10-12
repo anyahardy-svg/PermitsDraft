@@ -5,8 +5,7 @@
 
 import { supabase } from '../supabaseClient';
 import { fetchAllPaginated, IN_QUERY_BATCH_SIZE } from './pagination';
-
-const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+import { getNzIsoYearsFrom } from '../utils/nzDates';
 
 function normalizeRecord(record) {
   if (!record) return null;
@@ -135,7 +134,7 @@ export async function upsertContractorSiteInduction({
   const nowIso = new Date().toISOString();
   const expiryIso = expiresAt
     ? new Date(expiresAt).toISOString()
-    : new Date(Date.now() + ONE_YEAR_MS).toISOString();
+    : getNzIsoYearsFrom(new Date(), 1);
 
   const existing = await getContractorSiteInduction(contractorId, siteId);
   const payload = {
@@ -251,7 +250,7 @@ export async function syncSiteInductionRecordsFromProgress(contractorId) {
     const contractorExpiry = contractor.induction_expiry
       ? new Date(contractor.induction_expiry).toISOString()
       : null;
-    const completedExpiry = new Date(new Date(latestCompletedAt).getTime() + ONE_YEAR_MS).toISOString();
+    const completedExpiry = getNzIsoYearsFrom(new Date(latestCompletedAt), 1);
     const expiresAt = contractorExpiry || completedExpiry;
 
     try {

@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getNzYmd } from "../_shared/nzDates.ts";
 
 const VERSION = "2026-09-28-v11";
 const PAGE_SIZE = 1000;
@@ -616,7 +617,7 @@ Deno.serve(async (req) => {
       if (fetchError) {
         return jsonResponse({ success: false, error: fetchError.message }, 500);
       }
-      const today = new Date().toISOString().split("T")[0];
+      const today = getNzYmd();
       const updateData: Record<string, unknown> = {
         accreditation_status: "approved",
         in_radar: false,
