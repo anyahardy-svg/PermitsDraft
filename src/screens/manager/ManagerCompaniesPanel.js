@@ -16,29 +16,23 @@ import {
 import { getAccreditationStatusDisplay } from '../../utils/accreditation';
 import { exportCompaniesCsv } from '../../utils/managerHubExport';
 
+import { formatDateNz, getNzYmd } from '../../utils/nzDates';
+
 function formatDate(value) {
-  if (!value) {
-    return '—';
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return String(value);
-  }
-  return date.toLocaleDateString('en-NZ');
+  return formatDateNz(value);
 }
 
 function isInsuranceExpired(value) {
   if (!value) {
     return false;
   }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
+  const raw = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())
+    ? value.trim()
+    : getNzYmd(new Date(value));
+  if (!raw || Number.isNaN(new Date(value).getTime())) {
     return false;
   }
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  date.setHours(0, 0, 0, 0);
-  return date < today;
+  return raw < getNzYmd();
 }
 
 export default function ManagerCompaniesPanel({ siteId, siteName = '', mode = 'at_site', onBack, styles, onCompanyAdded }) {

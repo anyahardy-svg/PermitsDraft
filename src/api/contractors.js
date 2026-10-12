@@ -6,6 +6,7 @@ import {
 } from './contractorInductions';
 import { getSiteInductionStatus, isInductedAnywhere } from '../utils/siteInductionStatus';
 import { contractorMatchesKioskSignInSearch } from '../utils/kioskContractorSearch';
+import { getNzYmd } from '../utils/nzDates';
 import {
   contractorDataCreate,
   contractorDataCreateForKiosk,
@@ -540,7 +541,7 @@ export const listContractorsWithExpiredInductions = async () => {
       return await withContractorDataFallback(
         () => contractorDataListExpiredInductions().then(mapEdgeRowsToApp),
         async () => {
-          const today = new Date().toISOString().split('T')[0];
+          const today = getNzYmd();
           const data = await fetchAllPaginated((from, to) =>
             supabase
               .from('contractors')
@@ -555,7 +556,7 @@ export const listContractorsWithExpiredInductions = async () => {
       );
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getNzYmd();
     const data = await fetchAllPaginated((from, to) =>
       supabase
         .from('contractors')

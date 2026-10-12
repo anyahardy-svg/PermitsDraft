@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { formatDateNz } from '../utils/nzDates';
 import {
   View,
   Text,
@@ -137,11 +138,8 @@ export default function TrainingRecordsScreen({
 
   const formatDateNZ = (dateString) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    const formatted = formatDateNz(dateString);
+    return formatted === '—' ? 'N/A' : formatted;
   };
 
   const parseNZDate = (dateString) => {
@@ -351,7 +349,7 @@ export default function TrainingRecordsScreen({
       const response = await updateCompanyTrainingMatrix(editingMatrixId, {
         name: editMatrixName.trim(),
         file: editMatrixFile,
-        expiryDate: editMatrixExpiryDate ? new Date(parseNZDate(editMatrixExpiryDate)).toISOString().split('T')[0] : null,
+        expiryDate: editMatrixExpiryDate ? parseNZDate(editMatrixExpiryDate) : null,
         contractorIds: editMatrixContractorIds,
       });
 

@@ -297,7 +297,8 @@ async function processHsApproval({ companyId, adminUserId, notes }) {
     };
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  const { getNzYmd } = require('./nzDates');
+  const today = getNzYmd();
   const now = new Date().toISOString();
   const accreditedDate = company.accredited_date || today;
 

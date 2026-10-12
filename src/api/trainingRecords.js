@@ -11,6 +11,7 @@ import {
   extractTrainingRecordsStoragePath,
 } from '../utils/storagePaths';
 import { trainingRecordsFileReference } from './trainingRecordsStorage';
+import { getNzYmd } from '../utils/nzDates';
 import {
   fetchCompanyRowViaEdge,
   fetchCompanyRowsByIdsViaEdge,
@@ -128,7 +129,7 @@ function formatDateForDb(date) {
     return null;
   }
 
-  return parsed.toISOString().split('T')[0];
+  return getNzYmd(parsed);
 }
 
 function isValidFileType(file) {

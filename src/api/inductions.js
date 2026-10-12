@@ -17,6 +17,8 @@ import {
   isAdminSessionActive,
 } from './contractorData';
 
+import { getNzIsoYearsFrom, getNzYmdYearsFrom } from '../utils/nzDates';
+
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
 export function formatInductionDisplayName(induction) {
@@ -1007,7 +1009,7 @@ export async function setContractorCompletedInductions(
         throw sitesError;
       }
 
-      const expiresAt = new Date(Date.now() + ONE_YEAR_MS).toISOString();
+      const expiresAt = getNzIsoYearsFrom(new Date(), 1);
       for (const site of sites || []) {
         if (!site?.id || !site?.business_unit_id) {
           continue;
@@ -1035,10 +1037,9 @@ export async function setContractorCompletedInductions(
     }
 
     if (!contractor?.induction_expiry) {
-      const expiryDate = new Date(Date.now() + ONE_YEAR_MS);
       const { error: expiryError } = await supabase
         .from('contractors')
-        .update({ induction_expiry: expiryDate.toISOString().split('T')[0] })
+        .update({ induction_expiry: getNzYmdYearsFrom(new Date(), 1) })
         .eq('id', contractorId);
 
       if (expiryError) {

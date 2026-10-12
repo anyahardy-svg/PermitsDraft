@@ -52,6 +52,7 @@ import {
 import { sanitizePhoneInput, validateContractorPhone, normalizePhoneForSave } from '../utils/contractorPhone';
 import { validateContractorFullName } from '../utils/contractorName';
 import { showUserAlert } from '../utils/showUserAlert';
+import { getNzIsoYearsFrom, getNzYmdYearsFrom } from '../utils/nzDates';
 
 /**
  * ContractorInductionScreen - Simplified for single inductions table
@@ -378,8 +379,8 @@ export default function ContractorInductionScreen({
     inductedSiteIds,
     businessUnitIds,
   }) => {
-    const expiryDate = new Date();
-    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+    const expiryIso = getNzIsoYearsFrom(new Date(), 1);
+    const expiryYmd = getNzYmdYearsFrom(new Date(), 1);
 
     const existingContractor = await getContractor(contractorId);
     const existingSiteIds = existingContractor?.site_ids || existingContractor?.siteIds || [];
@@ -388,7 +389,7 @@ export default function ContractorInductionScreen({
     await updateContractor(contractorId, {
       site_ids: updatedSiteIds,
       business_unit_ids: businessUnitIds,
-      induction_expiry: expiryDate.toISOString(),
+      induction_expiry: expiryYmd,
     });
 
     const siteIdToBusinessUnitId = getSiteIdToBusinessUnitId([...sites, ...allSites]);
@@ -396,7 +397,7 @@ export default function ContractorInductionScreen({
       contractorId,
       siteIds: inductedSiteIds,
       siteIdToBusinessUnitId,
-      expiresAt: expiryDate.toISOString(),
+      expiresAt: expiryIso,
     });
   };
 
@@ -3372,12 +3373,10 @@ export default function ContractorInductionScreen({
                 
                 setLoading(true);
                 try {
-                  const expiryDate = new Date();
-                  expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-                  const inductionExpiryIso = expiryDate.toISOString();
+                  const inductionExpiryYmd = getNzYmdYearsFrom(new Date(), 1);
 
                   await updateContractor(contractorInfo.id, {
-                    induction_expiry: inductionExpiryIso,
+                    induction_expiry: inductionExpiryYmd,
                     signature: signatureText,
                   });
 
