@@ -152,6 +152,31 @@ export function getOtherSiteNames(contractor, currentSiteId, siteIdToName) {
     .filter(Boolean);
 }
 
+/** All site IDs linked on the contractor (assignments + per-site induction records). */
+export function getAllSiteIds(contractor) {
+  const ids = new Set();
+  for (const id of contractor?.site_ids || contractor?.siteIds || []) {
+    if (id) {
+      ids.add(id);
+    }
+  }
+  for (const record of getSiteInductionRecords(contractor)) {
+    const siteId = record?.site_id || record?.siteId;
+    if (siteId) {
+      ids.add(siteId);
+    }
+  }
+  return [...ids];
+}
+
+/** Human-readable site names for every site on the contractor record. */
+export function getAllSiteNames(contractor, siteIdToName = {}) {
+  return getAllSiteIds(contractor)
+    .map((id) => siteIdToName[id] || id)
+    .filter(Boolean)
+    .sort((a, b) => String(a).localeCompare(String(b)));
+}
+
 export function isExpiringWithinDays(contractor, siteId, days = INDUCTION_EXPIRING_SOON_DAYS) {
   if (getSiteInductionStatus(contractor, siteId) !== 'inducted') {
     return false;

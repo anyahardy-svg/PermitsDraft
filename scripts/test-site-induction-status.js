@@ -1,5 +1,6 @@
 const assert = require('assert');
 const {
+  getAllSiteNames,
   getOtherInductedSites,
   getSiteInductionExpiry,
   getSiteInductionStatus,
@@ -72,5 +73,9 @@ assert.strictEqual(getSiteInductionStatus(lauraVisitingOtherSite, hunuaId), 'not
 assert.strictEqual(getOtherInductedSites(lauraVisitingOtherSite, hunuaId).length, 1);
 assert.strictEqual(isInductedAnywhere(lauraVisitingOtherSite), true);
 assert.strictEqual(isInductedAnywhere({ site_ids: [], site_inductions: {} }), false);
+
+const siteNames = { [hendersonId]: 'Henderson', [albanyId]: 'Albany Quarry' };
+assert.deepStrictEqual(getAllSiteNames(laura, siteNames), ['Albany Quarry', 'Henderson']);
+assert.deepStrictEqual(getAllSiteNames(expiredAtSite, siteNames), ['Henderson']);
 
 console.log('site induction status tests passed');
