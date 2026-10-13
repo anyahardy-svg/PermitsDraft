@@ -2366,10 +2366,8 @@ export default function ContractorAdminScreen({
         ) : activeTab === 'attachments' ? (
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
             <ContractorAttachmentsSection
-              contractorId={loggedInContractorId}
               companyId={loggedInCompanyId}
               companyName={loggedInCompanyName || ''}
-              contractorName={loggedInContractor || ''}
               styles={styles}
               hint="Upload PDFs or images for your company, such as traffic management plans or method statements. These are stored against your company profile."
             />
