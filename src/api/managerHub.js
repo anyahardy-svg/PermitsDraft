@@ -10,7 +10,7 @@ import {
 import { getRequestingAdminId, isAdminSessionActive } from './contractorData';
 
 const COMPANY_MANAGER_COLUMNS =
-  'id, name, accredited_date, accreditation_status, accreditation_invitation_sent_at, accreditation_last_updated, public_liability_expiry, motor_vehicle_insurance_expiry, site_ids, in_radar, assigned_manager_id, assigned_hs_person_id, accreditation_rejection_reason';
+  'id, name, accredited_date, accreditation_status, accreditation_invitation_sent_at, accreditation_last_updated, public_liability_expiry, motor_vehicle_insurance_expiry, site_ids, in_radar, assigned_manager_id, assigned_hs_person_id, accreditation_rejection_reason, training_records_total, training_records_approved, training_matrices_total, training_matrices_approved';
 
 function transformManagerCompany(company) {
   const status = resolveAccreditationDisplayStatus(company);
@@ -27,6 +27,11 @@ function transformManagerCompany(company) {
     publicLiabilityExpiry: company.public_liability_expiry || '',
     motorVehicleInsuranceExpiry: company.motor_vehicle_insurance_expiry || '',
     inRadar: company.in_radar !== false,
+    accreditation_status: company.accreditation_status,
+    training_records_total: company.training_records_total ?? 0,
+    training_records_approved: company.training_records_approved ?? 0,
+    training_matrices_total: company.training_matrices_total ?? 0,
+    training_matrices_approved: company.training_matrices_approved ?? 0,
   };
 }
 
@@ -145,6 +150,61 @@ export async function addSiteToCompany(companyId, siteId) {
 
 // Backwards-compatible alias
 export const addSiteToAccreditedCompany = addSiteToCompany;
+
+/** Unlink a site from a company without deleting the company record. */
+export async function removeSiteFromCompany(companyId, siteId) {
+  if (!companyId || !siteId) {
+    throw new Error('Company and site are required');
+  }
+
+  const companyRow = await getCompany(companyId);
+  if (!companyRow) {
+    throw new Error('Company not found');
+  }
+
+  const existingSiteIds = companyRow.site_ids || companyRow.siteIds || [];
+  if (!existingSiteIds.includes(siteId)) {
+    return transformManagerCompany({
+      id: companyRow.id,
+      name: companyRow.name,
+      accredited_date: companyRow.accredited_date || companyRow.accreditedDate,
+      accreditation_status: companyRow.accreditation_status || companyRow.accreditationStatus,
+      site_ids: existingSiteIds,
+      in_radar: companyRow.in_radar ?? companyRow.inRadar,
+      public_liability_expiry: companyRow.public_liability_expiry || companyRow.publicLiabilityExpiry,
+      motor_vehicle_insurance_expiry:
+        companyRow.motor_vehicle_insurance_expiry || companyRow.motorVehicleInsuranceExpiry,
+      training_records_total: companyRow.training_records_total,
+      training_records_approved: companyRow.training_records_approved,
+      training_matrices_total: companyRow.training_matrices_total,
+      training_matrices_approved: companyRow.training_matrices_approved,
+    });
+  }
+
+  const updated = await updateCompany(companyId, {
+    site_ids: existingSiteIds.filter((id) => id !== siteId),
+  });
+
+  if (!updated) {
+    throw new Error('Failed to update company site list');
+  }
+
+  return transformManagerCompany({
+    id: updated.id,
+    name: updated.name,
+    accredited_date: updated.accredited_date || updated.accreditedDate,
+    accreditation_status: updated.accreditation_status || updated.accreditationStatus,
+    site_ids: updated.site_ids || updated.siteIds || [],
+    in_radar: updated.in_radar ?? updated.inRadar,
+    public_liability_expiry: updated.public_liability_expiry || updated.publicLiabilityExpiry,
+    motor_vehicle_insurance_expiry:
+      updated.motor_vehicle_insurance_expiry || updated.motorVehicleInsuranceExpiry,
+    training_records_total: updated.training_records_total,
+    training_records_approved: updated.training_records_approved,
+    training_matrices_total: updated.training_matrices_total,
+    training_matrices_approved: updated.training_matrices_approved,
+  });
+}
 
 export async function listPendingAccreditationApprovals(adminUserId) {
   if (!adminUserId) {
