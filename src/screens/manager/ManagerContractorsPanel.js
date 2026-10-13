@@ -7,10 +7,13 @@ import {
   TextInput,
   ActivityIndicator,
   Modal,
+  Platform,
+  Dimensions,
 } from 'react-native';
 import { listContractorsBySite, removeContractorFromSite } from '../../api/contractors';
 import {
   formatInductionExpiry,
+  getAllSiteNames,
   getOtherSiteNames,
   getSiteInductionExpiry,
   getSiteInductionStatus,
@@ -42,8 +45,9 @@ export default function ManagerContractorsPanel({
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const [removingId, setRemovingId] = useState('');
-  const [contractorPendingRemoval, setContractorPendingRemoval] = useState(null);
+  const [selectedContractorIds, setSelectedContractorIds] = useState([]);
+  const [removalConfirmContractors, setRemovalConfirmContractors] = useState([]);
+  const [isRemovingFromSite, setIsRemovingFromSite] = useState(false);
   const [actionMessage, setActionMessage] = useState(null);
 
   const loadContractors = useCallback(async () => {
@@ -69,6 +73,11 @@ export default function ManagerContractorsPanel({
   useEffect(() => {
     loadContractors();
   }, [loadContractors]);
+
+  useEffect(() => {
+    setSelectedContractorIds([]);
+    setRemovalConfirmContractors([]);
+  }, [siteId, mode]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -124,43 +133,242 @@ export default function ManagerContractorsPanel({
     }
   };
 
-  const handleRemoveFromSite = async (contractor) => {
-    if (!siteId || !contractor?.id) {
+  const toggleContractorSelected = (contractorId) => {
+    setSelectedContractorIds((prev) => (
+      prev.includes(contractorId)
+        ? prev.filter((id) => id !== contractorId)
+        : [...prev, contractorId]
+    ));
+  };
+
+  const selectAllFilteredContractors = () => {
+    setSelectedContractorIds(filtered.map((contractor) => contractor.id));
+  };
+
+  const clearSelectedContractors = () => {
+    setSelectedContractorIds([]);
+  };
+
+  const selectedFilteredContractors = useMemo(
+    () => filtered.filter((contractor) => selectedContractorIds.includes(contractor.id)),
+    [filtered, selectedContractorIds],
+  );
+
+  const confirmRemoveSelectedFromSite = () => {
+    if (selectedFilteredContractors.length === 0) {
+      return;
+    }
+    setRemovalConfirmContractors(selectedFilteredContractors);
+  };
+
+  const handleConfirmRemoveFromSite = async () => {
+    if (!siteId || removalConfirmContractors.length === 0) {
       return;
     }
 
-    setContractorPendingRemoval(null);
-    setRemovingId(contractor.id);
+    const targets = [...removalConfirmContractors];
+    setRemovalConfirmContractors([]);
+    setIsRemovingFromSite(true);
+
+    const removedNames = [];
+    const removedIds = [];
+    const failedNames = [];
+
     try {
-      await removeContractorFromSite(contractor.id, siteId);
-      setActionMessage({
-        title: 'Contractor removed',
-        body: `${contractor.name} has been removed from ${siteName || 'this site'}.`,
-      });
-      await loadContractors();
-      if (onContractorRemoved) {
-        onContractorRemoved();
+      for (const contractor of targets) {
+        try {
+          await removeContractorFromSite(contractor.id, siteId);
+          removedIds.push(contractor.id);
+          removedNames.push(contractor.name);
+        } catch (removeError) {
+          failedNames.push(contractor.name || 'Unknown');
+          console.error('Failed to remove contractor from site:', contractor.id, removeError);
+        }
       }
-    } catch (removeError) {
-      setActionMessage({
-        title: 'Could not remove contractor',
-        body: removeError?.message || 'Please try again.',
-      });
+
+      const removedIdSet = new Set(removedIds);
+      setSelectedContractorIds((prev) => prev.filter((id) => !removedIdSet.has(id)));
+
+      if (removedNames.length > 0) {
+        await loadContractors();
+        if (onContractorRemoved) {
+          onContractorRemoved();
+        }
+      }
+
+      if (failedNames.length === 0) {
+        const count = removedNames.length;
+        setActionMessage({
+          title: count === 1 ? 'Contractor removed' : `${count} contractors removed`,
+          body: count === 1
+            ? `${removedNames[0]} has been removed from ${siteName || 'this site'}.`
+            : `${removedNames.length} people have been removed from ${siteName || 'this site'}.`,
+        });
+      } else if (removedNames.length === 0) {
+        setActionMessage({
+          title: 'Could not remove contractors',
+          body: `None of the selected people could be removed. ${failedNames.join(', ')}`,
+        });
+      } else {
+        setActionMessage({
+          title: 'Some removals failed',
+          body: `Removed from site: ${removedNames.join(', ')}. Failed: ${failedNames.join(', ')}.`,
+        });
+      }
     } finally {
-      setRemovingId('');
+      setIsRemovingFromSite(false);
     }
   };
 
-  const confirmRemoveFromSite = (contractor) => {
-    setContractorPendingRemoval(contractor);
-  };
+  const renderExpiredInductionsTable = () => {
+    const allFilteredSelected = filtered.length > 0
+      && filtered.every((contractor) => selectedContractorIds.includes(contractor.id));
+    const tableBodyMaxHeight = Platform.OS === 'web'
+      ? Math.min(Dimensions.get('window').height * 0.55, 640)
+      : 480;
 
-  const pendingRemovalOtherSites = contractorPendingRemoval
-    ? getOtherSiteNames(contractorPendingRemoval, siteId, siteIdToName)
-    : [];
-  const pendingRemovalNote = pendingRemovalOtherSites.length > 0
-    ? ` They will remain linked to: ${pendingRemovalOtherSites.join(', ')}.`
-    : '';
+    return (
+      <>
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 16,
+          marginBottom: 8,
+          gap: 8,
+          flexWrap: 'wrap',
+        }}
+        >
+          <Text style={{ color: '#6B7280', fontSize: 13 }}>
+            {filtered.length} expired induction{filtered.length === 1 ? '' : 's'}
+            {selectedContractorIds.length > 0
+              ? ` · ${selectedContractorIds.length} selected`
+              : ''}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <TouchableOpacity onPress={selectAllFilteredContractors} disabled={filtered.length === 0}>
+              <Text style={{ fontSize: 12, color: '#3B82F6', fontWeight: '600' }}>Select all</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={clearSelectedContractors} disabled={selectedContractorIds.length === 0}>
+              <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '600' }}>Clear</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={confirmRemoveSelectedFromSite}
+              disabled={selectedFilteredContractors.length === 0 || isRemovingFromSite}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 6,
+                backgroundColor: selectedFilteredContractors.length === 0 ? '#FECACA' : '#DC2626',
+                opacity: isRemovingFromSite ? 0.6 : 1,
+              }}
+            >
+              {isRemovingFromSite ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>
+                  Remove from site
+                  {selectedFilteredContractors.length > 0 ? ` (${selectedFilteredContractors.length})` : ''}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={{ paddingHorizontal: 16, paddingBottom: 24, flex: 1 }}>
+          <View style={{
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: '#D1D5DB',
+            backgroundColor: '#FFFFFF',
+            overflow: 'hidden',
+          }}
+          >
+            <ScrollView horizontal nestedScrollEnabled>
+              <View>
+                <View style={{
+                  flexDirection: 'row',
+                  backgroundColor: '#3B82F6',
+                  borderBottomWidth: 2,
+                  borderBottomColor: '#2563EB',
+                  ...(Platform.OS === 'web' ? { position: 'sticky', top: 0, zIndex: 2 } : null),
+                }}
+                >
+                  <TouchableOpacity
+                    style={{
+                      width: 52,
+                      padding: 12,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      borderRightWidth: 1,
+                      borderRightColor: '#2563EB',
+                    }}
+                    onPress={() => (allFilteredSelected ? clearSelectedContractors() : selectAllFilteredContractors())}
+                    disabled={filtered.length === 0 || isRemovingFromSite}
+                  >
+                    <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>
+                      {allFilteredSelected ? '☑' : '☐'}
+                    </Text>
+                  </TouchableOpacity>
+                  <Text style={{ width: 200, padding: 12, fontWeight: 'bold', color: '#FFFFFF', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Name</Text>
+                  <Text style={{ width: 220, padding: 12, fontWeight: 'bold', color: '#FFFFFF', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company</Text>
+                  <Text style={{ width: 130, padding: 12, fontWeight: 'bold', color: '#FFFFFF', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Expiry Date</Text>
+                  <Text style={{ width: 320, padding: 12, fontWeight: 'bold', color: '#FFFFFF', fontSize: 14 }}>Sites</Text>
+                </View>
+
+                <ScrollView nestedScrollEnabled style={{ maxHeight: tableBodyMaxHeight }} showsVerticalScrollIndicator>
+                  {filtered.map((contractor, index) => {
+                    const isSelected = selectedContractorIds.includes(contractor.id);
+                    const allSitesLabel = getAllSiteNames(contractor, siteIdToName).join(', ') || '—';
+
+                    return (
+                      <TouchableOpacity
+                        key={contractor.id}
+                        activeOpacity={0.85}
+                        onPress={() => toggleContractorSelected(contractor.id)}
+                        disabled={isRemovingFromSite}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          backgroundColor: isSelected ? '#EFF6FF' : (index % 2 === 0 ? '#FFFFFF' : '#F3F4F6'),
+                          borderBottomWidth: 1,
+                          borderBottomColor: '#E5E7EB',
+                        }}
+                      >
+                        <View style={{
+                          width: 52,
+                          padding: 12,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          borderRightWidth: 1,
+                          borderRightColor: '#E5E7EB',
+                        }}
+                        >
+                          <Text style={{ fontSize: 16 }}>{isSelected ? '☑' : '☐'}</Text>
+                        </View>
+                        <Text style={{ width: 200, padding: 12, fontSize: 13, color: '#111827', fontWeight: '600', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                          {contractor.name}
+                        </Text>
+                        <Text style={{ width: 220, padding: 12, fontSize: 13, color: '#4B5563', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                          {contractor.company_name || contractor.companyName || 'No company'}
+                        </Text>
+                        <Text style={{ width: 130, padding: 12, fontSize: 13, color: '#6B7280', textAlign: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                          {formatInductionExpiry(getSiteInductionExpiry(contractor, siteId))}
+                        </Text>
+                        <Text style={{ width: 320, padding: 12, fontSize: 13, color: '#374151' }}>
+                          {allSitesLabel}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </>
+    );
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
@@ -262,6 +470,8 @@ export default function ManagerContractorsPanel({
             <View style={{ padding: 16 }}>
               <Text style={{ color: '#6B7280' }}>{emptyMessage}</Text>
             </View>
+          ) : mode === 'expired' ? (
+            renderExpiredInductionsTable()
           ) : (
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}>
               {filtered.map((contractor) => {
@@ -273,7 +483,6 @@ export default function ManagerContractorsPanel({
                 const statusLabel = status === 'inducted'
                   ? (expiringSoon ? `Due in ${INDUCTION_EXPIRING_SOON_DAYS}d` : 'Inducted')
                   : 'Expired';
-                const isRemoving = removingId === contractor.id;
 
                 return (
                   <View
@@ -310,31 +519,6 @@ export default function ManagerContractorsPanel({
                       <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 12 }}>
                         Also on: {otherSites.join(', ')}
                       </Text>
-                    ) : null}
-                    {mode === 'expired' ? (
-                      <TouchableOpacity
-                        onPress={() => confirmRemoveFromSite(contractor)}
-                        disabled={isRemoving}
-                        style={{
-                          marginTop: 12,
-                          alignSelf: 'flex-start',
-                          paddingHorizontal: 12,
-                          paddingVertical: 8,
-                          borderRadius: 6,
-                          borderWidth: 1,
-                          borderColor: '#FCA5A5',
-                          backgroundColor: '#FEF2F2',
-                          opacity: isRemoving ? 0.6 : 1,
-                        }}
-                      >
-                        {isRemoving ? (
-                          <ActivityIndicator color="#B91C1C" size="small" />
-                        ) : (
-                          <Text style={{ color: '#B91C1C', fontWeight: '700', fontSize: 13 }}>
-                            Remove from site
-                          </Text>
-                        )}
-                      </TouchableOpacity>
                     ) : null}
                   </View>
                 );
@@ -375,28 +559,44 @@ export default function ManagerContractorsPanel({
       </Modal>
 
       <Modal
-        visible={!!contractorPendingRemoval}
+        visible={removalConfirmContractors.length > 0}
         transparent
         animationType="fade"
-        onRequestClose={() => setContractorPendingRemoval(null)}
+        onRequestClose={() => setRemovalConfirmContractors([])}
       >
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 24 }}>
           <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, overflow: 'hidden' }}>
             <Text style={{ fontSize: 18, fontWeight: '700', padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-              Remove contractor from site?
+              {removalConfirmContractors.length === 1
+                ? 'Remove contractor from site?'
+                : `Remove ${removalConfirmContractors.length} contractors from site?`}
             </Text>
             <Text style={{ paddingHorizontal: 16, paddingVertical: 14, color: '#374151', lineHeight: 22 }}>
-              {contractorPendingRemoval?.name} will no longer be linked to {siteName || 'this site'}.{pendingRemovalNote}
+              {removalConfirmContractors.length === 1 ? (
+                <>
+                  {removalConfirmContractors[0]?.name} will no longer be linked to {siteName || 'this site'}.
+                  {(() => {
+                    const otherSites = getOtherSiteNames(removalConfirmContractors[0], siteId, siteIdToName);
+                    return otherSites.length > 0
+                      ? ` They will remain linked to: ${otherSites.join(', ')}.`
+                      : '';
+                  })()}
+                </>
+              ) : (
+                <>
+                  These people will be unlinked from {siteName || 'this site'} only. Their contractor records and other site links are not deleted.
+                </>
+              )}
             </Text>
             <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
               <TouchableOpacity
-                onPress={() => setContractorPendingRemoval(null)}
+                onPress={() => setRemovalConfirmContractors([])}
                 style={{ flex: 1, padding: 16, alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}
               >
                 <Text style={{ color: '#2563EB', fontWeight: '700' }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => handleRemoveFromSite(contractorPendingRemoval)}
+                onPress={handleConfirmRemoveFromSite}
                 style={{ flex: 1, padding: 16, alignItems: 'center' }}
               >
                 <Text style={{ color: '#B91C1C', fontWeight: '700' }}>Remove from site</Text>
