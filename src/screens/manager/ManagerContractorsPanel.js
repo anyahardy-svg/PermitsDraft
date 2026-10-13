@@ -77,7 +77,7 @@ export default function ManagerContractorsPanel({
   useEffect(() => {
     setSelectedContractorIds([]);
     setRemovalConfirmContractors([]);
-  }, [siteId, mode]);
+  }, [siteId, mode, inductionTab]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -220,7 +220,17 @@ export default function ManagerContractorsPanel({
     }
   };
 
-  const renderExpiredInductionsTable = () => {
+  const listSummaryLabel = useMemo(() => {
+    if (mode === 'expired') {
+      return `${filtered.length} expired induction${filtered.length === 1 ? '' : 's'}`;
+    }
+    if (inductionTab === 'expiring_soon') {
+      return `${filtered.length} due in ${INDUCTION_EXPIRING_SOON_DAYS} days`;
+    }
+    return `${filtered.length} inducted contractor${filtered.length === 1 ? '' : 's'}`;
+  }, [filtered.length, inductionTab, mode]);
+
+  const renderContractorsTable = () => {
     const allFilteredSelected = filtered.length > 0
       && filtered.every((contractor) => selectedContractorIds.includes(contractor.id));
     const tableBodyMaxHeight = Platform.OS === 'web'
@@ -240,7 +250,7 @@ export default function ManagerContractorsPanel({
         }}
         >
           <Text style={{ color: '#6B7280', fontSize: 13 }}>
-            {filtered.length} expired induction{filtered.length === 1 ? '' : 's'}
+            {listSummaryLabel}
             {selectedContractorIds.length > 0
               ? ` · ${selectedContractorIds.length} selected`
               : ''}
@@ -470,60 +480,8 @@ export default function ManagerContractorsPanel({
             <View style={{ padding: 16 }}>
               <Text style={{ color: '#6B7280' }}>{emptyMessage}</Text>
             </View>
-          ) : mode === 'expired' ? (
-            renderExpiredInductionsTable()
           ) : (
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}>
-              {filtered.map((contractor) => {
-                const otherSites = getOtherSiteNames(contractor, siteId, siteIdToName);
-                const status = getSiteInductionStatus(contractor, siteId);
-                const expiringSoon = isExpiringWithinDays(contractor, siteId);
-                const statusColor = status === 'inducted' ? (expiringSoon ? '#92400E' : '#065F46') : '#7F1D1D';
-                const statusBg = status === 'inducted' ? (expiringSoon ? '#FEF3C7' : '#D1FAE5') : '#FEE2E2';
-                const statusLabel = status === 'inducted'
-                  ? (expiringSoon ? `Due in ${INDUCTION_EXPIRING_SOON_DAYS}d` : 'Inducted')
-                  : 'Expired';
-
-                return (
-                  <View
-                    key={contractor.id}
-                    style={{
-                      backgroundColor: '#FFFFFF',
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: '#E5E7EB',
-                      padding: 14,
-                      marginBottom: 10,
-                    }}
-                  >
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                      <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827', flex: 1 }}>
-                        {contractor.name}
-                      </Text>
-                      <View style={{ backgroundColor: statusBg, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                        <Text style={{ color: statusColor, fontWeight: '600', fontSize: 12 }}>
-                          {statusLabel}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={{ color: '#4B5563', marginTop: 4 }}>
-                      {contractor.company_name || contractor.companyName || 'No company'}
-                    </Text>
-                    <Text style={{ color: '#6B7280', marginTop: 4, fontSize: 13 }}>
-                      Expiry: {formatInductionExpiry(getSiteInductionExpiry(contractor, siteId))}
-                    </Text>
-                    {contractor.email ? (
-                      <Text style={{ color: '#6B7280', marginTop: 2, fontSize: 13 }}>{contractor.email}</Text>
-                    ) : null}
-                    {otherSites.length > 0 ? (
-                      <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 12 }}>
-                        Also on: {otherSites.join(', ')}
-                      </Text>
-                    ) : null}
-                  </View>
-                );
-              })}
-            </ScrollView>
+            renderContractorsTable()
           )}
         </>
       )}
