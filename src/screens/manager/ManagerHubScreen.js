@@ -191,6 +191,7 @@ export default function ManagerHubScreen({
         siteName={selectedSiteName}
         mode="at_site"
         onBack={goToDashboard}
+        onCompanyAdded={loadCounts}
         styles={styles}
       />
     );
