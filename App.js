@@ -131,7 +131,6 @@ import { loginAdminUser, createAdminUser, getAllAdminUsers, deleteAdminUser, upd
 import { getLegalDocument } from './src/api/legal-documents';
 import PermitHandoverModal from './src/components/PermitHandoverModal';
 import TransientMessageOverlay from './src/components/TransientMessageOverlay';
-import ContractorAttachmentsSection from './src/components/ContractorAttachmentsSection';
 import CompanyContractorAttachmentsModal from './src/components/CompanyContractorAttachmentsModal';
 import {
   showTransientMessage,
@@ -15172,13 +15171,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   })}
                 </View>
               )}
-
-              <ContractorAttachmentsSection
-                contractorId={currentContractor.id || null}
-                companyName={currentContractor.company || ''}
-                contractorName={currentContractor.name || ''}
-                styles={styles}
-              />
 
               <Text style={styles.label}>Induction Expiry Date</Text>
               <TextInput 

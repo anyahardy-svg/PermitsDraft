@@ -104,7 +104,7 @@ export default function CompanyContractorAttachmentsModal({
               Company documents
             </Text>
             <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 12, lineHeight: 18 }}>
-              Upload files to the company profile (visible here and in the contractor portal). Per-contractor files are added when editing a contractor record.
+              Upload company-wide files here (visible in the contractor portal). Per-person documents belong in training records, not on the contractor profile.
             </Text>
             <ContractorAttachmentsSection
               companyId={company.id}
@@ -131,7 +131,7 @@ export default function CompanyContractorAttachmentsModal({
               }}
             >
               <Text style={{ color: '#6B7280', textAlign: 'center', fontSize: 14 }}>
-                No per-contractor attachments yet. Edit a contractor under this company to add individual files.
+                No legacy per-contractor file uploads on record. Use training records for person-specific documents.
               </Text>
             </View>
           ) : (
