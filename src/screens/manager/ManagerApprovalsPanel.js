@@ -7,9 +7,11 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { listPendingAccreditationApprovals } from '../../api/managerHub';
 import { submitAccreditationApprovalAction } from '../../api/accreditationApproval';
+import CompanyAccreditationScreen from '../CompanyAccreditationScreen';
 
 export default function ManagerApprovalsPanel({ adminUser, onBack, styles }) {
   const [loading, setLoading] = useState(true);
@@ -17,6 +19,7 @@ export default function ManagerApprovalsPanel({ adminUser, onBack, styles }) {
   const [managerApprovals, setManagerApprovals] = useState([]);
   const [hsApprovals, setHsApprovals] = useState([]);
   const [feedbackByCompanyId, setFeedbackByCompanyId] = useState({});
+  const [reviewCompany, setReviewCompany] = useState(null);
 
   const loadApprovals = useCallback(async () => {
     if (!adminUser?.id) {
@@ -91,6 +94,20 @@ export default function ManagerApprovalsPanel({ adminUser, onBack, styles }) {
         <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 12 }}>
           {company.stageLabel} approval • {company.statusLabel}
         </Text>
+        <TouchableOpacity
+          onPress={() => setReviewCompany(company)}
+          style={{
+            backgroundColor: '#EFF6FF',
+            borderWidth: 1,
+            borderColor: '#BFDBFE',
+            paddingVertical: 10,
+            borderRadius: 8,
+            alignItems: 'center',
+            marginBottom: 12,
+          }}
+        >
+          <Text style={{ color: '#1D4ED8', fontWeight: '700' }}>View full submission</Text>
+        </TouchableOpacity>
         <TextInput
           value={feedbackByCompanyId[company.id] || ''}
           onChangeText={(text) => setFeedbackByCompanyId((prev) => ({ ...prev, [company.id]: text }))}
@@ -152,6 +169,9 @@ export default function ManagerApprovalsPanel({ adminUser, onBack, styles }) {
         <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>
           {totalPending} accreditation{totalPending === 1 ? '' : 's'} awaiting your action
         </Text>
+        <Text style={{ fontSize: 13, color: '#9CA3AF', marginTop: 8, lineHeight: 18 }}>
+          Based on companies where you are the assigned manager or H&S approver (all sites — not limited to the site selected on the hub dashboard).
+        </Text>
       </View>
 
       {loading ? (
@@ -180,6 +200,45 @@ export default function ManagerApprovalsPanel({ adminUser, onBack, styles }) {
           )}
         </ScrollView>
       )}
+
+      <Modal
+        visible={!!reviewCompany}
+        animationType="slide"
+        onRequestClose={() => setReviewCompany(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+          <View style={{
+            backgroundColor: '#1D4ED8',
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+          >
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF' }}>
+                {reviewCompany?.name}
+              </Text>
+              <Text style={{ fontSize: 14, color: '#DBEAFE', marginTop: 4 }}>
+                Accreditation submission (read-only)
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => setReviewCompany(null)} style={{ padding: 8 }}>
+              <Text style={{ fontSize: 24, color: '#FFFFFF', fontWeight: '600' }}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          {reviewCompany ? (
+            <CompanyAccreditationScreen
+              key={reviewCompany.id}
+              companyId={reviewCompany.id}
+              approverReviewMode
+              styles={styles}
+              onClose={() => setReviewCompany(null)}
+            />
+          ) : null}
+        </View>
+      </Modal>
     </View>
   );
 }

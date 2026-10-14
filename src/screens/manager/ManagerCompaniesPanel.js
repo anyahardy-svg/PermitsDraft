@@ -590,7 +590,8 @@ export default function ManagerCompaniesPanel({
             <CompanyAccreditationScreen
               key={selectedCompany.id}
               companyId={selectedCompany.id}
-              reviewMode
+              reviewMode={!['pending_manager', 'pending_hs'].includes(selectedCompany.accreditationStatus)}
+              approverReviewMode={['pending_manager', 'pending_hs'].includes(selectedCompany.accreditationStatus)}
               styles={styles}
               onClose={() => {
                 setShowAccreditationModal(false);

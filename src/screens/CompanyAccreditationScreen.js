@@ -129,6 +129,7 @@ const buildCertificateSaveOverrides = (systemKey, { url, checked } = {}) => {
  * @param {UUID} companyId - Company ID to load (required when logged in)
  * @param {boolean} isAdmin - Whether user is admin (sees all companies) - not used when companyId provided
  * @param {boolean} reviewMode - When true, blocks incidental saves during admin review. Manual Save/Submit and upload/delete actions still persist.
+ * @param {boolean} approverReviewMode - Read-only view for manager/H&S approvers reviewing a pending submission (no save/submit/upload).
  * @param {Object} styles - App stylesheet
  * @param {function} onClose - Callback to close screen
  * @param {function} onNavigateToTrainingRecords - Callback to navigate to training records after accreditation
@@ -137,6 +138,7 @@ export default function CompanyAccreditationScreen({
   companyId, 
   isAdmin = false,
   reviewMode = false,
+  approverReviewMode = false,
   styles,
   onClose,
   onNavigateToTrainingRecords,
@@ -542,6 +544,19 @@ export default function CompanyAccreditationScreen({
     if (isAdmin) loadAllCompanies();
   }, [currentCompanyId, isAdmin]);
 
+  useEffect(() => {
+    if (!approverReviewMode || !hasLoadedCompanyData) {
+      return;
+    }
+    setExpandedSections((prev) => {
+      const next = { ...prev };
+      for (let section = 1; section <= 26; section += 1) {
+        next[section] = true;
+      }
+      return next;
+    });
+  }, [approverReviewMode, hasLoadedCompanyData]);
+
   // Load services and business units on mount
   useEffect(() => {
     const loadData = async () => {
@@ -682,6 +697,10 @@ export default function CompanyAccreditationScreen({
   });
 
   const ensureReadyForDocumentUpload = () => {
+    if (approverReviewMode) {
+      Alert.alert('Read-only review', 'You are reviewing this submission. Use Approve or Request Changes — do not edit the form here.');
+      return false;
+    }
     if (!currentCompanyId) {
       Alert.alert('Error', 'No company selected');
       return false;
@@ -2958,6 +2977,9 @@ export default function CompanyAccreditationScreen({
     if (!currentCompanyId || !hasLoadedCompanyData) {
       return { success: false, error: 'Company data is not ready to save yet' };
     }
+    if (approverReviewMode) {
+      return { success: false, error: 'Approver review is read-only' };
+    }
     if (reviewMode && !force) {
       return { success: false, error: 'Review mode blocks incidental saves' };
     }
@@ -5093,6 +5115,26 @@ export default function CompanyAccreditationScreen({
         onScroll={(event) => setScrollOffset(event.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}
       >
+        {approverReviewMode ? (
+          <View style={{
+            marginHorizontal: 16,
+            marginTop: 16,
+            marginBottom: 8,
+            padding: 14,
+            backgroundColor: '#EFF6FF',
+            borderRadius: 8,
+            borderLeftWidth: 4,
+            borderLeftColor: '#2563EB',
+          }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1E3A8A', marginBottom: 4 }}>
+              Review submission (read-only)
+            </Text>
+            <Text style={{ fontSize: 14, color: '#1E40AF', lineHeight: 20 }}>
+              Expand sections below to inspect answers and uploaded documents. When you are ready, use Approve or Request Changes on the approval screen.
+            </Text>
+          </View>
+        ) : null}
         {/* Company Information Section */}
         <View style={{ paddingHorizontal: 16, paddingVertical: 16, marginBottom: 12, backgroundColor: '#F9FAFB', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' }}>
           <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937', marginBottom: 16 }}>Company & Contact Information</Text>
@@ -5731,6 +5773,8 @@ export default function CompanyAccreditationScreen({
 
       {/* Status Badge and Buttons — flexShrink keeps Save/Submit visible above the fold on web */}
       <View style={{ flexShrink: 0, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+        {!approverReviewMode ? (
+        <>
         {/* Status Badge */}
         <View style={{
           backgroundColor: ['completed', 'approved'].includes(accreditationStatus) ? '#D1FAE5' : '#FEF3C7',
@@ -5830,6 +5874,8 @@ export default function CompanyAccreditationScreen({
             )}
           </View>
         )}
+        </>
+        ) : null}
 
         {/* Confirmation Modal */}
         <Modal
