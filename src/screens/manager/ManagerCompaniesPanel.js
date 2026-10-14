@@ -35,7 +35,9 @@ import {
 } from '../../utils/accreditationApprovalUi';
 
 function renderAccreditationBadge(company) {
-  const status = resolveAccreditationDisplayStatus(company);
+  // Use status from listCompaniesAtSite transform; re-resolving here fails when
+  // accreditation_last_updated / invitation fields were not kept on the row.
+  const status = company.accreditationStatus || resolveAccreditationDisplayStatus(company);
   const display = getAccreditationStatusDisplay(status);
   return (
     <View style={{

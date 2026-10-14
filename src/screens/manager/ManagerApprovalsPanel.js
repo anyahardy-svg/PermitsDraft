@@ -153,6 +153,7 @@ export default function ManagerApprovalsPanel({ adminUser, onBack, styles }) {
         </Text>
         <Text style={{ fontSize: 13, color: '#9CA3AF', marginTop: 8, lineHeight: 18 }}>
           Tap a company to review the submission and approve or request changes (same as the email approval link).
+          Based on companies where you are the assigned manager or H&S approver (all sites — not limited to the site selected on the hub dashboard).
         </Text>
       </View>
 

@@ -320,10 +320,12 @@ export default function ManagerContractorsPanel({
                       {allFilteredSelected ? '☑' : '☐'}
                     </Text>
                   </TouchableOpacity>
-                  <Text style={{ width: 200, padding: 12, fontWeight: 'bold', color: '#FFFFFF', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Name</Text>
-                  <Text style={{ width: 220, padding: 12, fontWeight: 'bold', color: '#FFFFFF', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company</Text>
-                  <Text style={{ width: 130, padding: 12, fontWeight: 'bold', color: '#FFFFFF', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Expiry Date</Text>
-                  <Text style={{ width: 320, padding: 12, fontWeight: 'bold', color: '#FFFFFF', fontSize: 14 }}>Sites</Text>
+                  <Text style={{ width: 180, padding: 12, fontWeight: 'bold', color: '#FFFFFF', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Name</Text>
+                  <Text style={{ width: 200, padding: 12, fontWeight: 'bold', color: '#FFFFFF', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company</Text>
+                  <Text style={{ width: 220, padding: 12, fontWeight: 'bold', color: '#FFFFFF', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Email</Text>
+                  <Text style={{ width: 130, padding: 12, fontWeight: 'bold', color: '#FFFFFF', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Phone</Text>
+                  <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: '#FFFFFF', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Expiry Date</Text>
+                  <Text style={{ width: 280, padding: 12, fontWeight: 'bold', color: '#FFFFFF', fontSize: 14 }}>Sites</Text>
                 </View>
 
                 <ScrollView nestedScrollEnabled style={{ maxHeight: tableBodyMaxHeight }} showsVerticalScrollIndicator>
@@ -356,16 +358,22 @@ export default function ManagerContractorsPanel({
                         >
                           <Text style={{ fontSize: 16 }}>{isSelected ? '☑' : '☐'}</Text>
                         </View>
-                        <Text style={{ width: 200, padding: 12, fontSize: 13, color: '#111827', fontWeight: '600', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                        <Text style={{ width: 180, padding: 12, fontSize: 13, color: '#111827', fontWeight: '600', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                           {contractor.name}
                         </Text>
-                        <Text style={{ width: 220, padding: 12, fontSize: 13, color: '#4B5563', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                        <Text style={{ width: 200, padding: 12, fontSize: 13, color: '#4B5563', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                           {contractor.company_name || contractor.companyName || 'No company'}
                         </Text>
-                        <Text style={{ width: 130, padding: 12, fontSize: 13, color: '#6B7280', textAlign: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                        <Text style={{ width: 220, padding: 12, fontSize: 13, color: '#374151', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                          {contractor.email?.trim() || '—'}
+                        </Text>
+                        <Text style={{ width: 130, padding: 12, fontSize: 13, color: '#374151', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                          {contractor.phone?.trim() || '—'}
+                        </Text>
+                        <Text style={{ width: 120, padding: 12, fontSize: 13, color: '#6B7280', textAlign: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                           {formatInductionExpiry(getSiteInductionExpiry(contractor, siteId))}
                         </Text>
-                        <Text style={{ width: 320, padding: 12, fontSize: 13, color: '#374151' }}>
+                        <Text style={{ width: 280, padding: 12, fontSize: 13, color: '#374151' }}>
                           {allSitesLabel}
                         </Text>
                       </TouchableOpacity>
