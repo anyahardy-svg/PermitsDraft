@@ -11,6 +11,28 @@ import {
   getAccreditationApprovalByToken,
   submitAccreditationApprovalAction,
 } from '../api/accreditationApproval';
+import CompanyAccreditationScreen from './CompanyAccreditationScreen';
+
+const approvalStyles = {
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  screenContainer: { flex: 1 },
+  label: { fontSize: 14, fontWeight: '600', color: '#374151' },
+  input: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  addButton: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+};
 
 export default function AccreditationApprovalScreen({ token }) {
   const [loading, setLoading] = useState(true);
@@ -121,16 +143,42 @@ export default function AccreditationApprovalScreen({ token }) {
     );
   }
 
-  return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#F9FAFB' }} contentContainerStyle={{ padding: 24, alignItems: 'center' }}>
-      <View style={{ maxWidth: 640, width: '100%', backgroundColor: 'white', borderRadius: 12, padding: 24, borderWidth: 1, borderColor: '#E5E7EB' }}>
-        <Text style={{ fontSize: 24, fontWeight: '700', color: '#111827', marginBottom: 8 }}>
-          Accreditation approval
-        </Text>
-        <Text style={{ fontSize: 16, color: '#4B5563', marginBottom: 20, lineHeight: 24 }}>
-          Review the accreditation submission for <Text style={{ fontWeight: '700' }}>{context?.company?.name}</Text> as the assigned {context?.stageLabel} approver.
-        </Text>
+  const companyId = context?.company?.id;
 
+  return (
+    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+      <View style={{
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+      }}
+      >
+        <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827' }}>
+          Accreditation approval — {context?.company?.name}
+        </Text>
+        <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 4, lineHeight: 20 }}>
+          Review the full submission below, then approve or request changes as the assigned {context?.stageLabel} approver.
+        </Text>
+      </View>
+
+      {companyId ? (
+        <View style={{ flex: 1, minHeight: 280 }}>
+          <CompanyAccreditationScreen
+            key={companyId}
+            companyId={companyId}
+            approverReviewMode
+            styles={approvalStyles}
+          />
+        </View>
+      ) : null}
+
+      <ScrollView
+        style={{ flexGrow: 0, maxHeight: 320, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#E5E7EB' }}
+        contentContainerStyle={{ padding: 16 }}
+        keyboardShouldPersistTaps="handled"
+      >
         {error ? (
           <View style={{ backgroundColor: '#FEF2F2', borderColor: '#FECACA', borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 16 }}>
             <Text style={{ color: '#B91C1C' }}>{error}</Text>
@@ -146,12 +194,12 @@ export default function AccreditationApprovalScreen({ token }) {
           placeholder="Enter any comments or required changes..."
           multiline
           style={{
-            minHeight: 120,
+            minHeight: 100,
             borderWidth: 1,
             borderColor: '#D1D5DB',
             borderRadius: 8,
             padding: 12,
-            marginBottom: 20,
+            marginBottom: 16,
             textAlignVertical: 'top',
             fontSize: 14,
           }}
@@ -191,7 +239,7 @@ export default function AccreditationApprovalScreen({ token }) {
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
