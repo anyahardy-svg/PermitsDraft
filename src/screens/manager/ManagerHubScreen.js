@@ -192,6 +192,7 @@ export default function ManagerHubScreen({
         mode="at_site"
         onBack={goToDashboard}
         onCompanyAdded={loadCounts}
+        adminUser={loggedInAdmin}
         styles={styles}
       />
     );
@@ -205,6 +206,7 @@ export default function ManagerHubScreen({
         mode="add"
         onBack={goToDashboard}
         onCompanyAdded={loadCounts}
+        adminUser={loggedInAdmin}
         styles={styles}
       />
     );
