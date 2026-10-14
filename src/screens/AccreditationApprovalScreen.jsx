@@ -2,37 +2,13 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   ActivityIndicator,
-  ScrollView,
 } from 'react-native';
 import {
   getAccreditationApprovalByToken,
   submitAccreditationApprovalAction,
 } from '../api/accreditationApproval';
-import CompanyAccreditationScreen from './CompanyAccreditationScreen';
-
-const approvalStyles = {
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  screenContainer: { flex: 1 },
-  label: { fontSize: 14, fontWeight: '600', color: '#374151' },
-  input: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  addButton: {
-    backgroundColor: '#3B82F6',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-};
+import AccreditationApprovalReview from './AccreditationApprovalReview';
 
 export default function AccreditationApprovalScreen({ token }) {
   const [loading, setLoading] = useState(true);
@@ -146,100 +122,16 @@ export default function AccreditationApprovalScreen({ token }) {
   const companyId = context?.company?.id;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-      <View style={{
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
-      }}
-      >
-        <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827' }}>
-          Accreditation approval — {context?.company?.name}
-        </Text>
-        <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 4, lineHeight: 20 }}>
-          Review the full submission below, then approve or request changes as the assigned {context?.stageLabel} approver.
-        </Text>
-      </View>
-
-      {companyId ? (
-        <View style={{ flex: 1, minHeight: 280 }}>
-          <CompanyAccreditationScreen
-            key={companyId}
-            companyId={companyId}
-            approverReviewMode
-            styles={approvalStyles}
-          />
-        </View>
-      ) : null}
-
-      <ScrollView
-        style={{ flexGrow: 0, maxHeight: 320, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#E5E7EB' }}
-        contentContainerStyle={{ padding: 16 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        {error ? (
-          <View style={{ backgroundColor: '#FEF2F2', borderColor: '#FECACA', borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 16 }}>
-            <Text style={{ color: '#B91C1C' }}>{error}</Text>
-          </View>
-        ) : null}
-
-        <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-          Feedback (required if requesting changes)
-        </Text>
-        <TextInput
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Enter any comments or required changes..."
-          multiline
-          style={{
-            minHeight: 100,
-            borderWidth: 1,
-            borderColor: '#D1D5DB',
-            borderRadius: 8,
-            padding: 12,
-            marginBottom: 16,
-            textAlignVertical: 'top',
-            fontSize: 14,
-          }}
-        />
-
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <TouchableOpacity
-            onPress={() => handleAction('reject')}
-            disabled={submitting}
-            style={{
-              flex: 1,
-              backgroundColor: '#F59E0B',
-              paddingVertical: 14,
-              borderRadius: 8,
-              alignItems: 'center',
-              opacity: submitting ? 0.7 : 1,
-            }}
-          >
-            <Text style={{ color: 'white', fontWeight: '700' }}>
-              {submitting ? 'Processing...' : 'Request Changes'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => handleAction('approve')}
-            disabled={submitting}
-            style={{
-              flex: 1,
-              backgroundColor: '#10B981',
-              paddingVertical: 14,
-              borderRadius: 8,
-              alignItems: 'center',
-              opacity: submitting ? 0.7 : 1,
-            }}
-          >
-            <Text style={{ color: 'white', fontWeight: '700' }}>
-              {submitting ? 'Processing...' : 'Approve'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </View>
+    <AccreditationApprovalReview
+      companyId={companyId}
+      companyName={context?.company?.name}
+      stageLabel={context?.stageLabel}
+      notes={notes}
+      onNotesChange={setNotes}
+      error={error}
+      submitting={submitting}
+      onRequestChanges={() => handleAction('reject')}
+      onApprove={() => handleAction('approve')}
+    />
   );
 }

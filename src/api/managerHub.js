@@ -32,6 +32,10 @@ function transformManagerCompany(company) {
     training_records_approved: company.training_records_approved ?? 0,
     training_matrices_total: company.training_matrices_total ?? 0,
     training_matrices_approved: company.training_matrices_approved ?? 0,
+    assignedManagerId: company.assigned_manager_id || null,
+    assigned_manager_id: company.assigned_manager_id || null,
+    assignedHsPersonId: company.assigned_hs_person_id || null,
+    assigned_hs_person_id: company.assigned_hs_person_id || null,
   };
 }
 

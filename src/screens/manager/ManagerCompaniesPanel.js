@@ -25,8 +25,14 @@ import { exportCompaniesCsv } from '../../utils/managerHubExport';
 import { getCompanyTrainingRecordsStatus } from '../../api/trainingRecords';
 import { getCompanyTrainingMatricesStatus } from '../../api/companyTrainingMatrices';
 import CompanyAccreditationScreen from '../CompanyAccreditationScreen';
+import AccreditationApprovalReview from '../AccreditationApprovalReview';
 import TrainingRecordsScreen from '../TrainingRecordsScreen';
 import CompanyContractorAttachmentsModal from '../../components/CompanyContractorAttachmentsModal';
+import { submitAccreditationApprovalAction } from '../../api/accreditationApproval';
+import {
+  accreditationApprovalStageLabel,
+  getAccreditationApprovalStageForAdmin,
+} from '../../utils/accreditationApprovalUi';
 
 function renderAccreditationBadge(company) {
   const status = resolveAccreditationDisplayStatus(company);
@@ -101,6 +107,7 @@ export default function ManagerCompaniesPanel({
   onBack,
   styles,
   onCompanyAdded,
+  adminUser = null,
 }) {
   const [companiesAtSite, setCompaniesAtSite] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
@@ -116,8 +123,63 @@ export default function ManagerCompaniesPanel({
   const [showTrainingModal, setShowTrainingModal] = useState(false);
   const [showAttachmentsModal, setShowAttachmentsModal] = useState(false);
   const [companyPendingRemoval, setCompanyPendingRemoval] = useState(null);
+  const [approvalNotes, setApprovalNotes] = useState('');
+  const [approvalError, setApprovalError] = useState('');
+  const [approvalSubmitting, setApprovalSubmitting] = useState(false);
 
   const title = mode === 'add' ? 'Add Company to Site' : 'Companies at Site';
+
+  const closeAccreditationModal = () => {
+    setShowAccreditationModal(false);
+    setSelectedCompany(null);
+    setApprovalNotes('');
+    setApprovalError('');
+    setApprovalSubmitting(false);
+  };
+
+  const accreditationApprovalStage = selectedCompany && adminUser?.id
+    ? getAccreditationApprovalStageForAdmin(selectedCompany, adminUser.id)
+    : null;
+
+  const handleAccreditationApprovalAction = async (action) => {
+    if (!selectedCompany || !accreditationApprovalStage || approvalSubmitting) {
+      return;
+    }
+
+    if (action === 'reject' && !approvalNotes.trim()) {
+      setApprovalError('Please enter feedback before requesting changes.');
+      return;
+    }
+
+    setApprovalSubmitting(true);
+    setApprovalError('');
+    try {
+      await submitAccreditationApprovalAction({
+        companyId: selectedCompany.id,
+        stage: accreditationApprovalStage,
+        action,
+        notes: approvalNotes.trim() || null,
+        adminUserId: adminUser.id,
+      });
+      Alert.alert(
+        'Success',
+        action === 'approve'
+          ? (accreditationApprovalStage === 'manager'
+            ? 'Forwarded to H&S for approval.'
+            : 'Accreditation approved and company notified.')
+          : 'Company notified that changes are required.',
+      );
+      closeAccreditationModal();
+      await loadAtSite();
+      if (onCompanyAdded) {
+        onCompanyAdded();
+      }
+    } catch (approvalActionError) {
+      setApprovalError(approvalActionError.message || 'Failed to process approval');
+    } finally {
+      setApprovalSubmitting(false);
+    }
+  };
 
   const handleExport = () => {
     exportCompaniesCsv({
@@ -548,56 +610,69 @@ export default function ManagerCompaniesPanel({
       <Modal
         visible={showAccreditationModal && !!selectedCompany}
         animationType="slide"
-        onRequestClose={() => {
-          setShowAccreditationModal(false);
-          setSelectedCompany(null);
-        }}
+        onRequestClose={closeAccreditationModal}
       >
         <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-          <View style={{
-            backgroundColor: '#3B82F6',
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            borderBottomWidth: 1,
-            borderBottomColor: '#2563EB',
-          }}
-          >
-            <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF' }}>
-                {selectedCompany?.name}
-              </Text>
-              <Text style={{ fontSize: 14, color: '#DBEAFE', marginTop: 4 }}>
-                Accreditation
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => {
-                setShowAccreditationModal(false);
-                setSelectedCompany(null);
-                loadAtSite();
-              }}
-              style={{ padding: 8 }}
-            >
-              <Text style={{ fontSize: 24, color: '#FFFFFF', fontWeight: '600' }}>✕</Text>
-            </TouchableOpacity>
-          </View>
-          {selectedCompany ? (
-            <CompanyAccreditationScreen
-              key={selectedCompany.id}
+          {selectedCompany && accreditationApprovalStage ? (
+            <AccreditationApprovalReview
               companyId={selectedCompany.id}
-              reviewMode={!['pending_manager', 'pending_hs'].includes(selectedCompany.accreditationStatus)}
-              approverReviewMode={['pending_manager', 'pending_hs'].includes(selectedCompany.accreditationStatus)}
+              companyName={selectedCompany.name}
+              stageLabel={accreditationApprovalStageLabel(accreditationApprovalStage)}
+              notes={approvalNotes}
+              onNotesChange={setApprovalNotes}
+              error={approvalError}
+              submitting={approvalSubmitting}
+              onRequestChanges={() => handleAccreditationApprovalAction('reject')}
+              onApprove={() => handleAccreditationApprovalAction('approve')}
+              onBack={closeAccreditationModal}
               styles={styles}
-              onClose={() => {
-                setShowAccreditationModal(false);
-                setSelectedCompany(null);
-                loadAtSite();
-              }}
             />
-          ) : null}
+          ) : (
+            <>
+              <View style={{
+                backgroundColor: '#3B82F6',
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottomWidth: 1,
+                borderBottomColor: '#2563EB',
+              }}
+              >
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF' }}>
+                    {selectedCompany?.name}
+                  </Text>
+                  <Text style={{ fontSize: 14, color: '#DBEAFE', marginTop: 4 }}>
+                    Accreditation
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => {
+                    closeAccreditationModal();
+                    loadAtSite();
+                  }}
+                  style={{ padding: 8 }}
+                >
+                  <Text style={{ fontSize: 24, color: '#FFFFFF', fontWeight: '600' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              {selectedCompany ? (
+                <CompanyAccreditationScreen
+                  key={selectedCompany.id}
+                  companyId={selectedCompany.id}
+                  reviewMode
+                  approverReviewMode={['pending_manager', 'pending_hs'].includes(selectedCompany.accreditationStatus)}
+                  styles={styles}
+                  onClose={() => {
+                    closeAccreditationModal();
+                    loadAtSite();
+                  }}
+                />
+              ) : null}
+            </>
+          )}
         </View>
       </Modal>
 
