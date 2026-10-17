@@ -1,4 +1,77 @@
 import { supabase } from '../supabaseClient';
+import {
+  contractorDataCreate,
+  contractorDataListByCompany,
+  getRequestingAdminId,
+  isAdminSessionActive,
+} from './contractorData';
+
+/** Super-admin join request queue (linked from support notification emails). */
+export const ADMIN_JOIN_REQUESTS_URL = 'https://contractorhq.co.nz/admin/join-requests/';
+
+async function findContractorIdByEmailInCompany(companyId, email, requestingAdminId) {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (isAdminSessionActive()) {
+    const adminId = requestingAdminId || getRequestingAdminId();
+    if (!adminId) {
+      throw new Error('Admin session expired — sign in again to approve join requests.');
+    }
+    const rows = await contractorDataListByCompany(companyId, adminId);
+    const match = (rows || []).find(
+      (row) => String(row.email || '').trim().toLowerCase() === normalizedEmail,
+    );
+    return match?.id || null;
+  }
+
+  const { data: existingContractor, error } = await supabase
+    .from('contractors')
+    .select('id')
+    .ilike('email', email.trim())
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+  return existingContractor?.id || null;
+}
+
+async function createContractorRecordForJoinRequest(request, companyId, requestingAdminId) {
+  if (isAdminSessionActive()) {
+    const adminId = requestingAdminId || getRequestingAdminId();
+    if (!adminId) {
+      throw new Error('Admin session expired — sign in again to approve join requests.');
+    }
+    const row = await contractorDataCreate(
+      {
+        name: request.name,
+        email: request.email,
+        company_id: companyId,
+        phone: request.phone,
+      },
+      adminId,
+    );
+    return row?.id || null;
+  }
+
+  const { data: contractor, error: contractorError } = await supabase
+    .from('contractors')
+    .insert([
+      {
+        name: request.name,
+        email: request.email,
+        company_id: companyId,
+        phone: request.phone,
+      },
+    ])
+    .select();
+
+  if (contractorError) {
+    throw contractorError;
+  }
+  return contractor[0]?.id || null;
+}
 
 /**
  * Send email via backend API (secure - API key never exposed to browser)
@@ -140,13 +213,13 @@ export async function submitJoinRequest(email, name, phone, companyId, companyNa
               <li><strong>Submitted:</strong> ${new Date().toLocaleString('en-NZ')}</li>
             </ul>
             <p style="text-align: center; margin: 30px 0;">
-              <a href="https://contractorhq.co.nz/contractor-admin?tab=join-requests" 
+              <a href="${ADMIN_JOIN_REQUESTS_URL}" 
                  style="background-color: #3B82F6; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: bold;">
-                View in Admin Panel
+                Review in Super Admin Panel
               </a>
             </p>
             <p style="color: #666; font-size: 12px;">
-              The company's administrator will review and approve or reject this request.
+              Sign in with your super admin account to approve or reject this request.
             </p>
           </div>
         </body>
@@ -282,16 +355,22 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
     // STEP 2 (early): Resolve contractor record before auth metadata is written
     console.log('👤 STEP 2a: Resolving contractor record if needed');
     if (request.will_work_on_site) {
-      const { data: existingContractor } = await supabase
-        .from('contractors')
-        .select('id')
-        .ilike('email', request.email.trim())
-        .eq('company_id', companyIdToUse)
-        .maybeSingle();
-
-      if (existingContractor) {
-        contractorId = existingContractor.id;
-        console.log('ℹ️ Found existing contractor record for approval:', contractorId);
+      try {
+        const existingId = await findContractorIdByEmailInCompany(
+          companyIdToUse,
+          request.email,
+          adminId,
+        );
+        if (existingId) {
+          contractorId = existingId;
+          console.log('ℹ️ Found existing contractor record for approval:', contractorId);
+        }
+      } catch (lookupError) {
+        console.error('❌ Error looking up contractor:', lookupError);
+        return {
+          success: false,
+          error: lookupError.message || 'Failed to look up contractor record',
+        };
       }
     }
 
@@ -344,36 +423,29 @@ export async function approveJoinRequest(requestId, adminId, companyIdOverride) 
     // STEP 2: Create contractor record if they'll work on site
     console.log('👤 STEP 2: Creating contractor record if needed');
     if (request.will_work_on_site) {
-      const { data: existingContractor } = await supabase
-        .from('contractors')
-        .select('id')
-        .ilike('email', request.email.trim())
-        .eq('company_id', companyIdToUse)
-        .maybeSingle();
-
-      if (existingContractor) {
-        contractorId = existingContractor.id;
-        console.log('ℹ️ Reusing existing contractor record:', contractorId);
-      } else {
-        const { data: contractor, error: contractorError } = await supabase
-          .from('contractors')
-          .insert([
-            {
-              name: request.name,
-              email: request.email,
-              company_id: companyIdToUse,
-              phone: request.phone
-            }
-          ])
-          .select();
-
-        if (contractorError) {
-          console.error('❌ Error creating contractor:', contractorError);
-          return { success: false, error: 'Failed to create contractor record: ' + contractorError.message };
+      try {
+        const existingId = await findContractorIdByEmailInCompany(
+          companyIdToUse,
+          request.email,
+          adminId,
+        );
+        if (existingId) {
+          contractorId = existingId;
+          console.log('ℹ️ Reusing existing contractor record:', contractorId);
+        } else {
+          contractorId = await createContractorRecordForJoinRequest(
+            request,
+            companyIdToUse,
+            adminId,
+          );
+          console.log('✅ Contractor record created:', contractorId);
         }
-
-        contractorId = contractor[0]?.id;
-        console.log('✅ Contractor record created:', contractorId);
+      } catch (contractorError) {
+        console.error('❌ Error creating contractor:', contractorError);
+        return {
+          success: false,
+          error: 'Failed to create contractor record: ' + (contractorError.message || String(contractorError)),
+        };
       }
     } else {
       console.log('ℹ️ Admin staff - no contractor record needed');

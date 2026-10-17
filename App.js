@@ -4127,7 +4127,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     }
     
     // Only check if we're currently not in admin/manager and not already showing login
-    if (showAdminLoginModal || currentScreen === 'admin' || currentScreen === 'manager_hub' || currentScreen?.startsWith('manage_') || currentScreen === 'supplier_accreditation' || currentScreen === 'supplier_accreditation_public' || currentScreen === 'accreditation_approval_public' || currentScreen === 'invite_company_public') {
+    if (showAdminLoginModal || currentScreen === 'admin' || currentScreen === 'join-requests' || currentScreen === 'manager_hub' || currentScreen?.startsWith('manage_') || currentScreen === 'supplier_accreditation' || currentScreen === 'supplier_accreditation_public' || currentScreen === 'accreditation_approval_public' || currentScreen === 'invite_company_public') {
       console.log('ℹ️ Already in admin context, skipping check');
       return;
     }
@@ -4189,6 +4189,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'business-units': 'manage_business_units',
         'suppliers': 'manage_suppliers',
         'accredited-companies': 'manage_accredited_companies',
+        'join-requests': 'join-requests',
       };
       
       const screen = routeMap[routeWithoutTrailingSlash];
@@ -4247,6 +4248,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'manage_business_units': '/admin/business-units/',
         'manage_suppliers': '/admin/suppliers/',
         'manage_accredited_companies': '/admin/accredited-companies/',
+        'join-requests': '/admin/join-requests/',
         'supplier_accreditation': selectedSupplierId
           ? `/admin/suppliers/${selectedSupplierId}/accreditation/`
           : '/admin/suppliers/',
@@ -4499,6 +4501,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             'business-units': 'manage_business_units',
             'suppliers': 'manage_suppliers',
             'accredited-companies': 'manage_accredited_companies',
+            'join-requests': 'join-requests',
           };
           
           const screen = routeMap[routeWithoutTrailingSlash];
@@ -27404,6 +27407,7 @@ const AppRouter = ({ initialRoute }) => {
           'business-units': 'manage_business_units',
           'suppliers': 'manage_suppliers',
           'accredited-companies': 'manage_accredited_companies',
+          'join-requests': 'join-requests',
         };
         
         return routeMap[routeWithoutTrailingSlash] || null;
