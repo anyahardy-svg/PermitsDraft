@@ -9911,44 +9911,102 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               return filteredIssuers.length === 0 ? (
                 <Text style={{ textAlign: 'center', marginTop: 20, color: '#9CA3AF' }}>No permit issuers match the selected filters.</Text>
               ) : (
-                filteredIssuers.map((user, index) => (
-                <View key={user.id} style={[styles.permitListCard, { marginBottom: 12 }]}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <Text style={styles.permitId}>{index + 1}. {user.name}</Text>
-                    {user.isAdmin && <View style={{ backgroundColor: '#2563EB', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
-                      <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>ADMIN</Text>
-                    </View>}
-                  </View>
-                  <Text style={styles.detailText}>{user.email}</Text>
-                  <Text style={styles.detailText}>{user.company}</Text>
-                  <Text style={[styles.detailText, { marginTop: 8 }]}>Sites: {user.sites && user.sites.length > 0 ? user.sites.join(', ') : (user.site_ids && user.site_ids.length > 0 ? `${user.site_ids.length} sites (UUID format)` : 'None')}</Text>
-                  <Text style={[styles.detailText, { marginTop: 4 }]}>Permitted Services: {user.permittedServiceIds && user.permittedServiceIds.length > 0 ? servicesFromDb.filter(s => user.permittedServiceIds.includes(s.id)).map(s => s.name).join(', ') : 'None selected'}</Text>
-                  <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
-                    <TouchableOpacity style={[styles.addButton, { flex: 0.45 }]} onPress={async () => { 
-                      console.log('📋 Editing user:', {
-                        id: user.id,
-                        name: user.name,
-                        sites: user.sites,
-                        site_ids: user.site_ids,
-                        siteIdToNameMap: Object.entries(siteIdToNameMap).slice(0, 3)
-                      });
-                      setSelectedPermitIssuer(user); 
-                      setEditingPermitIssuer(true); 
-                      setCurrentPermitIssuer(user);
-                      // Load services for the business units if set
-                      if (user.businessUnitIds && user.businessUnitIds.length > 0) {
-                        const allServices = await listServicesForBusinessUnits(user.businessUnitIds);
-                        setServicesForBusinessUnits(allServices);
-                      }
-                    }}>
-                      <Text style={styles.addButtonText}>Edit</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.addButton, { flex: 0.45, backgroundColor: '#EF4444' }]} onPress={() => handleDeletePermitIssuer(user.id)}>
-                      <Text style={styles.addButtonText}>Delete</Text>
-                    </TouchableOpacity>
-                  </View>
+                <View style={{ borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: 'white', overflow: 'hidden' }}>
+                  <ScrollView horizontal nestedScrollEnabled>
+                    <View>
+                      <View style={{
+                        flexDirection: 'row',
+                        backgroundColor: '#3B82F6',
+                        borderBottomWidth: 2,
+                        borderBottomColor: '#2563EB',
+                        ...(Platform.OS === 'web' ? { position: 'sticky', top: 0, zIndex: 2 } : null),
+                      }}>
+                        <Text style={{ width: 44, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>#</Text>
+                        <Text style={{ width: 160, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Name</Text>
+                        <Text style={{ width: 240, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Email</Text>
+                        <Text style={{ width: 90, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Role</Text>
+                        <Text style={{ width: 280, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Sites</Text>
+                        <Text style={{ width: 280, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Permitted Services</Text>
+                        <Text style={{ width: 180, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }}>Actions</Text>
+                      </View>
+                      <ScrollView
+                        nestedScrollEnabled
+                        style={{
+                          maxHeight: Platform.OS === 'web'
+                            ? Math.min(Dimensions.get('window').height * 0.55, 560)
+                            : 480,
+                        }}
+                        showsVerticalScrollIndicator
+                      >
+                        {filteredIssuers.map((user, index) => {
+                          const sitesLabel = user.sites && user.sites.length > 0
+                            ? user.sites.join(', ')
+                            : (user.site_ids && user.site_ids.length > 0 ? `${user.site_ids.length} sites (UUID format)` : 'None');
+                          const servicesLabel = user.permittedServiceIds && user.permittedServiceIds.length > 0
+                            ? servicesFromDb.filter(s => user.permittedServiceIds.includes(s.id)).map(s => s.name).join(', ')
+                            : 'None selected';
+
+                          return (
+                            <View
+                              key={user.id}
+                              style={{
+                                flexDirection: 'row',
+                                backgroundColor: index % 2 === 0 ? 'white' : '#F3F4F6',
+                                borderBottomWidth: 1,
+                                borderBottomColor: '#E5E7EB',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <Text style={{ width: 44, padding: 12, fontSize: 13, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>{index + 1}</Text>
+                              <Text style={{ width: 160, padding: 12, fontSize: 13, color: '#1F2937', fontWeight: '600', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>{user.name}</Text>
+                              <Text style={{ width: 240, padding: 12, fontSize: 13, color: '#374151', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>{user.email}</Text>
+                              <View style={{ width: 90, padding: 8, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                                {user.isAdmin ? (
+                                  <View style={{ backgroundColor: '#2563EB', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
+                                    <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>ADMIN</Text>
+                                  </View>
+                                ) : (
+                                  <Text style={{ fontSize: 12, color: '#9CA3AF' }}>—</Text>
+                                )}
+                              </View>
+                              <Text style={{ width: 280, padding: 12, fontSize: 13, color: '#374151', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>{sitesLabel}</Text>
+                              <Text style={{ width: 280, padding: 12, fontSize: 13, color: '#374151', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>{servicesLabel}</Text>
+                              <View style={{ width: 180, padding: 8, flexDirection: 'row', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+                                <TouchableOpacity
+                                  style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#3B82F6', borderRadius: 6 }}
+                                  onPress={async () => {
+                                    console.log('📋 Editing user:', {
+                                      id: user.id,
+                                      name: user.name,
+                                      sites: user.sites,
+                                      site_ids: user.site_ids,
+                                      siteIdToNameMap: Object.entries(siteIdToNameMap).slice(0, 3)
+                                    });
+                                    setSelectedPermitIssuer(user);
+                                    setEditingPermitIssuer(true);
+                                    setCurrentPermitIssuer(user);
+                                    if (user.businessUnitIds && user.businessUnitIds.length > 0) {
+                                      const allServices = await listServicesForBusinessUnits(user.businessUnitIds);
+                                      setServicesForBusinessUnits(allServices);
+                                    }
+                                  }}
+                                >
+                                  <Text style={{ color: 'white', fontSize: 13, fontWeight: '600' }}>Edit</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#EF4444', borderRadius: 6 }}
+                                  onPress={() => handleDeletePermitIssuer(user.id)}
+                                >
+                                  <Text style={{ color: 'white', fontSize: 13, fontWeight: '600' }}>Delete</Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </ScrollView>
+                    </View>
+                  </ScrollView>
                 </View>
-              ))
               );
             })()}
           </View>
@@ -26137,64 +26195,98 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   <Text style={{ color: '#6B7280' }}>No admins match your search</Text>
                 </View>
               ) : (
-                filteredAdminList.map((admin) => (
-                  <View key={admin.id} style={{ backgroundColor: 'white', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, padding: 12, marginBottom: 12 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>{admin.name}</Text>
-                        <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 2 }}>{admin.email}</Text>
-                        <Text style={{ 
-                          fontSize: 14, 
-                          color: 'white',
-                          backgroundColor: admin.role === 'super_admin' ? '#10B981' : '#3B82F6',
-                          paddingVertical: 2,
-                          paddingHorizontal: 8,
-                          borderRadius: 4,
-                          marginTop: 4,
-                          overflow: 'hidden',
-                          alignSelf: 'flex-start'
-                        }}>
-                          {admin.role === 'super_admin' ? 'Super Admin' : 'Manager'}
-                        </Text>
-                        <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 6 }}>
-                          Sites: {getAdminSiteNames(admin.site_ids || admin.siteIds || [])}
-                        </Text>
+                <View style={{ borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: 'white', overflow: 'hidden' }}>
+                  <ScrollView horizontal nestedScrollEnabled>
+                    <View style={{ minWidth: '100%' }}>
+                      <View style={{
+                        flexDirection: 'row',
+                        backgroundColor: '#3B82F6',
+                        borderBottomWidth: 2,
+                        borderBottomColor: '#2563EB',
+                        ...(Platform.OS === 'web' ? { position: 'sticky', top: 0, zIndex: 2 } : null),
+                      }}>
+                        <Text style={{ width: 180, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Name</Text>
+                        <Text style={{ width: 240, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Email</Text>
+                        <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Role</Text>
+                        <Text style={{ width: 320, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Sites</Text>
+                        <Text style={{ width: 300, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center' }}>Actions</Text>
                       </View>
-                      <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                        {admin.needsPasswordSetup && (
-                          <TouchableOpacity
+                      <ScrollView
+                        nestedScrollEnabled
+                        style={{
+                          maxHeight: Platform.OS === 'web'
+                            ? Math.min(Dimensions.get('window').height * 0.45, 480)
+                            : 420,
+                        }}
+                        showsVerticalScrollIndicator
+                      >
+                        {filteredAdminList.map((admin, index) => (
+                          <View
+                            key={admin.id}
                             style={{
-                              padding: 8,
-                              backgroundColor: '#10B981',
-                              borderRadius: 6,
-                              opacity: resendingSetupEmailId === admin.id ? 0.6 : 1,
+                              flexDirection: 'row',
+                              backgroundColor: index % 2 === 0 ? 'white' : '#F3F4F6',
+                              borderBottomWidth: 1,
+                              borderBottomColor: '#E5E7EB',
+                              alignItems: 'center',
                             }}
-                            onPress={() => handleResendAdminSetupEmail(admin)}
-                            disabled={resendingSetupEmailId === admin.id}
                           >
-                            {resendingSetupEmailId === admin.id ? (
-                              <ActivityIndicator size="small" color="white" />
-                            ) : (
-                              <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Resend Invite</Text>
-                            )}
-                          </TouchableOpacity>
-                        )}
-                        <TouchableOpacity
-                          style={{ padding: 8, backgroundColor: '#3B82F6', borderRadius: 6 }}
-                          onPress={() => handleEditAdmin(admin)}
-                        >
-                          <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Edit</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={{ padding: 8, backgroundColor: '#EF4444', borderRadius: 6 }}
-                          onPress={() => handleDeleteAdmin(admin)}
-                        >
-                          <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Delete</Text>
-                        </TouchableOpacity>
-                      </View>
+                            <Text style={{ width: 180, padding: 12, fontSize: 13, color: '#1F2937', fontWeight: '600', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>{admin.name}</Text>
+                            <Text style={{ width: 240, padding: 12, fontSize: 13, color: '#374151', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>{admin.email}</Text>
+                            <View style={{ width: 120, padding: 8, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                              <View style={{
+                                backgroundColor: admin.role === 'super_admin' ? '#10B981' : '#3B82F6',
+                                paddingVertical: 4,
+                                paddingHorizontal: 8,
+                                borderRadius: 4,
+                              }}>
+                                <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>
+                                  {admin.role === 'super_admin' ? 'Super Admin' : 'Manager'}
+                                </Text>
+                              </View>
+                            </View>
+                            <Text style={{ width: 320, padding: 12, fontSize: 13, color: '#374151', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                              {getAdminSiteNames(admin.site_ids || admin.siteIds || [])}
+                            </Text>
+                            <View style={{ width: 300, padding: 8, flexDirection: 'row', gap: 6, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
+                              {admin.needsPasswordSetup && (
+                                <TouchableOpacity
+                                  style={{
+                                    paddingHorizontal: 10,
+                                    paddingVertical: 8,
+                                    backgroundColor: '#10B981',
+                                    borderRadius: 6,
+                                    opacity: resendingSetupEmailId === admin.id ? 0.6 : 1,
+                                  }}
+                                  onPress={() => handleResendAdminSetupEmail(admin)}
+                                  disabled={resendingSetupEmailId === admin.id}
+                                >
+                                  {resendingSetupEmailId === admin.id ? (
+                                    <ActivityIndicator size="small" color="white" />
+                                  ) : (
+                                    <Text style={{ color: 'white', fontSize: 13, fontWeight: '600' }}>Resend Invite</Text>
+                                  )}
+                                </TouchableOpacity>
+                              )}
+                              <TouchableOpacity
+                                style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#3B82F6', borderRadius: 6 }}
+                                onPress={() => handleEditAdmin(admin)}
+                              >
+                                <Text style={{ color: 'white', fontSize: 13, fontWeight: '600' }}>Edit</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#EF4444', borderRadius: 6 }}
+                                onPress={() => handleDeleteAdmin(admin)}
+                              >
+                                <Text style={{ color: 'white', fontSize: 13, fontWeight: '600' }}>Delete</Text>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        ))}
+                      </ScrollView>
                     </View>
-                  </View>
-                ))
+                  </ScrollView>
+                </View>
               )}
             </View>
           </ScrollView>
