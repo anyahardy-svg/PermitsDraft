@@ -536,14 +536,15 @@ export async function listContractorsWithIncompleteInductions() {
   };
 
   try {
-    if (!getRequestingAdminId()) {
-      try {
-        return await contractorDataListIncompleteInductions();
-      } catch (edgeError) {
-        console.warn('listIncompleteInductions edge failed, trying direct:', edgeError?.message);
+    try {
+      return await contractorDataListIncompleteInductions();
+    } catch (edgeError) {
+      console.warn('listIncompleteInductions edge failed, trying direct:', edgeError?.message);
+      if (getRequestingAdminId() || isAdminSessionActive()) {
+        return await listIncompleteDirect();
       }
+      throw edgeError;
     }
-    return await listIncompleteDirect();
   } catch (error) {
     console.error('Error fetching contractors with incomplete inductions:', error);
     throw error;

@@ -32,3 +32,8 @@ if (process.env.NODE_ENV !== 'production') {
 export const supabase = supabaseUrl && supabaseAnonKey 
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
+
+/** Anon key for Edge Function invokes when a stale user JWT would cause 401. */
+export function getSupabaseAnonKey() {
+  return supabaseAnonKey || null;
+}
