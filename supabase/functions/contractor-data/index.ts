@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getNzYmd } from "../_shared/nzDates.ts";
 
-const VERSION = "2026-03-23-v6";
+const VERSION = "2026-03-23-v7";
 const IN_QUERY_BATCH_SIZE = 200;
 const PAGE_SIZE = 1000;
 
@@ -633,6 +633,18 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: false, error: "Not signed in or session expired" });
       }
 
+      const rows = await fetchAllPaginated<Record<string, unknown>>(supabase, (from, to) =>
+        supabase
+          .from("contractors")
+          .select("*")
+          .order("name", { ascending: true })
+          .range(from, to),
+      );
+      const withCompanies = await attachCompanyNames(supabase, rows);
+      return jsonResponse({ success: true, data: withCompanies, version: VERSION });
+    }
+
+    if (action === "listForInduction") {
       const rows = await fetchAllPaginated<Record<string, unknown>>(supabase, (from, to) =>
         supabase
           .from("contractors")

@@ -15,6 +15,7 @@ import {
   contractorDataGetForKiosk,
   contractorDataUpdateForKiosk,
   contractorDataListAll,
+  contractorDataListForInduction,
   contractorDataListByCompany,
   contractorDataFindForInduction,
   contractorDataListBySite,
@@ -228,8 +229,12 @@ export const listContractors = async () => {
       return transformed;
     }
 
-    const transformed = await listContractorsDirect();
-    console.log('✅ Raw contractors data from Supabase:', transformed.length, 'contractors');
+    const transformed = await withContractorDataFallback(
+      () => contractorDataListForInduction().then(mapEdgeRowsToApp),
+      () => listContractorsDirect(),
+      { label: 'listContractors-induction' },
+    );
+    console.log('✅ Contractors loaded (induction):', transformed.length);
     return transformed;
   } catch (error) {
     console.error('❌ Error fetching contractors:', error.message);
