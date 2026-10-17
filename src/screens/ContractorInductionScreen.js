@@ -728,6 +728,15 @@ export default function ContractorInductionScreen({
     return matchesCompany && matchesBU && matchesSite && matchesName;
   };
 
+  const getContractorCompanyDisplayName = (contractor) => {
+    if (!contractor) return '';
+    const fromRow = contractor.companyName || contractor.company_name;
+    if (fromRow) return fromRow;
+    const companyId = contractor.companyId || contractor.company_id;
+    if (!companyId) return '';
+    return companies.find((c) => c.id === companyId)?.name || '';
+  };
+
   const matchesInductionFilters = (induction, { buId, siteId, nameQuery }) => {
     const normalizedName = (nameQuery || '').trim().toLowerCase();
     const matchesBU = !buId || (induction.business_unit_ids && induction.business_unit_ids.includes(buId));
@@ -2309,12 +2318,9 @@ export default function ContractorInductionScreen({
                     style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
                   >
                     <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{contractor.name}</Text>
-                    <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
-                    {contractor.company_id && (
-                      <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
-                        {companies.find(c => c.id === contractor.company_id)?.name}
-                      </Text>
-                    )}
+                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
+                      {getContractorCompanyDisplayName(contractor) || 'Company not listed'}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
