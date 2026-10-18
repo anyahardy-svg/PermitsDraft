@@ -84,6 +84,7 @@ import {
   getDefaultAccreditationDeadline,
   resolveAccreditationDisplayStatus,
 } from './src/utils/accreditation';
+import { DEFAULT_CONTRACTOR_TYPE } from './src/utils/contractorAccreditationRequirements';
 import {
   findAssignedHsEmailColumnIndex,
   findAssignedManagerEmailColumnIndex,
@@ -3477,7 +3478,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     motorVehicleInsuranceExpiry: '', 
     reviewDate: '', 
     accreditedDate: '', 
-    contractor_type: 'D',
+    contractor_type: DEFAULT_CONTRACTOR_TYPE,
     inRadar: true,
     assignedManagerId: '',
     assignedHsPersonId: '',
@@ -3519,7 +3520,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [invitationForm, setInvitationForm] = useState({
     email: '',
     deadline: '',
-    contractor_type: 'D',
+    contractor_type: DEFAULT_CONTRACTOR_TYPE,
     assignedManagerId: '',
     assignedHsPersonId: '',
   });
@@ -3536,7 +3537,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     companyName: '',
     email: '',
     deadline: '',
-    contractor_type: 'D',
+    contractor_type: DEFAULT_CONTRACTOR_TYPE,
     assignedManagerId: '',
     assignedHsPersonId: '',
   });
@@ -10670,7 +10671,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             motor_vehicle_insurance_expiry: currentCompany.motorVehicleInsuranceExpiry ? parseDateToISO(currentCompany.motorVehicleInsuranceExpiry) : null,
             review_date: currentCompany.reviewDate ? parseDateToISO(currentCompany.reviewDate) : null,
             accredited_date: currentCompany.accreditedDate ? parseDateToISO(currentCompany.accreditedDate) : null,
-            contractor_type: currentCompany.contractor_type || 'D',
+            contractor_type: currentCompany.contractor_type || DEFAULT_CONTRACTOR_TYPE,
             in_radar: currentCompany.inRadar !== false,
             assigned_manager_id: currentCompany.assignedManagerId || null,
             assigned_hs_person_id: currentCompany.assignedHsPersonId || null,
@@ -10695,7 +10696,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             motor_vehicle_insurance_expiry: currentCompany.motorVehicleInsuranceExpiry ? parseDateToISO(currentCompany.motorVehicleInsuranceExpiry) : null,
             review_date: currentCompany.reviewDate ? parseDateToISO(currentCompany.reviewDate) : null,
             accredited_date: currentCompany.accreditedDate ? parseDateToISO(currentCompany.accreditedDate) : null,
-            contractor_type: currentCompany.contractor_type || 'D',
+            contractor_type: currentCompany.contractor_type || DEFAULT_CONTRACTOR_TYPE,
             in_radar: currentCompany.inRadar !== false,
             assigned_manager_id: currentCompany.assignedManagerId || null,
             assigned_hs_person_id: currentCompany.assignedHsPersonId || null,
@@ -10710,7 +10711,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           console.log('✅ [COMPANY] New company business_unit_ids:', newCompany.business_unit_ids);
           Alert.alert('Company Added', 'New company has been added successfully.');
         }
-        setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: 'D', inRadar: true, assignedManagerId: '', assignedHsPersonId: '' });
+        setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: DEFAULT_CONTRACTOR_TYPE, inRadar: true, assignedManagerId: '', assignedHsPersonId: '' });
         setSelectedCompany(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to save company: ' + error.message);
@@ -10772,14 +10773,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     };
 
     const handleSaveContractorType = async (companyId, contractorType) => {
-      const normalized = String(contractorType || 'D').trim().toUpperCase();
+      const normalized = String(contractorType || DEFAULT_CONTRACTOR_TYPE).trim().toUpperCase();
       if (!['A', 'B', 'C', 'D'].includes(normalized)) {
         window.alert('Invalid contractor type.');
         return;
       }
 
       const company = companies.find((item) => item.id === companyId);
-      const existingType = company?.contractor_type || company?.contractorType || 'D';
+      const existingType = company?.contractor_type || company?.contractorType || DEFAULT_CONTRACTOR_TYPE;
       if (normalized === existingType) {
         return;
       }
@@ -11288,7 +11289,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         company.contact_surname || company.contactSurname || '',
         company.contact_email || company.contactEmail || '',
         company.contact_phone || company.contactPhone || '',
-        company.contractor_type || company.contractorType || 'D',
+        company.contractor_type || company.contractorType || DEFAULT_CONTRACTOR_TYPE,
         formatDateForCsv(company.public_liability_expiry || company.publicLiabilityExpiry),
         formatDateForCsv(company.motor_vehicle_insurance_expiry || company.motorVehicleInsuranceExpiry),
         formatDateForCsv(company.review_date || company.reviewDate),
@@ -11408,7 +11409,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
                 <select 
                   style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }} 
-                  value={currentCompany.contractor_type || 'D'}
+                  value={currentCompany.contractor_type || DEFAULT_CONTRACTOR_TYPE}
                   onChange={(e) => setCurrentCompany({ ...currentCompany, contractor_type: e.target.value })}
                 >
                   <option value="A">A - Major Work</option>
@@ -11540,7 +11541,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </Text>
               </TouchableOpacity>
               {editingCompany && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingCompany(false); setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: 'D', inRadar: true }); setSelectedCompany(null); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingCompany(false); setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: DEFAULT_CONTRACTOR_TYPE, inRadar: true }); setSelectedCompany(null); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
@@ -11560,7 +11561,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   companyName: '',
                   email: '',
                   deadline: getDefaultAccreditationDeadline(),
-                  contractor_type: 'D',
+                  contractor_type: DEFAULT_CONTRACTOR_TYPE,
                   assignedManagerId: '',
                   assignedHsPersonId: '',
                 }); 
@@ -11683,8 +11684,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             </Text>
                             <View style={{ width: 120, padding: 8, justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                               <select
-                                key={`contractor-type-${company.id}-${company.contractor_type || company.contractorType || 'D'}`}
-                                defaultValue={company.contractor_type || company.contractorType || 'D'}
+                                key={`contractor-type-${company.id}-${company.contractor_type || company.contractorType || DEFAULT_CONTRACTOR_TYPE}`}
+                                defaultValue={company.contractor_type || company.contractorType || DEFAULT_CONTRACTOR_TYPE}
                                 onChange={(event) => handleSaveContractorType(company.id, event.target.value)}
                                 style={{
                                   width: '100%',
@@ -11864,7 +11865,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   setInvitationForm({
                                     email: contactEmail,
                                     deadline: getDefaultAccreditationDeadline(),
-                                    contractor_type: company.contractor_type || company.contractorType || 'D',
+                                    contractor_type: company.contractor_type || company.contractorType || DEFAULT_CONTRACTOR_TYPE,
                                     assignedManagerId: company.assigned_manager_id || company.assignedManagerId || '',
                                     assignedHsPersonId: company.assigned_hs_person_id || company.assignedHsPersonId || '',
                                   });
@@ -11891,7 +11892,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                     motorVehicleInsuranceExpiry: formatDateToDDMMYYYY(company.motor_vehicle_insurance_expiry) || '',
                                     reviewDate: formatDateToDDMMYYYY(company.review_date) || '',
                                     accreditedDate: formatDateToDDMMYYYY(company.accredited_date) || '',
-                                    contractor_type: company.contractor_type || 'D',
+                                    contractor_type: company.contractor_type || DEFAULT_CONTRACTOR_TYPE,
                                     inRadar: company.in_radar !== false,
                                     assignedManagerId: company.assigned_manager_id || company.assignedManagerId || '',
                                     assignedHsPersonId: company.assigned_hs_person_id || company.assignedHsPersonId || '',
@@ -12483,7 +12484,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
                   <select
                     style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }}
-                    value={invitationForm.contractor_type || 'D'}
+                    value={invitationForm.contractor_type || DEFAULT_CONTRACTOR_TYPE}
                     onChange={(e) => setInvitationForm({ ...invitationForm, contractor_type: e.target.value })}
                     disabled={sendingInvitation}
                   >
@@ -12572,7 +12573,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         }
 
                         await updateCompany(selectedCompanyForInvitation.id, {
-                          contractor_type: invitationForm.contractor_type || 'D',
+                          contractor_type: invitationForm.contractor_type || DEFAULT_CONTRACTOR_TYPE,
                           contact_email: invitationForm.email.trim(),
                           email: invitationForm.email.trim(),
                           assignedManagerId: invitationForm.assignedManagerId || null,
@@ -12594,7 +12595,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           setInvitationForm({
                             email: '',
                             deadline: '',
-                            contractor_type: 'D',
+                            contractor_type: DEFAULT_CONTRACTOR_TYPE,
                             assignedManagerId: '',
                             assignedHsPersonId: '',
                           });
@@ -12666,7 +12667,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, overflow: 'hidden' }}>
                   <select 
                     style={{ padding: 12, fontSize: 14, width: '100%', height: 44, borderColor: '#D1D5DB' }} 
-                    value={newCompanyInvitationForm.contractor_type || 'D'}
+                    value={newCompanyInvitationForm.contractor_type || DEFAULT_CONTRACTOR_TYPE}
                     onChange={(e) => setNewCompanyInvitationForm({ ...newCompanyInvitationForm, contractor_type: e.target.value })}
                   >
                     <option value="A">A - Major Work</option>
@@ -12747,7 +12748,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         // Step 1: Create the new company
                         const newCompany = await createCompany({ 
                           name: newCompanyInvitationForm.companyName,
-                          contractor_type: newCompanyInvitationForm.contractor_type || 'D',
+                          contractor_type: newCompanyInvitationForm.contractor_type || DEFAULT_CONTRACTOR_TYPE,
                           contact_email: newCompanyInvitationForm.email.trim(),
                           email: newCompanyInvitationForm.email.trim(),
                           assignedManagerId: newCompanyInvitationForm.assignedManagerId || null,
@@ -12786,7 +12787,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             companyName: '',
                             email: '',
                             deadline: '',
-                            contractor_type: 'D',
+                            contractor_type: DEFAULT_CONTRACTOR_TYPE,
                             assignedManagerId: '',
                             assignedHsPersonId: '',
                           });

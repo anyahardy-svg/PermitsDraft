@@ -12,6 +12,8 @@
 const { getSupabaseAdmin } = require('./supabaseAdmin');
 const { assertManagerAccess } = require('./lib/managerAccess');
 
+const { DEFAULT_CONTRACTOR_TYPE } = require('../src/utils/contractorAccreditationRequirements');
+
 const VALID_CONTRACTOR_TYPES = new Set(['A', 'B', 'C', 'D']);
 
 function normalizeEmail(value) {
@@ -23,8 +25,8 @@ function isValidEmail(email) {
 }
 
 function normalizeContractorType(value) {
-  const type = String(value || 'D').trim().toUpperCase();
-  return VALID_CONTRACTOR_TYPES.has(type) ? type : 'D';
+  const type = String(value || DEFAULT_CONTRACTOR_TYPE).trim().toUpperCase();
+  return VALID_CONTRACTOR_TYPES.has(type) ? type : DEFAULT_CONTRACTOR_TYPE;
 }
 
 async function resolveAdminAssigneeId(adminClient, assigneeId) {

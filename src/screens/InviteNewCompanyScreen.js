@@ -15,13 +15,14 @@ import { getDefaultAccreditationDeadline } from '../utils/accreditation';
 import { buildInviteCompanyUrl, parseInviteCompanyLinkParams } from '../utils/inviteCompanyRoute';
 import PublicFormLayout from '../components/PublicFormLayout';
 import { PUBLIC_PAGE_THEME } from '../constants/contractorHQBrand';
+import { DEFAULT_CONTRACTOR_TYPE } from '../utils/contractorAccreditationRequirements';
 
 const emptyForm = () => ({
   companyName: '',
   email: '',
   contactName: '',
   deadline: getDefaultAccreditationDeadline(),
-  contractor_type: 'D',
+  contractor_type: DEFAULT_CONTRACTOR_TYPE,
   assignedManagerId: '',
   assignedHsPersonId: '',
 });

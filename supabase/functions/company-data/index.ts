@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getNzYmd } from "../_shared/nzDates.ts";
+import { DEFAULT_CONTRACTOR_TYPE } from "../_shared/contractorType.ts";
 
 const VERSION = "2026-09-28-v11";
 const PAGE_SIZE = 1000;
@@ -101,7 +102,8 @@ function buildCreatePayload(companyData: Record<string, unknown>) {
     address_1: companyData.address_1 ?? companyData.address1 ?? null,
     address_city: companyData.address_city ?? companyData.addressCity ?? null,
     address_postcode: companyData.address_postcode ?? companyData.addressPostcode ?? null,
-    contractor_type: companyData.contractor_type ?? companyData.contractorType ?? "D",
+    contractor_type:
+      companyData.contractor_type ?? companyData.contractorType ?? DEFAULT_CONTRACTOR_TYPE,
     accreditation_status: "none",
     assigned_manager_id: companyData.assigned_manager_id ?? companyData.assignedManagerId ?? null,
     assigned_hs_person_id: companyData.assigned_hs_person_id ?? companyData.assignedHsPersonId ?? null,

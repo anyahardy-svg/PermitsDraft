@@ -1,4 +1,5 @@
 const { getSupabaseAdmin } = require('../supabaseAdmin');
+const { DEFAULT_CONTRACTOR_TYPE } = require('../../src/utils/contractorAccreditationRequirements');
 const {
   TEMPLATE_TYPE,
   sendAccreditationInvitationReminderEmail,
@@ -174,7 +175,7 @@ async function runAccreditationInvitationReminders({
     const baseResult = {
       companyId: company.id,
       companyName: company.name,
-      contractorType: company.contractor_type || 'D',
+      contractorType: company.contractor_type || DEFAULT_CONTRACTOR_TYPE,
       nextReminderAt: company.accreditation_next_reminder_at,
     };
 
@@ -239,7 +240,7 @@ async function runAccreditationInvitationReminders({
         status: 'sent',
         metadata: {
           recipientSource: recipient.source,
-          contractorType: company.contractor_type || 'D',
+          contractorType: company.contractor_type || DEFAULT_CONTRACTOR_TYPE,
           messageId: sendResult.messageId || null,
         },
       });

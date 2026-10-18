@@ -29,7 +29,7 @@ ContractorHQ and kiosk admin **must** use the same rules above. Do not fork sect
 
 For non–Type D, show the amber **Why some sections are hidden** panel (company type label + Section 3-driven rules). Do not hide sections without explanation when changing visibility logic.
 
-Default in code when `contractor_type` is missing is **`D`** until company load completes; after load, the **stored** type wins.
+Default in code when `contractor_type` is missing is **`B`** (`DEFAULT_CONTRACTOR_TYPE`) until company load completes; after load, the **stored** type wins.
 
 ## Section 4 (Policies)
 
