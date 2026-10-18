@@ -77,6 +77,11 @@ import {
   shouldShowContractorAuthGuard,
 } from './src/utils/contractorRouteAuth';
 import { contractorPassesAdminFilters } from './src/utils/contractorDatabaseFilters';
+import {
+  formatInductionExpiryForCsv,
+  resolveContractorInductionExpiryForExport,
+} from './src/utils/siteInductionStatus';
+import { downloadCsv } from './src/utils/managerHubExport';
 import { resendAccreditationApprovalEmail, submitAccreditationApprovalAction } from './src/api/accreditationApproval';
 import {
   getAccreditationModalStatusLabel,
@@ -14793,14 +14798,6 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         return;
       }
 
-      const escapeCsvValue = (value) => {
-        const str = String(value ?? '');
-        if (/[",\n\r]/.test(str)) {
-          return `"${str.replace(/"/g, '""')}"`;
-        }
-        return str;
-      };
-
       const getBusinessUnitNames = (businessUnitIds) => (businessUnitIds || [])
         .map(id => businessUnits.find(bu => bu.id === id)?.name || '')
         .filter(Boolean)
@@ -14811,11 +14808,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         const serviceNames = getServiceNames(contractor.serviceIds || []).join('; ');
         const completedInductionNames = getContractorCompletedInductionNames(contractor.id).join('; ');
         const siteNames = getContractorSites(contractor.id).join('; ');
-        let inductionExpiry = '';
-        if (contractor.inductionExpiry) {
-          const [year, month, day] = contractor.inductionExpiry.split('-');
-          inductionExpiry = `${day}/${month}/${year}`;
-        }
+        const inductionExpiryRaw = resolveContractorInductionExpiryForExport(
+          contractor,
+          contractorSiteFilter,
+        );
+        const inductionExpiry = formatInductionExpiryForCsv(inductionExpiryRaw);
 
         return [
           contractor.name,
@@ -14830,26 +14827,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         ];
       });
 
-      const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.map(escapeCsvValue).join(',')),
-      ].join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
       const dateStamp = new Date().toISOString().slice(0, 10);
       const siteLabel = contractorSiteFilter !== 'All'
         ? (siteIdToNameMap[contractorSiteFilter] || 'site').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
         : '';
-      link.href = url;
-      link.download = siteLabel
+      const filename = siteLabel
         ? `contractors-export-${siteLabel}-${dateStamp}.csv`
         : `contractors-export-${dateStamp}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      downloadCsv(filename, headers, rows);
     };
 
     return (
@@ -15535,8 +15520,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           <Text style={[{ width: columns.sites, padding: 12, fontSize: 14, color: '#1F2937' }, styles.tableBorder]}>
                             {getContractorSites(contractor.id).length > 0 ? getContractorSites(contractor.id).slice(0, 2).join(', ') + (getContractorSites(contractor.id).length > 2 ? '...' : '') : 'None'}
                           </Text>
-                          <Text style={[{ width: columns.inductionExpiry, padding: 12, fontSize: 14, color: new Date(contractor.inductionExpiry) < new Date() ? '#EF4444' : '#1F2937' }, styles.tableBorder]}>
-                            {contractor.inductionExpiry ? formatDateNZ(contractor.inductionExpiry) : '-'}
+                          <Text style={[{ width: columns.inductionExpiry, padding: 12, fontSize: 14, color: new Date(resolveContractorInductionExpiryForExport(contractor, contractorSiteFilter)) < new Date() ? '#EF4444' : '#1F2937' }, styles.tableBorder]}>
+                            {(() => {
+                              const expiryRaw = resolveContractorInductionExpiryForExport(contractor, contractorSiteFilter);
+                              return expiryRaw ? formatDateNZ(expiryRaw) : '-';
+                            })()}
                           </Text>
                           <View style={{ width: columns.actions, flexDirection: 'row', justifyContent: 'center', gap: 4, padding: 12 }}>
                             <TouchableOpacity 

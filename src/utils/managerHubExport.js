@@ -1,5 +1,5 @@
 import {
-  formatInductionExpiry,
+  formatInductionExpiryForCsv,
   getOtherSiteNames,
   getSiteInductionExpiry,
   getSiteInductionStatus,
@@ -9,10 +9,8 @@ import {
 
 export function escapeCsvValue(value) {
   const str = String(value ?? '');
-  if (/[",\n\r]/.test(str)) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
+  // Always quote so Excel keeps commas/semicolons inside induction and service lists in the right column.
+  return `"${str.replace(/"/g, '""')}"`;
 }
 
 export function downloadCsv(filename, headers, rows) {
@@ -25,7 +23,7 @@ export function downloadCsv(filename, headers, rows) {
     ...rows.map((row) => row.map(escapeCsvValue).join(',')),
   ].join('\n');
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob(['\uFEFF', csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -108,7 +106,7 @@ export function exportContractorsCsv({
       contractor.name || '',
       contractor.email || '',
       contractor.company_name || contractor.companyName || '',
-      formatInductionExpiry(getSiteInductionExpiry(contractor, siteId)),
+      formatInductionExpiryForCsv(getSiteInductionExpiry(contractor, siteId)),
       formatStatusLabel(status),
       otherSites.join('; '),
     ];
