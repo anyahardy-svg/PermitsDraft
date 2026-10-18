@@ -643,7 +643,7 @@ export default function ContractorInductionScreen({
 
   const loadCompaniesAndBU = async () => {
     try {
-      const [, buResult, , sitesResult] = await Promise.allSettled([
+      const [companiesResult, buResult, , sitesResult] = await Promise.allSettled([
         listCompanies().catch((err) => {
           console.warn('Induction optional company preload failed (search still works):', err?.message || err);
           return [];
@@ -653,7 +653,10 @@ export default function ContractorInductionScreen({
         listSites(),
       ]);
 
-      const companiesData = [];
+      const companiesData =
+        companiesResult.status === 'fulfilled' && Array.isArray(companiesResult.value)
+          ? companiesResult.value
+          : [];
       const buData = buResult.status === 'fulfilled' ? buResult.value : [];
       const sitesData = sitesResult.status === 'fulfilled' ? sitesResult.value : [];
       if (buResult.status === 'rejected') {

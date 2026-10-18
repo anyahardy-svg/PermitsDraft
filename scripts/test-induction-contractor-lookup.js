@@ -18,9 +18,15 @@ const edgeSource = fs.readFileSync(
   path.join(__dirname, '..', 'supabase', 'functions', 'contractor-data', 'index.ts'),
   'utf8',
 );
+const apiSource = fs.readFileSync(
+  path.join(__dirname, '..', 'api', 'induction-contractors.js'),
+  'utf8',
+);
 
 assert.match(contractorsSource, /contractorDataListForInduction/);
+assert.match(contractorsSource, /listInductionContractorsViaApi/);
 assert.match(contractorsSource, /listContractors-induction/);
+assert.match(apiSource, /from\('contractors'\)/);
 assert.match(contractorDataSource, /listForInduction/);
 assert.match(contractorDataSource, /Authorization: `Bearer \$\{anonKey\}`/);
 assert.match(inductionsSource, /contractorDataListIncompleteInductions\(\)/);
