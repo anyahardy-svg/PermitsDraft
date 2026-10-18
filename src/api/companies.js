@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient';
 import { resolveAccreditationDisplayStatus } from '../utils/accreditation';
+import { DEFAULT_CONTRACTOR_TYPE } from '../utils/contractorAccreditationRequirements';
 import { validateHSAgreementComplete } from '../utils/hsAgreementValidation';
 import { fetchAllPaginated } from './pagination';
 import { getNzYmd } from '../utils/nzDates';
@@ -124,8 +125,8 @@ const transformCompany = (dbCompany) => {
     training_matrices_total: dbCompany.training_matrices_total || 0,
     trainingMatricesApproved: dbCompany.training_matrices_approved || 0,
     training_matrices_approved: dbCompany.training_matrices_approved || 0,
-    contractorType: dbCompany.contractor_type || 'D',
-    contractor_type: dbCompany.contractor_type || 'D',
+    contractorType: dbCompany.contractor_type || DEFAULT_CONTRACTOR_TYPE,
+    contractor_type: dbCompany.contractor_type || DEFAULT_CONTRACTOR_TYPE,
     inRadar: dbCompany.in_radar !== false,
     in_radar: dbCompany.in_radar !== false,
     siteIds: dbCompany.site_ids || [],
@@ -178,7 +179,8 @@ export const createCompany = async (companyData) => {
       address_1: companyData.address_1 || companyData.address1 || null,
       address_city: companyData.address_city || companyData.addressCity || null,
       address_postcode: companyData.address_postcode || companyData.addressPostcode || null,
-      contractor_type: companyData.contractor_type || companyData.contractorType || 'D',
+      contractor_type:
+        companyData.contractor_type || companyData.contractorType || DEFAULT_CONTRACTOR_TYPE,
       accreditation_status: 'none',
       assigned_manager_id: companyData.assigned_manager_id || companyData.assignedManagerId || null,
       assigned_hs_person_id: companyData.assigned_hs_person_id || companyData.assignedHsPersonId || null,

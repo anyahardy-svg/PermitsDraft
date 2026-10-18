@@ -1,4 +1,5 @@
 import { getRequestingAdminId } from './contractorData';
+import { DEFAULT_CONTRACTOR_TYPE } from '../utils/contractorAccreditationRequirements';
 
 function parseDeadlineToIso(deadlineText) {
   const trimmed = String(deadlineText || '').trim();
@@ -63,7 +64,7 @@ export async function inviteNewCompany({
     body: JSON.stringify({
       companyName: String(companyName || '').trim(),
       email: String(email || '').trim(),
-      contractor_type: contractor_type || 'D',
+      contractor_type: contractor_type || DEFAULT_CONTRACTOR_TYPE,
       deadline: parseDeadlineToIso(deadline),
       siteId: siteId || null,
       contactName: contactName ? String(contactName).trim() : null,

@@ -34,6 +34,7 @@ import {
   getContractorTypeLabel,
   hasSafetyAccreditationSystemSelected,
   hasAnyAccreditationSystemSelected,
+  DEFAULT_CONTRACTOR_TYPE,
 } from '../utils/contractorAccreditationRequirements';
 import { mergeSiteIds } from '../utils/siteIds';
 
@@ -3067,7 +3068,7 @@ export default function CompanyAccreditationScreen({
     }
   };
 
-  const contractorType = company?.contractor_type || 'D';
+  const contractorType = company?.contractor_type || DEFAULT_CONTRACTOR_TYPE;
   const isTypeDAccreditation = isTypeDContractor(contractorType);
   const contractorTypeLabel = getContractorTypeLabel(contractorType);
   const anyAccreditationSystemSelected = hasAnyAccreditationSystemSelected(accreditedSystems);

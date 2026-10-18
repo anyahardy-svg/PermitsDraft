@@ -1,6 +1,9 @@
+/** Default for new companies and when contractor_type is missing in the database. */
+export const DEFAULT_CONTRACTOR_TYPE = 'B';
+
 export function normalizeContractorType(contractorType) {
-  const normalized = String(contractorType || 'D').trim().toUpperCase();
-  return ['A', 'B', 'C', 'D'].includes(normalized) ? normalized : 'D';
+  const normalized = String(contractorType || DEFAULT_CONTRACTOR_TYPE).trim().toUpperCase();
+  return ['A', 'B', 'C', 'D'].includes(normalized) ? normalized : DEFAULT_CONTRACTOR_TYPE;
 }
 
 export function isTypeDContractor(contractorType) {
