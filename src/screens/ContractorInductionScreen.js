@@ -1787,7 +1787,9 @@ export default function ContractorInductionScreen({
                   >
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{contractor.name}</Text>
-                      <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
+                      <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
+                        {getContractorCompanyDisplayName(contractor) || 'Company not listed'}
+                      </Text>
                     </View>
                     {contractor.incompleteCount > 0 && (
                       <View style={{ backgroundColor: '#FCD34D', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginLeft: 8 }}>
@@ -1900,7 +1902,9 @@ export default function ContractorInductionScreen({
                     style={{ paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
                   >
                     <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>{contractor.name}</Text>
-                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{contractor.email}</Text>
+                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
+                      {getContractorCompanyDisplayName(contractor) || 'Company not listed'}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
