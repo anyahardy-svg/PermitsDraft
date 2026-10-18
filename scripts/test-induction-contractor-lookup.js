@@ -35,5 +35,6 @@ assert.doesNotMatch(
   /if \(!getRequestingAdminId\(\)\) \{\s*try \{\s*return await contractorDataListIncompleteInductions/s,
 );
 assert.match(edgeSource, /action === "listForInduction"/);
+assert.doesNotMatch(edgeSource, /from "\.\.\/_shared\/nzDates\.ts"/);
 
 console.log('induction contractor lookup tests passed');
