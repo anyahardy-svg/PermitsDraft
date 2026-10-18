@@ -23,9 +23,9 @@ const apiSource = fs.readFileSync(
   'utf8',
 );
 
-assert.match(contractorsSource, /contractorDataListForInduction/);
 assert.match(contractorsSource, /listInductionContractorsViaApi/);
-assert.match(contractorsSource, /listContractors-induction/);
+assert.match(contractorsSource, /listContractorsForStandaloneInduction/);
+assert.doesNotMatch(contractorsSource, /contractorDataListForInduction/);
 assert.match(apiSource, /from\('contractors'\)/);
 assert.match(contractorDataSource, /listForInduction/);
 assert.match(contractorDataSource, /Authorization: `Bearer \$\{anonKey\}`/);
@@ -35,5 +35,6 @@ assert.doesNotMatch(
   /if \(!getRequestingAdminId\(\)\) \{\s*try \{\s*return await contractorDataListIncompleteInductions/s,
 );
 assert.match(edgeSource, /action === "listForInduction"/);
+assert.doesNotMatch(edgeSource, /from "\.\.\/_shared\/nzDates\.ts"/);
 
 console.log('induction contractor lookup tests passed');

@@ -1,5 +1,14 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getNzYmd } from "../_shared/nzDates.ts";
+
+/** Inlined for deploy bundles that only include this function directory (no ../_shared). */
+function getNzYmd(date: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Pacific/Auckland",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
 
 const VERSION = "2026-03-23-v7";
 const IN_QUERY_BATCH_SIZE = 200;

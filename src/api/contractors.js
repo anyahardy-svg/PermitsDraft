@@ -15,7 +15,6 @@ import {
   contractorDataGetForKiosk,
   contractorDataUpdateForKiosk,
   contractorDataListAll,
-  contractorDataListForInduction,
   contractorDataListByCompany,
   contractorDataFindForInduction,
   contractorDataListBySite,
@@ -217,6 +216,21 @@ const listContractorsDirect = async () => {
   return contractorsWithCompanies.map(transformContractor);
 };
 
+/** Standalone /inductions (no admin login). Uses Vercel service role — does not require contractor-data v7. */
+async function listContractorsForStandaloneInduction() {
+  try {
+    const rows = await listInductionContractorsViaApi();
+    return mapEdgeRowsToApp(rows);
+  } catch (apiError) {
+    const apiMsg = apiError?.message || String(apiError);
+    throw new Error(
+      `Could not load contractors for induction (${apiMsg}). ` +
+        'Deploy the web app to Vercel with SUPABASE_SERVICE_ROLE_KEY set (uses /api/induction-contractors). ' +
+        'Supabase contractor-data v7 is not required.',
+    );
+  }
+}
+
 // Get all contractors with company details
 export const listContractors = async () => {
   try {
@@ -230,12 +244,8 @@ export const listContractors = async () => {
       return transformed;
     }
 
-    const transformed = await withContractorDataFallback(
-      () => contractorDataListForInduction().then(mapEdgeRowsToApp),
-      () => listInductionContractorsViaApi().then(mapEdgeRowsToApp),
-      { label: 'listContractors-induction' },
-    );
-    console.log('✅ Contractors loaded (induction):', transformed.length);
+    const transformed = await listContractorsForStandaloneInduction();
+    console.log('✅ Contractors loaded (induction via API):', transformed.length);
     return transformed;
   } catch (error) {
     console.error('❌ Error fetching contractors:', error.message);
