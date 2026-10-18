@@ -23,9 +23,9 @@ const apiSource = fs.readFileSync(
   'utf8',
 );
 
-assert.match(contractorsSource, /contractorDataListForInduction/);
 assert.match(contractorsSource, /listInductionContractorsViaApi/);
-assert.match(contractorsSource, /listContractors-induction/);
+assert.match(contractorsSource, /listContractorsForStandaloneInduction/);
+assert.doesNotMatch(contractorsSource, /contractorDataListForInduction/);
 assert.match(apiSource, /from\('contractors'\)/);
 assert.match(contractorDataSource, /listForInduction/);
 assert.match(contractorDataSource, /Authorization: `Bearer \$\{anonKey\}`/);
