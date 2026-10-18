@@ -27,6 +27,7 @@ import {
   isAdminSessionActive,
 } from './contractorData';
 import { companyDataListAtSite, companyDataListNamesByIds } from './companyData';
+import { listInductionContractorsViaApi } from './inductionContractors';
 
 /** Prefer Edge when admin session or kiosk paths; fall back to PostgREST until Edge is deployed / if invoke fails. */
 async function withContractorDataFallback(edgeFn, directFn, { label = 'contractor-data' } = {}) {
@@ -231,7 +232,7 @@ export const listContractors = async () => {
 
     const transformed = await withContractorDataFallback(
       () => contractorDataListForInduction().then(mapEdgeRowsToApp),
-      () => listContractorsDirect(),
+      () => listInductionContractorsViaApi().then(mapEdgeRowsToApp),
       { label: 'listContractors-induction' },
     );
     console.log('✅ Contractors loaded (induction):', transformed.length);
