@@ -1,4 +1,4 @@
-import { formatDateNz, getNzYmd, isYmdString } from './nzDates.js';
+import { formatDateNz, getNzYmd, isYmdString, ymdToDisplay, NZ_TIMEZONE } from './nzDates.js';
 
 export const INDUCTION_EXPIRING_SOON_DAYS = 30;
 
@@ -83,6 +83,33 @@ export function getSiteInductionExpiry(contractor, siteId) {
 
 export function formatInductionExpiry(expiryRaw) {
   return formatDateNz(expiryRaw);
+}
+
+/** Spreadsheet-safe induction date (empty string when missing; never Unicode placeholders). */
+export function formatInductionExpiryForCsv(expiryRaw) {
+  if (expiryRaw == null || expiryRaw === '') {
+    return '';
+  }
+  const trimmed = String(expiryRaw).trim();
+  if (isYmdString(trimmed)) {
+    return ymdToDisplay(trimmed);
+  }
+  const date = expiryRaw instanceof Date ? expiryRaw : new Date(trimmed);
+  if (Number.isNaN(date.getTime())) {
+    return trimmed;
+  }
+  return date.toLocaleDateString('en-NZ', { timeZone: NZ_TIMEZONE });
+}
+
+/** When exporting a site-filtered contractor list, prefer that site's induction expiry. */
+export function resolveContractorInductionExpiryForExport(contractor, siteFilterId) {
+  if (siteFilterId && siteFilterId !== 'All') {
+    const siteExpiry = getSiteInductionExpiry(contractor, siteFilterId);
+    if (siteExpiry) {
+      return siteExpiry;
+    }
+  }
+  return contractor.induction_expiry || contractor.inductionExpiry || null;
 }
 
 function getSiteInductionRecords(contractor) {
