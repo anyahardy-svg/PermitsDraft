@@ -1,5 +1,9 @@
 import { supabase } from '../supabaseClient';
 import { handleError } from '../utils/errorHandler';
+import {
+  isSupabaseConnectivityFailure,
+  supabaseUnavailableError,
+} from '../utils/supabaseErrors';
 
 // Helper function to transform Supabase data to app format
 const transformSite = (dbSite) => {
@@ -51,6 +55,10 @@ const fetchSiteWithRetry = async (buildQuery, label) => {
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
     }
+  }
+
+  if (isSupabaseConnectivityFailure(lastError)) {
+    throw supabaseUnavailableError(lastError);
   }
 
   handleError(lastError, label, false);

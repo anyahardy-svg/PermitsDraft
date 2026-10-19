@@ -64,6 +64,7 @@ import {
   reloadKioskPage,
   reloadKioskToSignIn,
 } from '../utils/kioskReload';
+import { isSupabaseConnectivityFailure, SUPABASE_UNAVAILABLE_MESSAGE } from '../utils/supabaseErrors';
 
 // Format name to proper title case (e.g., "JOHN DOE" → "John Doe", "john doe" → "John Doe")
 const formatNameToTitleCase = (name) => {
@@ -245,12 +246,18 @@ const KioskScreen = ({ onViewPermits, initialRoute, currentContractor }) => {
           setTestMode(usingTestMode);
           console.log(`${usingTestMode ? '⚠️ TEST MODE' : '✅'} Kiosk site: ${matchingSite.name}`);
         } else {
-          Alert.alert('Error', 'Could not detect site. Please use a kiosk subdomain or try from localhost.');
+          Alert.alert(
+            'Kiosk site not found',
+            `No site is configured for subdomain "${subdomain}". Check the kiosk URL with your administrator.`,
+          );
           console.error('❌ No site found for subdomain:', subdomain);
         }
       } catch (error) {
         console.error('Error initializing kiosk:', error);
-        Alert.alert('Error', 'Failed to initialize kiosk');
+        const message = isSupabaseConnectivityFailure(error)
+          ? SUPABASE_UNAVAILABLE_MESSAGE
+          : (error?.message || 'Failed to initialize kiosk');
+        Alert.alert('Kiosk unavailable', message);
       } finally {
         if (!skipLoadingReset) {
           setLoading(false);
