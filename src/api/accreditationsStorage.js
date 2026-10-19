@@ -4,6 +4,10 @@
 
 import { supabase } from '../supabaseClient';
 import { extractAccreditationsStoragePath } from '../utils/storagePaths';
+import {
+  isSupabaseConnectivityFailure,
+  SUPABASE_UNAVAILABLE_MESSAGE,
+} from '../utils/supabaseErrors';
 import { getRequestingAdminId, isAdminSessionActive } from './contractorData';
 import { companyDataCreateAccreditationsSignedUrl } from './companyData';
 
@@ -53,6 +57,9 @@ export async function getSignedAccreditationsUrl(
     .createSignedUrl(storagePath, expiresInSeconds);
 
   if (error) {
+    if (isSupabaseConnectivityFailure(error)) {
+      return { url: null, error: SUPABASE_UNAVAILABLE_MESSAGE };
+    }
     return { url: null, error: error.message };
   }
   return { url: data?.signedUrl || null, error: null };
