@@ -8,6 +8,11 @@ import {
   isSupabaseConnectivityFailure,
   SUPABASE_UNAVAILABLE_MESSAGE,
 } from '../utils/supabaseErrors';
+import {
+  navigateDocumentTab,
+  openPlaceholderDocumentTab,
+  openUrlViaAnchorClick,
+} from '../utils/openDocumentInNewTab';
 import { getRequestingAdminId, isAdminSessionActive } from './contractorData';
 import { companyDataCreateAccreditationsSignedUrl } from './companyData';
 
@@ -87,14 +92,14 @@ export async function openAccreditationFile(fileRef, targetWindow = null) {
   }
 
   if (typeof window !== 'undefined') {
-    if (targetWindow && !targetWindow.closed) {
-      targetWindow.location.href = openUrl;
-    } else if (window.open) {
-      const opened = window.open(openUrl, '_blank', 'noopener,noreferrer');
-      if (!opened) {
-        throw new Error('Could not open document (allow pop-ups for this site)');
-      }
+    const tab = targetWindow || openPlaceholderDocumentTab();
+    if (navigateDocumentTab(tab, openUrl)) {
+      return openUrl;
     }
+    if (openUrlViaAnchorClick(openUrl)) {
+      return openUrl;
+    }
+    throw new Error('Could not open document (allow pop-ups for this site)');
   }
   return openUrl;
 }

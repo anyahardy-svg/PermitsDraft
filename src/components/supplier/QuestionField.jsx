@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { SUPPLIER_CERTIFICATIONS } from '../../schemas/supplierSchema';
 import { normalizeSafetyDocs } from '../../utils/supplierFormDataNormalize';
 import SignaturePadField from './SignaturePadField';
+import { openPlaceholderDocumentTab } from '../../utils/openDocumentInNewTab';
 
 const fieldStyles = {
   wrapper: {
@@ -233,7 +234,7 @@ function DocumentUploadField({ field, value, onChange, uploadHandler, onOpenDocu
 
     let viewTab = null;
     if (typeof window !== 'undefined' && window.open) {
-      viewTab = window.open('about:blank', '_blank', 'noopener,noreferrer');
+      viewTab = openPlaceholderDocumentTab();
     }
 
     if (onOpenDocument) {

@@ -23,6 +23,7 @@ import { getSitesByBusinessUnits } from '../api/sites';
 import { getLegalDocument, recordHSAgreementAcceptance } from '../api/legal-documents';
 import { getEvidenceLibrary, addToEvidenceLibrary } from '../api/evidence-library';
 import { openAccreditationFile } from '../api/accreditationsStorage';
+import { openPlaceholderDocumentTab } from '../utils/openDocumentInNewTab';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { getAccreditationSaveStatus } from '../utils/accreditation';
 import { validateHSAgreementComplete } from '../utils/hsAgreementValidation';
@@ -90,7 +91,7 @@ const openAccreditationDocument = async (fileRef) => {
   }
   let viewTab = null;
   if (typeof window !== 'undefined' && window.open) {
-    viewTab = window.open('about:blank', '_blank', 'noopener,noreferrer');
+    viewTab = openPlaceholderDocumentTab();
   }
   try {
     await openAccreditationFile(fileRef, viewTab);
