@@ -59,6 +59,7 @@ import KioskScreen from './src/screens/KioskScreen';
 import StandaloneInductionScreen from './src/screens/StandaloneInductionScreen';
 import { isStandaloneInductionRoute } from './src/utils/inductionLinks';
 import { kioskPermitsEnabled } from './src/utils/kioskBrandLogo';
+import { normalizeContractorAdminTab } from './src/config/contractorHubFeatures';
 import { isSupplierFormRoute } from './src/utils/supplierFormRoute';
 import InviteNewCompanyScreen from './src/screens/InviteNewCompanyScreen';
 import {
@@ -3908,8 +3909,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Handle initialContractorAdminTab - restore contractor admin tab on page load
   useEffect(() => {
     if (initialContractorAdminTab !== undefined && initialContractorAdminTab !== null) {
-      console.log('🎛️ Setting contractorAdminTab to:', initialContractorAdminTab);
-      setContractorAdminTab(initialContractorAdminTab);
+      const tab = normalizeContractorAdminTab(initialContractorAdminTab);
+      console.log('🎛️ Setting contractorAdminTab to:', tab);
+      setContractorAdminTab(tab);
     } else {
       console.log('ℹ️ Skipping contractorAdminTab - value is:', initialContractorAdminTab);
     }
@@ -4383,7 +4385,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           '/': null
         };
         
-        const tab = tabMap[routeWithoutTrailingSlash] || null;
+        const tab = normalizeContractorAdminTab(tabMap[routeWithoutTrailingSlash] || null);
         setContractorAdminTab(tab);
         return;
       }
@@ -4438,7 +4440,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             '/': null
           };
           
-          const tab = tabMap[routeWithoutTrailingSlash] || null;
+          const tab = normalizeContractorAdminTab(tabMap[routeWithoutTrailingSlash] || null);
           setContractorAdminTab(tab);
           return;
         }

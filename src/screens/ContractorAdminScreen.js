@@ -26,6 +26,10 @@ import ContractorAuthScreen from './ContractorAuthScreen';
 import HelpModal from '../components/HelpModal';
 import ContractorAttachmentsSection from '../components/ContractorAttachmentsSection';
 import { copyContractorInductionLink, getContractorInductionUrl } from '../utils/inductionLinks';
+import {
+  CONTRACTOR_HUB_PTOW_ENABLED,
+  isContractorAdminTabEnabled,
+} from '../config/contractorHubFeatures';
 
 export default function ContractorAdminScreen({ 
   onNavigateBack,
@@ -258,6 +262,12 @@ export default function ContractorAdminScreen({
       }
     }
   }, [activeTab, isLoggedIn, loggedInCompanyId, loggedInContractorId]);
+
+  useEffect(() => {
+    if (!isContractorAdminTabEnabled(activeTab)) {
+      setActiveTab(null);
+    }
+  }, [activeTab, setActiveTab]);
 
   // Handle back button - go to dashboard or exit with logout warning
   const handleContractorAdminBack = () => {
@@ -2269,20 +2279,24 @@ export default function ContractorAdminScreen({
       {!activeTab ? (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
           <View style={{ padding: 16, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 }}>
-            <TouchableOpacity
-              onPress={() => setActiveTab('jsea')}
-              style={[styles.dashboardCard, { borderLeftColor: '#8B5CF6', width: '48%' }]}
-            >
-              <Text style={styles.cardNumber}>{jseaTemplates.length}</Text>
-              <Text style={styles.cardLabel}>JSEA Templates</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setActiveTab('permits')}
-              style={[styles.dashboardCard, { borderLeftColor: '#3B82F6', width: '48%' }]}
-            >
-              <Text style={styles.cardNumber}>{permitTemplates.length}</Text>
-              <Text style={styles.cardLabel}>Permit Templates</Text>
-            </TouchableOpacity>
+            {CONTRACTOR_HUB_PTOW_ENABLED ? (
+              <>
+                <TouchableOpacity
+                  onPress={() => setActiveTab('jsea')}
+                  style={[styles.dashboardCard, { borderLeftColor: '#8B5CF6', width: '48%' }]}
+                >
+                  <Text style={styles.cardNumber}>{jseaTemplates.length}</Text>
+                  <Text style={styles.cardLabel}>JSEA Templates</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setActiveTab('permits')}
+                  style={[styles.dashboardCard, { borderLeftColor: '#3B82F6', width: '48%' }]}
+                >
+                  <Text style={styles.cardNumber}>{permitTemplates.length}</Text>
+                  <Text style={styles.cardLabel}>Permit Templates</Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
             <TouchableOpacity
               onPress={() => setActiveTab('accreditation')}
               style={[styles.dashboardCard, { borderLeftColor: '#10B981', width: '48%' }]}
@@ -2318,25 +2332,29 @@ export default function ContractorAdminScreen({
               <Text style={styles.cardNumber}>👤</Text>
               <Text style={styles.cardLabel}>My Profile</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setActiveTab('my-permits')}
-              style={[styles.dashboardCard, { borderLeftColor: '#EF4444', width: '48%' }]}
-            >
-              <Text style={styles.cardNumber}>{draftPermits.length}</Text>
-              <Text style={styles.cardLabel}>My Drafts</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setActiveTab('join-requests')}
-              style={[styles.dashboardCard, { borderLeftColor: '#6366F1', width: '48%' }]}
-            >
-              <Text style={styles.cardNumber}>{joinRequests.filter(r => r.status === 'pending').length}</Text>
-              <Text style={styles.cardLabel}>Join Requests</Text>
-            </TouchableOpacity>
+            {CONTRACTOR_HUB_PTOW_ENABLED ? (
+              <>
+                <TouchableOpacity
+                  onPress={() => setActiveTab('my-permits')}
+                  style={[styles.dashboardCard, { borderLeftColor: '#EF4444', width: '48%' }]}
+                >
+                  <Text style={styles.cardNumber}>{draftPermits.length}</Text>
+                  <Text style={styles.cardLabel}>My Drafts</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setActiveTab('join-requests')}
+                  style={[styles.dashboardCard, { borderLeftColor: '#6366F1', width: '48%' }]}
+                >
+                  <Text style={styles.cardNumber}>{joinRequests.filter(r => r.status === 'pending').length}</Text>
+                  <Text style={styles.cardLabel}>Join Requests</Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
           </View>
         </ScrollView>
       ) : (
         /* Content View - Show selected section */
-        !effectiveBuId && activeTab !== 'accreditation' && activeTab !== 'inductions' && activeTab !== 'join-requests' && activeTab !== 'attachments' ? (
+        !effectiveBuId && activeTab !== 'accreditation' && activeTab !== 'inductions' && activeTab !== 'attachments' && (CONTRACTOR_HUB_PTOW_ENABLED ? activeTab !== 'join-requests' : true) ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
             <Text style={{ fontSize: 16, color: '#6B7280', textAlign: 'center', fontStyle: 'italic' }}>
               No business units available. Please contact your administrator.
@@ -2374,12 +2392,18 @@ export default function ContractorAdminScreen({
           </ScrollView>
         ) : activeTab === 'profile' ? (
           renderProfileEdit()
-        ) : activeTab === 'my-permits' ? (
+        ) : activeTab === 'my-permits' && CONTRACTOR_HUB_PTOW_ENABLED ? (
           renderMyPermits()
-        ) : activeTab === 'join-requests' ? (
+        ) : activeTab === 'join-requests' && CONTRACTOR_HUB_PTOW_ENABLED ? (
           renderJoinRequests()
+        ) : activeTab === 'jsea' && CONTRACTOR_HUB_PTOW_ENABLED ? (
+          renderJseaTemplates()
+        ) : activeTab === 'permits' && CONTRACTOR_HUB_PTOW_ENABLED ? (
+          renderPermitTemplates()
         ) : (
-          activeTab === 'jsea' ? renderJseaTemplates() : renderPermitTemplates()
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <Text style={{ color: '#6B7280', textAlign: 'center' }}>This section is not available.</Text>
+          </View>
         )
       )}
 
