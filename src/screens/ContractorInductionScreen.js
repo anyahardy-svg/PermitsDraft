@@ -342,7 +342,12 @@ export default function ContractorInductionScreen({
     return contractorBUs;
   };
 
-  const loadInductionsForSiteAddParts = async (contractor, selectedSites, selectedBUs) => {
+  const loadInductionsForSiteAddParts = async (
+    contractor,
+    selectedSites,
+    selectedBUs,
+    { limitToSelectedSites = true } = {},
+  ) => {
     const serviceIds = contractor?.service_ids || [];
     let allInductionsData = [];
 
@@ -356,11 +361,11 @@ export default function ContractorInductionScreen({
     const uniqueInductions = Array.from(new Map(allInductionsData.map(ind => [ind.id, ind])).values());
     const compulsory = [];
     const optional = [];
+    const siteIdSet = new Set((selectedSites || []).filter(Boolean));
 
     uniqueInductions.forEach((ind) => {
       const isSiteSpecific = ind.site_id !== null;
-      const isApplicableToSelectedSites = !isSiteSpecific || selectedSites.includes(ind.site_id);
-      if (!isApplicableToSelectedSites) {
+      if (limitToSelectedSites && isSiteSpecific && siteIdSet.size > 0 && !siteIdSet.has(ind.site_id)) {
         return;
       }
 
@@ -371,7 +376,14 @@ export default function ContractorInductionScreen({
       }
     });
 
-    return { uniqueInductions, compulsory, optional };
+    const applicableInductions = limitToSelectedSites
+      ? uniqueInductions.filter((ind) => {
+          if (!ind.site_id) return true;
+          return siteIdSet.size === 0 || siteIdSet.has(ind.site_id);
+        })
+      : uniqueInductions;
+
+    return { uniqueInductions: applicableInductions, compulsory, optional };
   };
 
   const finalizeSiteInductionForContractor = async ({
@@ -507,11 +519,12 @@ export default function ContractorInductionScreen({
       const { uniqueInductions } = await loadInductionsForSiteAddParts(
         contractor,
         selectedSites,
-        selectedBUs
+        selectedBUs,
+        { limitToSelectedSites: false },
       );
       setAllInductions(uniqueInductions);
       setAddPartsFilterBUId(kioskBusinessUnitId || '');
-      setAddPartsFilterSiteId(kioskSiteId || '');
+      setAddPartsFilterSiteId('');
       setAddPartsFilterName('');
 
       const selectionState = {};
@@ -744,7 +757,13 @@ export default function ContractorInductionScreen({
     const normalizedName = (nameQuery || '').trim().toLowerCase();
     const matchesBU = !buId || (induction.business_unit_ids && induction.business_unit_ids.includes(buId));
     const matchesSite = !siteId || !induction.site_id || induction.site_id === siteId;
-    const matchesName = !normalizedName || induction.induction_name?.toLowerCase().includes(normalizedName);
+    let matchesName = !normalizedName || induction.induction_name?.toLowerCase().includes(normalizedName);
+    if (normalizedName && !matchesName && induction.site_id) {
+      const siteLabel = allSites.find((site) => site.id === induction.site_id)?.name || '';
+      if (siteLabel.toLowerCase().includes(normalizedName)) {
+        matchesName = true;
+      }
+    }
     return matchesBU && matchesSite && matchesName;
   };
 
@@ -1921,8 +1940,8 @@ export default function ContractorInductionScreen({
   if (step === 'info-add-parts' && addPartsContractor) {
     const contractorBUIds = addPartsContractor.business_unit_ids || [];
     const addPartsBUOptions = businessUnits.filter(bu => contractorBUIds.includes(bu.id));
-    const addPartsSiteOptions = getSitesForBUFilter(addPartsFilterBUId).filter(site =>
-      !addPartsFilterBUId || contractorBUIds.includes(site.business_unit_id)
+    const addPartsSiteOptions = getSitesForBUFilter(addPartsFilterBUId).filter(
+      (site) => contractorBUIds.length === 0 || contractorBUIds.includes(site.business_unit_id),
     );
     const filteredAllInductions = allInductions.filter(ind =>
       matchesInductionFilters(ind, {
@@ -2059,9 +2078,16 @@ export default function ContractorInductionScreen({
                   }}>
                     {newInductionsToAdd[ind.id] && <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>✓</Text>}
                   </View>
-                  <Text style={{ fontSize: 13, fontWeight: '500', color: '#1F2937', flex: 1 }}>
-                    {ind.induction_name}
-                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '500', color: '#1F2937' }}>
+                      {ind.induction_name}
+                    </Text>
+                    {ind.site_id ? (
+                      <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
+                        Site: {allSites.find((site) => site.id === ind.site_id)?.name || 'Site-specific'}
+                      </Text>
+                    ) : null}
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -2077,7 +2103,17 @@ export default function ContractorInductionScreen({
                 // Load the selected inductions into the queue
                 const selectedIds = Object.keys(newInductionsToAdd).filter(id => newInductionsToAdd[id]);
                 const inductionsToAdd = allInductions.filter(ind => selectedIds.includes(ind.id));
-                
+                const siteIdsFromSelection = [
+                  ...new Set(inductionsToAdd.map((ind) => ind.site_id).filter(Boolean)),
+                ];
+                const mergedSiteIds = Array.from(
+                  new Set([
+                    ...(addPartsContractor.site_ids || []),
+                    ...siteIdsFromSelection,
+                    ...(isKioskSiteLocked ? getKioskLockedSiteIds() : []),
+                  ]),
+                );
+
                 // Set contractor info for add-parts flow
                 setContractorInfo({
                   id: addPartsContractor.id,
@@ -2088,9 +2124,7 @@ export default function ContractorInductionScreen({
                   selectedBusinessUnitIds: kioskBusinessUnitId
                     ? Array.from(new Set([...(addPartsContractor.business_unit_ids || []), kioskBusinessUnitId]))
                     : (addPartsContractor.business_unit_ids || []),
-                  selectedSiteIds: isKioskSiteLocked
-                    ? getKioskLockedSiteIds()
-                    : (addPartsContractor.site_ids || []),
+                  selectedSiteIds: mergedSiteIds.length > 0 ? mergedSiteIds : getKioskLockedSiteIds(),
                   service_ids: addPartsContractor.service_ids || [],
                 });
                 setSelectedContractorId(addPartsContractor.id);
