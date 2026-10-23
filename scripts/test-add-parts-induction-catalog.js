@@ -14,6 +14,9 @@ assert.match(source, /siteIdsFromSelection/);
 assert.match(source, /siteLabel\.toLowerCase\(\)\.includes\(normalizedName\)/);
 assert.match(source, /getAddPartsCatalogBusinessUnitIds/);
 assert.match(source, /setStep\('info-add-parts'\)/);
+assert.match(source, /setStep\('inductionsList'\)/);
+assert.match(source, /Browse or add inductions for other sites/);
+assert.match(source, /getKioskSiteDisplayName/);
 assert.match(source, /const addPartsSiteOptions = getSitesForBUFilter\(addPartsFilterBUId\)/);
 
 console.log('add-parts induction catalog tests passed');

@@ -394,6 +394,39 @@ export default function ContractorInductionScreen({
     return { uniqueInductions: applicableInductions, compulsory, optional };
   };
 
+  const prepareAddPartsCatalogPickerState = (uniqueInductions, completedIds, { filterSiteId = '' } = {}) => {
+    setAllInductions(uniqueInductions);
+    setAddPartsFilterBUId(kioskBusinessUnitId || '');
+    setAddPartsFilterSiteId(filterSiteId);
+    setAddPartsFilterName('');
+    const selectionState = {};
+    (uniqueInductions || []).forEach((ind) => {
+      if (!completedIds.includes(ind.id)) {
+        selectionState[ind.id] = false;
+      }
+    });
+    setNewInductionsToAdd(selectionState);
+  };
+
+  const getKioskSiteDisplayName = () => {
+    if (!kioskSiteId) return 'this site';
+    return (
+      allSites.find((site) => site.id === kioskSiteId)?.name ||
+      sites.find((site) => site.id === kioskSiteId)?.name ||
+      'this site'
+    );
+  };
+
+  const openAddPartsCatalogFromKiosk = () => {
+    if (addPartsContractor) {
+      setStep('info-add-parts');
+      return;
+    }
+    if (addPartsContractorId) {
+      void handleAddPartsContractorSelected(addPartsContractorId);
+    }
+  };
+
   const finalizeSiteInductionForContractor = async ({
     contractorId,
     inductedSiteIds,
@@ -441,17 +474,16 @@ export default function ContractorInductionScreen({
       const completedIdSet = new Set(completedIds);
 
       const catalogBUs = getAddPartsCatalogBusinessUnitIds(contractor);
-      const { compulsory: compulsoryAtKioskSite } = await loadInductionsForSiteAddParts(
+      const { compulsory, optional } = await loadInductionsForSiteAddParts(
         contractor,
         selectedSites,
         selectedBUs,
         { limitToSelectedSites: true },
       );
-      const incompleteCompulsoryAtKioskSite = compulsoryAtKioskSite.filter(
-        (ind) => !completedIdSet.has(ind.id),
-      );
+      const incompleteCompulsoryAtKioskSite = compulsory.filter((ind) => !completedIdSet.has(ind.id));
+      const incompleteOptionalAtKioskSite = optional.filter((ind) => !completedIdSet.has(ind.id));
 
-      const { uniqueInductions } = await loadInductionsForSiteAddParts(
+      const { uniqueInductions: fullCatalog } = await loadInductionsForSiteAddParts(
         contractor,
         selectedSites,
         catalogBUs,
@@ -462,18 +494,7 @@ export default function ContractorInductionScreen({
       setAddPartsContractor(contractor);
       setExistingInductionProgress(progressData);
       setCompletedInductionIds_AddParts(completedIds);
-      setAllInductions(uniqueInductions);
-      setAddPartsFilterBUId(kioskBusinessUnitId || '');
-      setAddPartsFilterSiteId('');
-      setAddPartsFilterName('');
-
-      const selectionState = {};
-      uniqueInductions.forEach((ind) => {
-        if (!completedIds.includes(ind.id)) {
-          selectionState[ind.id] = false;
-        }
-      });
-      setNewInductionsToAdd(selectionState);
+      prepareAddPartsCatalogPickerState(fullCatalog, completedIds);
 
       setContractorInfo({
         id: contractor.id,
@@ -495,9 +516,20 @@ export default function ContractorInductionScreen({
           inductedSiteIds: selectedSites,
           businessUnitIds: selectedBUs,
         });
+
+        if (incompleteOptionalAtKioskSite.length === 0) {
+          setStep('info-add-parts');
+          return;
+        }
       }
 
-      setStep('info-add-parts');
+      setCompulsoryInductions(incompleteCompulsoryAtKioskSite);
+      setOptionalInductions(incompleteOptionalAtKioskSite);
+      setSelectedOptionalIds([]);
+      setInductionQueue([]);
+      setCompletedInductionIds([]);
+      setModalAnswers({});
+      setStep('inductionsList');
     } catch (err) {
       console.error('Error starting kiosk add-parts flow:', err);
       Alert.alert('Error', 'Failed to load site induction: ' + err.message);
@@ -532,18 +564,7 @@ export default function ContractorInductionScreen({
         catalogBUs,
         { limitToSelectedSites: false },
       );
-      setAllInductions(uniqueInductions);
-      setAddPartsFilterBUId(kioskBusinessUnitId || '');
-      setAddPartsFilterSiteId('');
-      setAddPartsFilterName('');
-
-      const selectionState = {};
-      uniqueInductions.forEach((ind) => {
-        if (!completedIds.includes(ind.id)) {
-          selectionState[ind.id] = false;
-        }
-      });
-      setNewInductionsToAdd(selectionState);
+      prepareAddPartsCatalogPickerState(uniqueInductions, completedIds);
 
       setStep('info-add-parts');
     } catch (err) {
@@ -1969,6 +1990,27 @@ export default function ContractorInductionScreen({
         })}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          {isKioskSiteLocked && compulsoryInductions.length > 0 && (
+            <View style={{ backgroundColor: '#FEE2E2', borderLeftWidth: 4, borderLeftColor: '#DC2626', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: '#991B1B', marginBottom: 6 }}>
+                Still required for {getKioskSiteDisplayName()}
+              </Text>
+              {compulsoryInductions.map((ind) => (
+                <Text key={ind.id} style={{ fontSize: 13, color: '#7F1D1D', marginBottom: 4 }}>
+                  • {ind.induction_name}
+                </Text>
+              ))}
+              <TouchableOpacity
+                onPress={() => setStep('inductionsList')}
+                style={{ marginTop: 8, paddingVertical: 8 }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#B91C1C' }}>
+                  Complete required inductions for this site first →
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8 }}>Filter by Business Unit</Text>
           <TouchableOpacity
             style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingVertical: 12, paddingHorizontal: 12, marginBottom: 4, backgroundColor: addPartsFilterBUId ? '#F3E8FF' : '#F9FAFB' }}
@@ -2741,11 +2783,41 @@ export default function ContractorInductionScreen({
         })}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-          <View style={{ backgroundColor: '#EFF6FF', borderLeftWidth: 4, borderLeftColor: '#3B82F6', padding: 12, borderRadius: 8, marginBottom: 16 }}>
-            <Text style={{ fontSize: 13, color: '#1E40AF', lineHeight: 18 }}>
-              Required inductions are selected automatically. Select any optional inductions that match the work you will do on site.
-            </Text>
-          </View>
+          {isNewContractor === 'add-parts' && isKioskSiteLocked ? (
+            <View style={{ backgroundColor: '#EFF6FF', borderLeftWidth: 4, borderLeftColor: '#3B82F6', padding: 12, borderRadius: 8, marginBottom: 12 }}>
+              <Text style={{ fontSize: 13, color: '#1E40AF', lineHeight: 18, fontWeight: '600' }}>
+                Required for {getKioskSiteDisplayName()}
+              </Text>
+              <Text style={{ fontSize: 13, color: '#1E40AF', lineHeight: 18, marginTop: 4 }}>
+                Complete the required inductions below for this site. You can add optional sections here, or browse other sites afterward.
+              </Text>
+            </View>
+          ) : (
+            <View style={{ backgroundColor: '#EFF6FF', borderLeftWidth: 4, borderLeftColor: '#3B82F6', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+              <Text style={{ fontSize: 13, color: '#1E40AF', lineHeight: 18 }}>
+                Required inductions are selected automatically. Select any optional inductions that match the work you will do on site.
+              </Text>
+            </View>
+          )}
+
+          {isNewContractor === 'add-parts' && isKioskSiteLocked && addPartsContractor && (
+            <TouchableOpacity
+              onPress={openAddPartsCatalogFromKiosk}
+              style={{
+                borderWidth: 1,
+                borderColor: '#A855F7',
+                borderRadius: 8,
+                paddingVertical: 12,
+                paddingHorizontal: 12,
+                marginBottom: 16,
+                backgroundColor: '#FAF5FF',
+              }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: '600', color: '#7E22CE', textAlign: 'center' }}>
+                Browse or add inductions for other sites
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {isNewContractor === 'add-parts' && completedInductionIds_AddParts.length > 0 && (
             <>
