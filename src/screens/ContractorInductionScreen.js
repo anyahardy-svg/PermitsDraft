@@ -342,6 +342,14 @@ export default function ContractorInductionScreen({
     return contractorBUs;
   };
 
+  /** All BUs/sites to offer when adding induction parts (not limited to contractor’s current sites). */
+  const getAddPartsCatalogBusinessUnitIds = (contractor) => {
+    const base = getApplicableBusinessUnitIds(contractor);
+    const fromSites = (allSites || []).map((site) => site.business_unit_id).filter(Boolean);
+    const fromLoadedBUs = (businessUnits || []).map((bu) => bu.id).filter(Boolean);
+    return Array.from(new Set([...base, ...fromSites, ...fromLoadedBUs]));
+  };
+
   const loadInductionsForSiteAddParts = async (
     contractor,
     selectedSites,
@@ -432,14 +440,23 @@ export default function ContractorInductionScreen({
         .map((progress) => progress.induction_id);
       const completedIdSet = new Set(completedIds);
 
-      const { uniqueInductions, compulsory, optional } = await loadInductionsForSiteAddParts(
+      const catalogBUs = getAddPartsCatalogBusinessUnitIds(contractor);
+      const { compulsory: compulsoryAtKioskSite } = await loadInductionsForSiteAddParts(
         contractor,
         selectedSites,
-        selectedBUs
+        selectedBUs,
+        { limitToSelectedSites: true },
+      );
+      const incompleteCompulsoryAtKioskSite = compulsoryAtKioskSite.filter(
+        (ind) => !completedIdSet.has(ind.id),
       );
 
-      const incompleteCompulsory = compulsory.filter((ind) => !completedIdSet.has(ind.id));
-      const incompleteOptional = optional.filter((ind) => !completedIdSet.has(ind.id));
+      const { uniqueInductions } = await loadInductionsForSiteAddParts(
+        contractor,
+        selectedSites,
+        catalogBUs,
+        { limitToSelectedSites: false },
+      );
 
       setAddPartsContractorId(contractorId);
       setAddPartsContractor(contractor);
@@ -447,8 +464,16 @@ export default function ContractorInductionScreen({
       setCompletedInductionIds_AddParts(completedIds);
       setAllInductions(uniqueInductions);
       setAddPartsFilterBUId(kioskBusinessUnitId || '');
-      setAddPartsFilterSiteId(kioskSiteId || '');
+      setAddPartsFilterSiteId('');
       setAddPartsFilterName('');
+
+      const selectionState = {};
+      uniqueInductions.forEach((ind) => {
+        if (!completedIds.includes(ind.id)) {
+          selectionState[ind.id] = false;
+        }
+      });
+      setNewInductionsToAdd(selectionState);
 
       setContractorInfo({
         id: contractor.id,
@@ -464,30 +489,15 @@ export default function ContractorInductionScreen({
       setIsNewContractor('add-parts');
       setLoadSavedAnswersOnOpen(false);
 
-      if (incompleteCompulsory.length === 0) {
+      if (incompleteCompulsoryAtKioskSite.length === 0) {
         await finalizeSiteInductionForContractor({
           contractorId,
           inductedSiteIds: selectedSites,
           businessUnitIds: selectedBUs,
         });
-
-        if (incompleteOptional.length === 0) {
-          Alert.alert(
-            'Site induction complete',
-            'No additional induction sections are required for this site.',
-            [{ text: 'OK', onPress: () => handleExitWithContractor() }]
-          );
-          return;
-        }
       }
 
-      setCompulsoryInductions(incompleteCompulsory);
-      setOptionalInductions(incompleteOptional);
-      setSelectedOptionalIds([]);
-      setInductionQueue([]);
-      setCompletedInductionIds([]);
-      setModalAnswers({});
-      setStep('inductionsList');
+      setStep('info-add-parts');
     } catch (err) {
       console.error('Error starting kiosk add-parts flow:', err);
       Alert.alert('Error', 'Failed to load site induction: ' + err.message);
@@ -503,7 +513,7 @@ export default function ContractorInductionScreen({
       const selectedSites = isKioskSiteLocked
         ? getKioskLockedSiteIds()
         : (contractor.site_ids || []);
-      const selectedBUs = getApplicableBusinessUnitIds(contractor);
+      const catalogBUs = getAddPartsCatalogBusinessUnitIds(contractor);
 
       setAddPartsContractorId(contractorId);
       setAddPartsContractor(contractor);
@@ -519,7 +529,7 @@ export default function ContractorInductionScreen({
       const { uniqueInductions } = await loadInductionsForSiteAddParts(
         contractor,
         selectedSites,
-        selectedBUs,
+        catalogBUs,
         { limitToSelectedSites: false },
       );
       setAllInductions(uniqueInductions);
@@ -1938,11 +1948,8 @@ export default function ContractorInductionScreen({
 
   // STEP INFO-ADD-PARTS: SELECT SECTIONS TO ADD
   if (step === 'info-add-parts' && addPartsContractor) {
-    const contractorBUIds = addPartsContractor.business_unit_ids || [];
-    const addPartsBUOptions = businessUnits.filter(bu => contractorBUIds.includes(bu.id));
-    const addPartsSiteOptions = getSitesForBUFilter(addPartsFilterBUId).filter(
-      (site) => contractorBUIds.length === 0 || contractorBUIds.includes(site.business_unit_id),
-    );
+    const addPartsBUOptions = businessUnits;
+    const addPartsSiteOptions = getSitesForBUFilter(addPartsFilterBUId);
     const filteredAllInductions = allInductions.filter(ind =>
       matchesInductionFilters(ind, {
         buId: addPartsFilterBUId,
