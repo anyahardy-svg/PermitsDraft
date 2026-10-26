@@ -3,7 +3,8 @@
  * Replaces direct anon/authenticated PostgREST reads on `contractors` after RLS lock-down.
  */
 
-import { supabase, getSupabaseAnonKey } from '../supabaseClient';
+import { supabase } from '../supabaseClient';
+import { invokeSupabaseEdge } from '../utils/invokeSupabaseEdge';
 
 export function getRequestingAdminId() {
   if (typeof window === 'undefined') {
@@ -43,34 +44,7 @@ export function isAdminSessionActive() {
 }
 
 async function invokeContractorData(payload) {
-  if (!supabase) {
-    return { data: null, error: { message: 'Supabase client is not configured' } };
-  }
-
-  const anonKey = getSupabaseAnonKey();
-  // Edge gateway JWT must be valid; stale contractor auth sessions must not break kiosk/admin roster loads.
-  const headers = anonKey ? { Authorization: `Bearer ${anonKey}` } : undefined;
-  const { data, error } = await supabase.functions.invoke('contractor-data', {
-    body: payload,
-    headers,
-  });
-
-  if (error) {
-    let responseBody = data;
-    if (!responseBody && error?.context && typeof error.context.json === 'function') {
-      try {
-        responseBody = await error.context.json();
-      } catch (parseError) {
-        console.warn('Could not parse contractor-data error body:', parseError);
-      }
-    }
-    if (responseBody && typeof responseBody === 'object') {
-      return { data: responseBody, error: null };
-    }
-    return { data: null, error };
-  }
-
-  return { data, error: null };
+  return invokeSupabaseEdge('contractor-data', payload);
 }
 
 export async function contractorDataListForInduction() {

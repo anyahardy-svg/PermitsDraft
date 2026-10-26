@@ -1191,14 +1191,10 @@ export async function getContractorInductionsForCompany(companyId) {
     }
 
     let contractors = [];
-    if (getRequestingAdminId() || isAdminSessionActive()) {
-      try {
-        contractors = await contractorDataListByCompany(companyId);
-      } catch (edgeError) {
-        console.warn('getContractorInductionsForCompany edge failed, fallback:', edgeError?.message);
-      }
-    }
-    if (!contractors?.length) {
+    const adminSession = Boolean(getRequestingAdminId() || isAdminSessionActive());
+    if (adminSession) {
+      contractors = await contractorDataListByCompany(companyId);
+    } else {
       contractors = await fetchAllPaginated((from, to) =>
         supabase
           .from('contractors')

@@ -24,6 +24,8 @@ import {
   preferTrainingRecordsEdgeForAdmin,
   trainingRecordsDataApprove,
   trainingRecordsDataApproveAllPending,
+  trainingRecordsDataCreate,
+  trainingRecordsDataCreateUploadSignedUrl,
   trainingRecordsDataDelete,
   trainingRecordsDataGet,
   trainingRecordsDataListByCompany,
@@ -258,27 +260,23 @@ export async function uploadTrainingRecord(
       fileExt,
     });
 
-    // Upload file to Supabase Storage
-    console.log('📁 Uploading to storage:', fileName);
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('training-records')
-      .upload(fileName, uploadBody, { contentType: fileType });
-
-    if (uploadError) {
-      console.error('❌ Storage upload error:', uploadError);
-      throw uploadError;
-    }
-
-    console.log('✅ File uploaded to storage');
-
-    console.log('📥 Creating training record in DB');
-
     const fileReference = trainingRecordsFileReference(fileName);
+    let record = null;
 
-    // Create record in database
-    const { data: record, error: dbError } = await supabase
-      .from('training_records')
-      .insert([{
+    if (preferTrainingRecordsEdgeForAdmin()) {
+      console.log('📁 Uploading to storage via admin edge signed URL:', fileName);
+      const { token, path } = await trainingRecordsDataCreateUploadSignedUrl(fileName);
+      const { error: uploadError } = await supabase.storage
+        .from('training-records')
+        .uploadToSignedUrl(path, token, uploadBody, { contentType: fileType });
+
+      if (uploadError) {
+        console.error('❌ Storage upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('📥 Creating training record via edge');
+      record = await trainingRecordsDataCreate({
         contractor_id: contractorId,
         training_type: trainingType,
         file_name: originalName,
@@ -287,14 +285,41 @@ export async function uploadTrainingRecord(
         file_type: fileType,
         expiry_date: formatDateForDb(expiryDate),
         notes: notes || null,
-        status: 'pending'
-      }])
-      .select()
-      .single();
+        status: 'pending',
+      });
+    } else {
+      console.log('📁 Uploading to storage:', fileName);
+      const { error: uploadError } = await supabase.storage
+        .from('training-records')
+        .upload(fileName, uploadBody, { contentType: fileType });
 
-    if (dbError) {
-      console.error('❌ Database error:', dbError);
-      throw dbError;
+      if (uploadError) {
+        console.error('❌ Storage upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('📥 Creating training record in DB');
+      const { data, error: dbError } = await supabase
+        .from('training_records')
+        .insert([{
+          contractor_id: contractorId,
+          training_type: trainingType,
+          file_name: originalName,
+          file_url: fileReference,
+          file_size: fileSize,
+          file_type: fileType,
+          expiry_date: formatDateForDb(expiryDate),
+          notes: notes || null,
+          status: 'pending',
+        }])
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error('❌ Database error:', dbError);
+        throw dbError;
+      }
+      record = data;
     }
 
     console.log('✅ Training record created:', record.id);
@@ -361,13 +386,9 @@ export async function getTrainingRecordsByCompany(companyId) {
     console.log('📋 Fetching training records for company:', companyId);
 
     if (preferTrainingRecordsEdgeForAdmin()) {
-      try {
-        const sortedRecords = await trainingRecordsDataListByCompany(companyId);
-        console.log(`✅ Fetched ${sortedRecords.length} training records for company (edge)`);
-        return { success: true, data: sortedRecords };
-      } catch (edgeError) {
-        console.warn('getTrainingRecordsByCompany edge failed, fallback:', edgeError?.message);
-      }
+      const sortedRecords = await trainingRecordsDataListByCompany(companyId);
+      console.log(`✅ Fetched ${sortedRecords.length} training records for company (edge)`);
+      return { success: true, data: sortedRecords };
     }
 
     const contractors = await loadContractorsForCompany(companyId);

@@ -2,7 +2,7 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 import { getNzYmd } from "../_shared/nzDates.ts";
 import { DEFAULT_CONTRACTOR_TYPE } from "../_shared/contractorType.ts";
 
-const VERSION = "2026-09-28-v11";
+const VERSION = "2026-09-28-v12";
 const PAGE_SIZE = 1000;
 const IN_QUERY_BATCH_SIZE = 200;
 
@@ -684,6 +684,8 @@ Deno.serve(async (req) => {
       action === "approveTrainingRecord" ||
       action === "approveAllPendingTrainingRecords" ||
       action === "createTrainingRecordsSignedUrl" ||
+      action === "createTrainingRecordsUploadSignedUrl" ||
+      action === "createTrainingRecord" ||
       action === "createAccreditationsSignedUrl" ||
       action === "listEvidenceLibrary" ||
       action === "addEvidenceLibraryItem"
@@ -786,6 +788,59 @@ Deno.serve(async (req) => {
         expiresIn,
         version: VERSION,
       });
+    }
+
+    if (action === "createTrainingRecordsUploadSignedUrl") {
+      const storagePath = String(body.storagePath ?? "").trim();
+      if (!storagePath || storagePath.includes("..")) {
+        return jsonResponse({ success: false, error: "Invalid storage path" }, 400);
+      }
+      const { data, error } = await supabase.storage
+        .from("training-records")
+        .createSignedUploadUrl(storagePath);
+      if (error) {
+        return jsonResponse({ success: false, error: error.message }, 400);
+      }
+      return jsonResponse({
+        success: true,
+        signedUrl: data?.signedUrl,
+        token: data?.token,
+        path: storagePath,
+        version: VERSION,
+      });
+    }
+
+    if (action === "createTrainingRecord") {
+      const record = (body.record ?? {}) as Record<string, unknown>;
+      const contractorId = String(record.contractor_id ?? "");
+      const trainingType = String(record.training_type ?? "").trim();
+      const fileName = String(record.file_name ?? "").trim();
+      const fileUrl = String(record.file_url ?? "").trim();
+      if (!contractorId || !trainingType || !fileName || !fileUrl) {
+        return jsonResponse(
+          { success: false, error: "contractor_id, training_type, file_name, and file_url are required" },
+          400,
+        );
+      }
+      const { data, error } = await supabase
+        .from("training_records")
+        .insert({
+          contractor_id: contractorId,
+          training_type: trainingType,
+          file_name: fileName,
+          file_url: fileUrl,
+          file_size: record.file_size != null ? Number(record.file_size) : null,
+          file_type: record.file_type ? String(record.file_type) : null,
+          expiry_date: record.expiry_date ? String(record.expiry_date) : null,
+          notes: record.notes ? String(record.notes) : null,
+          status: record.status ? String(record.status) : "pending",
+        })
+        .select()
+        .single();
+      if (error) {
+        return jsonResponse({ success: false, error: error.message }, 400);
+      }
+      return jsonResponse({ success: true, data, version: VERSION });
     }
 
     if (action === "listTrainingRecordsByCompany") {
