@@ -2744,7 +2744,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         if (currentDeviceType === 'laptop') {
           console.log('   ✅ DEVICE IS LAPTOP - RESTORING SESSION');
           // Restore the session
-          setAdminSessionActive(sessionData.active);
+          setAdminSessionActive(sessionData.active !== false);
           setLoggedInAdmin(adminData);
           lastActivityTimeRef.current = sessionData.lastActivity || Date.now();
           setDeviceType('laptop');

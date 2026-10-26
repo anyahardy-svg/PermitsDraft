@@ -37,3 +37,19 @@ export const supabase = supabaseUrl && supabaseAnonKey
 export function getSupabaseAnonKey() {
   return supabaseAnonKey || null;
 }
+
+/** Refresh contractor Supabase Auth JWT before PostgREST reads (RLS requires authenticated). */
+export async function ensureSupabaseAuthFresh() {
+  if (!supabase) {
+    return { ok: false, reason: 'no_client' };
+  }
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !session) {
+    return { ok: false, reason: 'no_session' };
+  }
+  const { error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError) {
+    return { ok: false, reason: 'refresh_failed', error: refreshError.message };
+  }
+  return { ok: true };
+}

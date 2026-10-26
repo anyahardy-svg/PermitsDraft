@@ -577,13 +577,23 @@ export async function getCompanyTrainingRecordsStatus(companyId) {
     if (preferCompanyEdgeForAdmin()) {
       company = await fetchCompanyRowViaEdge(companyId);
     } else {
-      const { data, error: companyError } = await supabase
-        .from('companies')
-        .select('training_records_total, training_records_approved')
-        .eq('id', companyId)
-        .single();
-      if (companyError) throw companyError;
-      company = data;
+      try {
+        const { data, error: companyError } = await supabase
+          .from('companies')
+          .select('training_records_total, training_records_approved')
+          .eq('id', companyId)
+          .single();
+        if (companyError) throw companyError;
+        company = data;
+      } catch (directError) {
+        const directMsg = directError?.message || String(directError);
+        if (/permission denied|42501/i.test(directMsg)) {
+          throw new Error(
+            'Training records status is unavailable: sign in as admin (Companies) or refresh your contractor login.',
+          );
+        }
+        throw directError;
+      }
     }
 
     const result = trainingRecordsStatusFromRow(company);

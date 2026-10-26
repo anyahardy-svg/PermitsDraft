@@ -37,7 +37,12 @@ export function isAdminSessionActive() {
       return false;
     }
     const parsed = JSON.parse(session);
-    return Boolean(parsed?.active);
+    // Match App.js admin session: legacy sessions may omit `active`; only explicit false logs out.
+    if (parsed?.active === false) {
+      return false;
+    }
+    const admin = JSON.parse(adminData);
+    return Boolean(admin?.id);
   } catch {
     return false;
   }
