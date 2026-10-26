@@ -1,6 +1,17 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getNzYmd } from "../_shared/nzDates.ts";
-import { DEFAULT_CONTRACTOR_TYPE } from "../_shared/contractorType.ts";
+
+/** Inlined for Dashboard deploy (paste single file — no ../_shared bundle). Keep in sync with _shared/*. */
+function getNzYmd(date: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Pacific/Auckland",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+/** Keep in sync with src/utils/contractorAccreditationRequirements.js */
+const DEFAULT_CONTRACTOR_TYPE = "B";
 
 const VERSION = "2026-09-28-v12";
 const PAGE_SIZE = 1000;

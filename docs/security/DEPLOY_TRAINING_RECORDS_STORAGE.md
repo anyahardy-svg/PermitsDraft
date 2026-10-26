@@ -2,9 +2,11 @@
 
 Stops world-readable `/storage/v1/object/public/training-records/...` links. Files open via **signed URLs** (1 hour).
 
-## 1. Deploy `company-data` v6
+## 1. Deploy `company-data` v12
 
-Paste `supabase/functions/company-data/index.ts` → Deploy.
+Use **`docs/security/DEPLOY_COMPANY_DATA_V12.md`** (self-contained `index.ts` — no `../_shared` imports).
+
+Ping must return `"version":"2026-09-28-v12"` (or newer).
 
 Ping: `{"action":"ping"}` → **`2026-09-26-v6`**.
 
