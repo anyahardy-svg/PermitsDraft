@@ -513,13 +513,23 @@ export async function getCompanyTrainingMatricesStatus(companyId) {
     if (preferCompanyEdgeForAdmin()) {
       company = await fetchCompanyRowViaEdge(companyId);
     } else {
-      const { data, error } = await supabase
-        .from('companies')
-        .select('training_matrices_total, training_matrices_approved')
-        .eq('id', companyId)
-        .single();
-      if (error) throw error;
-      company = data;
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('training_matrices_total, training_matrices_approved')
+          .eq('id', companyId)
+          .single();
+        if (error) throw error;
+        company = data;
+      } catch (directError) {
+        const directMsg = directError?.message || String(directError);
+        if (/permission denied|42501/i.test(directMsg)) {
+          throw new Error(
+            'Training matrix status is unavailable: sign in as admin (Companies) or refresh your contractor login.',
+          );
+        }
+        throw directError;
+      }
     }
 
     return trainingMatricesStatusFromRow(company);
