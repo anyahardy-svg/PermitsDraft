@@ -301,7 +301,7 @@ export async function updateCompanyTrainingMatrix(
       const { uploadBody, fileSize, contentType, originalName } = prepared;
 
       const companyName = await getCompanyName(existing.company_id);
-      const fileExt = originalName.split('.').pop();
+      const fileExt = extensionFromMime(contentType, originalName);
       const storagePath = buildCompanyTrainingMatrixStoragePath({
         companyName,
         fileExt,
