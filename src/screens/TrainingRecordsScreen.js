@@ -42,6 +42,8 @@ import {
   sortTrainingRecordsAlphabetically,
 } from '../utils/trainingRecordsDisplay';
 import { TRAINING_RECORDS_MAX_UPLOAD_MB } from '../utils/prepareTrainingRecordsUpload';
+import { isAdminSessionActive } from '../api/contractorData';
+import { ensureSupabaseAuthFresh } from '../supabaseClient';
 
 const TRAINING_RECORD_STATUS_FILTERS = [
   { value: 'all', label: 'All statuses' },
@@ -120,6 +122,17 @@ export default function TrainingRecordsScreen({
   const loadAllData = async () => {
     setLoading(true);
     try {
+      if (!isAdminSessionActive()) {
+        const auth = await ensureSupabaseAuthFresh();
+        if (!auth.ok) {
+          Alert.alert(
+            'Sign in required',
+            'Your contractor session has expired. Sign out and sign in again, then reopen Training Records.',
+          );
+          return;
+        }
+      }
+
       const contractors = await getContractorInductionsForCompany(loggedInCompanyId);
       setInductedContractors(contractors || []);
 
