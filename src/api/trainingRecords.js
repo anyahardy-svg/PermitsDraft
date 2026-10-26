@@ -33,6 +33,7 @@ import {
   trainingRecordsDataUpdate,
 } from './trainingRecordsData';
 import { prepareTrainingRecordsUpload } from '../utils/prepareTrainingRecordsUpload';
+import { extensionFromMime } from '../utils/fileValidation';
 
 async function resolveContractorCompanyId(contractorId) {
   if (!contractorId) {
@@ -252,7 +253,7 @@ export async function uploadTrainingRecord(
     const fileType = normalizeFileType({ ...file, type: preparedContentType || file.type });
 
     // Generate readable file path: company/contractor/training_type/timestamp.ext
-    const fileExt = originalName.split('.').pop();
+    const fileExt = extensionFromMime(fileType, originalName);
     const fileName = buildTrainingRecordStoragePath({
       companyName,
       contractorName,
@@ -828,7 +829,7 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
       const fileType = normalizeFileType({ ...file, type: preparedContentType || file.type });
 
       // Generate readable file path: company/contractor/training_type/timestamp.ext
-      const fileExt = originalName.split('.').pop();
+      const fileExt = extensionFromMime(fileType, originalName);
       const fileName = buildTrainingRecordStoragePath({
         companyName,
         contractorName,

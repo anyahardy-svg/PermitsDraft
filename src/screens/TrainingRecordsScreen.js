@@ -137,6 +137,13 @@ export default function TrainingRecordsScreen({
       }
     } catch (error) {
       console.error('Error loading data:', error);
+      const message = error?.message || 'Please try again.';
+      Alert.alert(
+        'Could not load training records',
+        /session expired|not signed in|permission denied|42501/i.test(message)
+          ? 'Your session may have expired or you may not have access. Sign in again (admin or contractor) and retry.'
+          : message,
+      );
     } finally {
       setLoading(false);
     }
@@ -964,7 +971,7 @@ export default function TrainingRecordsScreen({
                   {selectedFile ? '✓ ' + selectedFile.name : '📎 Tap to attach file'}
                 </Text>
                 <Text style={{ fontSize: 11, color: '#9CA3AF' }}>
-                  PDF and image files only (max {TRAINING_RECORDS_MAX_UPLOAD_MB}MB)
+                  PDF and image files (max {TRAINING_RECORDS_MAX_UPLOAD_MB}MB). Large files are compressed automatically before upload.
                 </Text>
               </TouchableOpacity>
             </View>

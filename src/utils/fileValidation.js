@@ -86,6 +86,21 @@ export const validateFileSize = (fileSizeBytes, maxSizeMB = 50) => {
  * @param {number} maxSizeMB - Maximum allowed size in MB (default: 50MB)
  * @returns {Object} - { valid: boolean, error: string|null, isImage: boolean, isPDF: boolean }
  */
+export function extensionFromMime(contentType, fileName = '') {
+  const map = {
+    'application/pdf': 'pdf',
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+  };
+  if (contentType && map[contentType]) {
+    return map[contentType];
+  }
+  const ext = (fileName.split('.').pop() || 'pdf').toLowerCase();
+  return ext.replace(/[^a-z0-9]/g, '') || 'pdf';
+}
+
 export const validateFile = (file, maxSizeMB = 50) => {
   // Validate type
   const typeValidation = validateFileType(file);

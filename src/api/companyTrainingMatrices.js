@@ -13,6 +13,7 @@ import {
 } from '../utils/storagePaths';
 import { trainingRecordsFileReference } from './trainingRecordsStorage';
 import { prepareTrainingRecordsUpload } from '../utils/prepareTrainingRecordsUpload';
+import { extensionFromMime } from '../utils/fileValidation';
 import {
   fetchCompanyRowViaEdge,
   fetchCompanyRowsByIdsViaEdge,
@@ -190,7 +191,7 @@ export async function uploadCompanyTrainingMatrix(
 
     const matrixName = (name || '').trim() || defaultNameFromFile(file);
     const companyName = await getCompanyName(companyId);
-    const fileExt = originalName.split('.').pop();
+    const fileExt = extensionFromMime(contentType, originalName);
     const storagePath = buildCompanyTrainingMatrixStoragePath({
       companyName,
       fileExt,
