@@ -3,7 +3,7 @@
  * Company Training Matrices (top) + Individual Training Records (bottom)
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { formatDateNz } from '../utils/nzDates';
 import {
   View,
@@ -35,6 +35,19 @@ import {
 } from '../api/companyTrainingMatrices';
 import { getContractorInductionsForCompany } from '../api/inductions';
 import { openTrainingRecordsFile } from '../api/trainingRecordsStorage';
+import {
+  filterTrainingMatrices,
+  filterTrainingRecords,
+  sortTrainingMatricesAlphabetically,
+  sortTrainingRecordsAlphabetically,
+} from '../utils/trainingRecordsDisplay';
+
+const TRAINING_RECORD_STATUS_FILTERS = [
+  { value: 'all', label: 'All statuses' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'expired', label: 'Expired' },
+];
 
 export default function TrainingRecordsScreen({
   loggedInCompanyId,
@@ -73,6 +86,14 @@ export default function TrainingRecordsScreen({
   const [editMatrixContractorIds, setEditMatrixContractorIds] = useState([]);
 
   const [showContractorDropdown, setShowContractorDropdown] = useState(false);
+
+  const [recordsSearch, setRecordsSearch] = useState('');
+  const [recordsStatusFilter, setRecordsStatusFilter] = useState('all');
+  const [recordsContractorFilter, setRecordsContractorFilter] = useState('all');
+  const [showRecordsContractorFilter, setShowRecordsContractorFilter] = useState(false);
+
+  const [matrixSearch, setMatrixSearch] = useState('');
+  const [matrixStatusFilter, setMatrixStatusFilter] = useState('all');
 
   useEffect(() => {
     if (loggedInCompanyId) {
@@ -405,6 +426,170 @@ export default function TrainingRecordsScreen({
     }
   };
 
+  const recordsContractorOptions = useMemo(() => {
+    const byId = new Map();
+    trainingRecords.forEach((record) => {
+      const id = record.contractor_id || record.contractor?.id;
+      const name = record.contractor_name || record.contractor?.name;
+      if (id && name && !byId.has(id)) {
+        byId.set(id, name);
+      }
+    });
+    return [...byId.entries()]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  }, [trainingRecords]);
+
+  const displayedTrainingRecords = useMemo(() => {
+    const sorted = sortTrainingRecordsAlphabetically(trainingRecords);
+    return filterTrainingRecords(sorted, {
+      search: recordsSearch,
+      status: recordsStatusFilter,
+      contractorId: recordsContractorFilter,
+    });
+  }, [trainingRecords, recordsSearch, recordsStatusFilter, recordsContractorFilter]);
+
+  const displayedTrainingMatrices = useMemo(() => {
+    const sorted = sortTrainingMatricesAlphabetically(trainingMatrices);
+    return filterTrainingMatrices(sorted, {
+      search: matrixSearch,
+      status: matrixStatusFilter,
+    });
+  }, [trainingMatrices, matrixSearch, matrixStatusFilter]);
+
+  const recordsContractorFilterLabel =
+    recordsContractorFilter === 'all'
+      ? 'All contractors'
+      : recordsContractorOptions.find((c) => c.id === recordsContractorFilter)?.name || 'All contractors';
+
+  const renderStatusFilterChips = (value, onChange) => (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      {TRAINING_RECORD_STATUS_FILTERS.map((option) => {
+        const selected = value === option.value;
+        return (
+          <TouchableOpacity
+            key={option.value}
+            onPress={() => onChange(option.value)}
+            style={{
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              borderRadius: 999,
+              borderWidth: 1,
+              borderColor: selected ? '#3B82F6' : '#D1D5DB',
+              backgroundColor: selected ? '#EFF6FF' : 'white',
+            }}
+          >
+            <Text style={{ fontSize: 12, fontWeight: '600', color: selected ? '#1D4ED8' : '#4B5563' }}>
+              {option.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+
+  const renderRecordsFilters = () => (
+    <View style={{ paddingHorizontal: 16, marginBottom: 12, gap: 10 }}>
+      <TextInput
+        style={{
+          borderWidth: 1,
+          borderColor: '#D1D5DB',
+          borderRadius: 8,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          fontSize: 14,
+          color: '#1F2937',
+          backgroundColor: 'white',
+        }}
+        placeholder="Search by contractor, training name, or file"
+        value={recordsSearch}
+        onChangeText={setRecordsSearch}
+      />
+      {renderStatusFilterChips(recordsStatusFilter, setRecordsStatusFilter)}
+      {recordsContractorOptions.length > 1 && (
+        <View>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Contractor</Text>
+          <TouchableOpacity
+            style={{
+              borderWidth: 1,
+              borderColor: '#D1D5DB',
+              borderRadius: 8,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              backgroundColor: recordsContractorFilter !== 'all' ? '#EFF6FF' : 'white',
+            }}
+            onPress={() => setShowRecordsContractorFilter(!showRecordsContractorFilter)}
+          >
+            <Text style={{ fontSize: 14, color: '#1F2937' }}>{recordsContractorFilterLabel}</Text>
+          </TouchableOpacity>
+          {showRecordsContractorFilter && (
+            <View
+              style={{
+                borderWidth: 1,
+                borderColor: '#D1D5DB',
+                borderRadius: 8,
+                marginTop: 4,
+                backgroundColor: 'white',
+                maxHeight: 180,
+              }}
+            >
+              <ScrollView nestedScrollEnabled>
+                <TouchableOpacity
+                  style={{ paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                  onPress={() => {
+                    setRecordsContractorFilter('all');
+                    setShowRecordsContractorFilter(false);
+                  }}
+                >
+                  <Text style={{ fontSize: 14, color: '#1F2937' }}>All contractors</Text>
+                </TouchableOpacity>
+                {recordsContractorOptions.map((contractor) => (
+                  <TouchableOpacity
+                    key={contractor.id}
+                    style={{ paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                    onPress={() => {
+                      setRecordsContractorFilter(contractor.id);
+                      setShowRecordsContractorFilter(false);
+                    }}
+                  >
+                    <Text style={{ fontSize: 14, color: '#1F2937' }}>{contractor.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+      )}
+      <Text style={{ fontSize: 11, color: '#6B7280' }}>
+        Showing {displayedTrainingRecords.length} of {trainingRecords.length} records (sorted A–Z by contractor, then training name)
+      </Text>
+    </View>
+  );
+
+  const renderMatrixFilters = () => (
+    <View style={{ paddingHorizontal: 16, marginBottom: 12, gap: 10 }}>
+      <TextInput
+        style={{
+          borderWidth: 1,
+          borderColor: '#D1D5DB',
+          borderRadius: 8,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          fontSize: 14,
+          color: '#1F2937',
+          backgroundColor: 'white',
+        }}
+        placeholder="Search matrix name, people covered, or file"
+        value={matrixSearch}
+        onChangeText={setMatrixSearch}
+      />
+      {renderStatusFilterChips(matrixStatusFilter, setMatrixStatusFilter)}
+      <Text style={{ fontSize: 11, color: '#6B7280' }}>
+        Showing {displayedTrainingMatrices.length} of {trainingMatrices.length} matrices (sorted A–Z by name)
+      </Text>
+    </View>
+  );
+
   const renderContractorChecklist = (selectedIds, setSelectedIds) => (
     <View style={{ marginBottom: 16 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -465,6 +650,13 @@ export default function TrainingRecordsScreen({
           No company matrices yet. Upload one matrix and select the people it covers.
         </Text>
       ) : (
+        <>
+          {renderMatrixFilters()}
+          {displayedTrainingMatrices.length === 0 ? (
+            <Text style={{ fontSize: 13, color: '#6B7280', paddingHorizontal: 16, marginBottom: 8 }}>
+              No matrices match your filters.
+            </Text>
+          ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator>
           <View style={{ paddingHorizontal: 16 }}>
             <View style={{
@@ -483,7 +675,7 @@ export default function TrainingRecordsScreen({
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 80, paddingRight: 8 }}>Status</Text>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 240, paddingRight: 8 }}>Actions</Text>
             </View>
-            {trainingMatrices.map((matrix, idx) => (
+            {displayedTrainingMatrices.map((matrix, idx) => (
               <View
                 key={matrix.id}
                 style={{
@@ -538,6 +730,8 @@ export default function TrainingRecordsScreen({
             ))}
           </View>
         </ScrollView>
+          )}
+        </>
       )}
     </View>
   );
@@ -552,6 +746,13 @@ export default function TrainingRecordsScreen({
           No individual records yet. Click "+ Individual Record" to add one.
         </Text>
       ) : (
+        <>
+          {renderRecordsFilters()}
+          {displayedTrainingRecords.length === 0 ? (
+            <Text style={{ fontSize: 13, color: '#6B7280', paddingHorizontal: 16, marginBottom: 16 }}>
+              No records match your filters.
+            </Text>
+          ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator>
           <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
             <View style={{
@@ -570,7 +771,7 @@ export default function TrainingRecordsScreen({
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 80, paddingRight: 8 }}>Status</Text>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 240, paddingRight: 8 }}>Actions</Text>
             </View>
-            {trainingRecords.map((record, idx) => (
+            {displayedTrainingRecords.map((record, idx) => (
               <View
                 key={record.id}
                 style={{
@@ -627,6 +828,8 @@ export default function TrainingRecordsScreen({
             ))}
           </View>
         </ScrollView>
+          )}
+        </>
       )}
     </View>
   );
