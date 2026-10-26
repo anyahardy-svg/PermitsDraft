@@ -2,34 +2,13 @@
  * Company data via Edge Function (service role) after anon lock-down on `companies`.
  */
 
-import { supabase } from '../supabaseClient';
 import { getRequestingAdminId, isAdminSessionActive } from './contractorData';
+import { invokeSupabaseEdge } from '../utils/invokeSupabaseEdge';
 
 export { getRequestingAdminId, isAdminSessionActive };
 
 async function invokeCompanyData(payload) {
-  if (!supabase) {
-    return { data: null, error: { message: 'Supabase client is not configured' } };
-  }
-
-  const { data, error } = await supabase.functions.invoke('company-data', { body: payload });
-
-  if (error) {
-    let responseBody = data;
-    if (!responseBody && error?.context && typeof error.context.json === 'function') {
-      try {
-        responseBody = await error.context.json();
-      } catch (parseError) {
-        console.warn('Could not parse company-data error body:', parseError);
-      }
-    }
-    if (responseBody && typeof responseBody === 'object') {
-      return { data: responseBody, error: null };
-    }
-    return { data: null, error };
-  }
-
-  return { data, error: null };
+  return invokeSupabaseEdge('company-data', payload);
 }
 
 async function invokeOrThrow(payload, fallbackMessage) {

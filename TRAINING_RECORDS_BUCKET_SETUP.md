@@ -36,7 +36,7 @@ node setup-bucket.js
 |---------|-------|
 | **Name** | `training-records` |
 | **Public** | No (Private) |
-| **Max File Size** | 5 MB |
+| **Max File Size** | 50 MB (run `migrations/increase-training-records-bucket-size.sql` if the bucket was created at 5 MB) |
 | **Allowed MIME Types** | application/pdf, image/jpeg, image/png, image/gif, image/webp |
 
 ## Security Notes

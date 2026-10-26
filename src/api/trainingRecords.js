@@ -24,12 +24,16 @@ import {
   preferTrainingRecordsEdgeForAdmin,
   trainingRecordsDataApprove,
   trainingRecordsDataApproveAllPending,
+  trainingRecordsDataCreate,
+  trainingRecordsDataCreateUploadSignedUrl,
   trainingRecordsDataDelete,
   trainingRecordsDataGet,
   trainingRecordsDataListByCompany,
   trainingRecordsDataListByContractor,
   trainingRecordsDataUpdate,
 } from './trainingRecordsData';
+import { prepareTrainingRecordsUpload } from '../utils/prepareTrainingRecordsUpload';
+import { extensionFromMime } from '../utils/fileValidation';
 
 async function resolveContractorCompanyId(contractorId) {
   if (!contractorId) {
@@ -242,22 +246,14 @@ export async function uploadTrainingRecord(
   try {
     console.log('📤 Uploading training record:', { contractorId, trainingType, fileName: file.name });
 
-    // Validate file type
-    if (!isValidFileType(file)) {
-      throw new Error('Only PDF and image files (JPG, PNG, GIF, WebP) are allowed');
-    }
-
-    // Check file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      throw new Error('File size exceeds 5MB limit');
-    }
+    const prepared = await prepareTrainingRecordsUpload(file);
+    const { uploadBody, fileSize, contentType: preparedContentType, originalName } = prepared;
 
     const { contractorName, companyName } = await getContractorStorageContext(contractorId, companyId);
-    const fileType = normalizeFileType(file);
+    const fileType = normalizeFileType({ ...file, type: preparedContentType || file.type });
 
     // Generate readable file path: company/contractor/training_type/timestamp.ext
-    const fileExt = file.name.split('.').pop();
+    const fileExt = extensionFromMime(fileType, originalName);
     const fileName = buildTrainingRecordStoragePath({
       companyName,
       contractorName,
@@ -265,43 +261,66 @@ export async function uploadTrainingRecord(
       fileExt,
     });
 
-    // Upload file to Supabase Storage
-    console.log('📁 Uploading to storage:', fileName);
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('training-records')
-      .upload(fileName, file, { contentType: fileType });
-
-    if (uploadError) {
-      console.error('❌ Storage upload error:', uploadError);
-      throw uploadError;
-    }
-
-    console.log('✅ File uploaded to storage');
-
-    console.log('📥 Creating training record in DB');
-
     const fileReference = trainingRecordsFileReference(fileName);
+    let record = null;
 
-    // Create record in database
-    const { data: record, error: dbError } = await supabase
-      .from('training_records')
-      .insert([{
+    if (preferTrainingRecordsEdgeForAdmin()) {
+      console.log('📁 Uploading to storage via admin edge signed URL:', fileName);
+      const { token, path } = await trainingRecordsDataCreateUploadSignedUrl(fileName);
+      const { error: uploadError } = await supabase.storage
+        .from('training-records')
+        .uploadToSignedUrl(path, token, uploadBody, { contentType: fileType });
+
+      if (uploadError) {
+        console.error('❌ Storage upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('📥 Creating training record via edge');
+      record = await trainingRecordsDataCreate({
         contractor_id: contractorId,
         training_type: trainingType,
-        file_name: file.name,
+        file_name: originalName,
         file_url: fileReference,
-        file_size: file.size,
+        file_size: fileSize,
         file_type: fileType,
         expiry_date: formatDateForDb(expiryDate),
         notes: notes || null,
-        status: 'pending'
-      }])
-      .select()
-      .single();
+        status: 'pending',
+      });
+    } else {
+      console.log('📁 Uploading to storage:', fileName);
+      const { error: uploadError } = await supabase.storage
+        .from('training-records')
+        .upload(fileName, uploadBody, { contentType: fileType });
 
-    if (dbError) {
-      console.error('❌ Database error:', dbError);
-      throw dbError;
+      if (uploadError) {
+        console.error('❌ Storage upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('📥 Creating training record in DB');
+      const { data, error: dbError } = await supabase
+        .from('training_records')
+        .insert([{
+          contractor_id: contractorId,
+          training_type: trainingType,
+          file_name: originalName,
+          file_url: fileReference,
+          file_size: fileSize,
+          file_type: fileType,
+          expiry_date: formatDateForDb(expiryDate),
+          notes: notes || null,
+          status: 'pending',
+        }])
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error('❌ Database error:', dbError);
+        throw dbError;
+      }
+      record = data;
     }
 
     console.log('✅ Training record created:', record.id);
@@ -368,13 +387,9 @@ export async function getTrainingRecordsByCompany(companyId) {
     console.log('📋 Fetching training records for company:', companyId);
 
     if (preferTrainingRecordsEdgeForAdmin()) {
-      try {
-        const sortedRecords = await trainingRecordsDataListByCompany(companyId);
-        console.log(`✅ Fetched ${sortedRecords.length} training records for company (edge)`);
-        return { success: true, data: sortedRecords };
-      } catch (edgeError) {
-        console.warn('getTrainingRecordsByCompany edge failed, fallback:', edgeError?.message);
-      }
+      const sortedRecords = await trainingRecordsDataListByCompany(companyId);
+      console.log(`✅ Fetched ${sortedRecords.length} training records for company (edge)`);
+      return { success: true, data: sortedRecords };
     }
 
     const contractors = await loadContractorsForCompany(companyId);
@@ -807,22 +822,14 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
     if (file) {
       console.log('📤 Uploading new file for training record');
 
-      // Validate file type
-      if (!isValidFileType(file)) {
-        throw new Error('Only PDF and image files (JPG, PNG, GIF, WebP) are allowed');
-      }
-
-      // Check file size (max 5MB)
-      const maxSize = 5 * 1024 * 1024;
-      if (file.size > maxSize) {
-        throw new Error('File size exceeds 5MB limit');
-      }
+      const prepared = await prepareTrainingRecordsUpload(file);
+      const { uploadBody, fileSize, contentType: preparedContentType, originalName } = prepared;
 
       const { contractorName, companyName } = await getContractorStorageContext(record.contractor_id);
-      const fileType = normalizeFileType(file);
+      const fileType = normalizeFileType({ ...file, type: preparedContentType || file.type });
 
       // Generate readable file path: company/contractor/training_type/timestamp.ext
-      const fileExt = file.name.split('.').pop();
+      const fileExt = extensionFromMime(fileType, originalName);
       const fileName = buildTrainingRecordStoragePath({
         companyName,
         contractorName,
@@ -834,7 +841,7 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
       console.log('📁 Uploading to storage:', fileName);
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('training-records')
-        .upload(fileName, file, { contentType: fileType });
+        .upload(fileName, uploadBody, { contentType: fileType });
 
       if (uploadError) {
         console.error('❌ Storage upload error:', uploadError);
@@ -860,8 +867,8 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
       }
 
       updateData.file_url = fileReference;
-      updateData.file_name = file.name;
-      updateData.file_size = file.size;
+      updateData.file_name = originalName;
+      updateData.file_size = fileSize;
       updateData.file_type = fileType;
 
       // Reset status to pending since new file uploaded
