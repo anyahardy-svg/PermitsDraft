@@ -12,6 +12,7 @@ import {
   extractTrainingRecordsStoragePath,
 } from '../utils/storagePaths';
 import { trainingRecordsFileReference } from './trainingRecordsStorage';
+import { prepareTrainingRecordsUpload } from '../utils/prepareTrainingRecordsUpload';
 import {
   fetchCompanyRowViaEdge,
   fetchCompanyRowsByIdsViaEdge,
@@ -184,18 +185,12 @@ export async function uploadCompanyTrainingMatrix(
     if (!contractorIds || contractorIds.length === 0) {
       throw new Error('Please select at least one person covered by this matrix');
     }
-    if (!isValidFileType(file)) {
-      throw new Error('Only PDF and image files (JPG, PNG, GIF, WebP) are allowed');
-    }
-
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      throw new Error('File size exceeds 5MB limit');
-    }
+    const prepared = await prepareTrainingRecordsUpload(file);
+    const { uploadBody, fileSize, contentType, originalName } = prepared;
 
     const matrixName = (name || '').trim() || defaultNameFromFile(file);
     const companyName = await getCompanyName(companyId);
-    const fileExt = file.name.split('.').pop();
+    const fileExt = originalName.split('.').pop();
     const storagePath = buildCompanyTrainingMatrixStoragePath({
       companyName,
       fileExt,
@@ -203,7 +198,7 @@ export async function uploadCompanyTrainingMatrix(
 
     const { error: uploadError } = await supabase.storage
       .from('training-records')
-      .upload(storagePath, file);
+      .upload(storagePath, uploadBody, { contentType: contentType || 'application/pdf' });
 
     if (uploadError) throw uploadError;
 
@@ -214,10 +209,10 @@ export async function uploadCompanyTrainingMatrix(
       .insert([{
         company_id: companyId,
         name: matrixName,
-        file_name: file.name,
+        file_name: originalName,
         file_url: fileReference,
-        file_size: file.size,
-        file_type: file.type || 'application/pdf',
+        file_size: fileSize,
+        file_type: contentType || 'application/pdf',
         expiry_date: expiryDate,
         uploaded_by: uploadedBy,
         status: 'pending'
@@ -301,16 +296,11 @@ export async function updateCompanyTrainingMatrix(
     }
 
     if (file) {
-      if (!isValidFileType(file)) {
-        throw new Error('Only PDF and image files (JPG, PNG, GIF, WebP) are allowed');
-      }
-      const maxSize = 5 * 1024 * 1024;
-      if (file.size > maxSize) {
-        throw new Error('File size exceeds 5MB limit');
-      }
+      const prepared = await prepareTrainingRecordsUpload(file);
+      const { uploadBody, fileSize, contentType, originalName } = prepared;
 
       const companyName = await getCompanyName(existing.company_id);
-      const fileExt = file.name.split('.').pop();
+      const fileExt = originalName.split('.').pop();
       const storagePath = buildCompanyTrainingMatrixStoragePath({
         companyName,
         fileExt,
@@ -318,7 +308,7 @@ export async function updateCompanyTrainingMatrix(
 
       const { error: uploadError } = await supabase.storage
         .from('training-records')
-        .upload(storagePath, file);
+        .upload(storagePath, uploadBody, { contentType: contentType || 'application/pdf' });
 
       if (uploadError) throw uploadError;
 
@@ -336,9 +326,9 @@ export async function updateCompanyTrainingMatrix(
       }
 
       updateData.file_url = fileReference;
-      updateData.file_name = file.name;
-      updateData.file_size = file.size;
-      updateData.file_type = file.type || 'application/pdf';
+      updateData.file_name = originalName;
+      updateData.file_size = fileSize;
+      updateData.file_type = contentType || 'application/pdf';
       requiresReapproval = true;
     }
 

@@ -30,6 +30,7 @@ import {
   trainingRecordsDataListByContractor,
   trainingRecordsDataUpdate,
 } from './trainingRecordsData';
+import { prepareTrainingRecordsUpload } from '../utils/prepareTrainingRecordsUpload';
 
 async function resolveContractorCompanyId(contractorId) {
   if (!contractorId) {
@@ -242,22 +243,14 @@ export async function uploadTrainingRecord(
   try {
     console.log('📤 Uploading training record:', { contractorId, trainingType, fileName: file.name });
 
-    // Validate file type
-    if (!isValidFileType(file)) {
-      throw new Error('Only PDF and image files (JPG, PNG, GIF, WebP) are allowed');
-    }
-
-    // Check file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      throw new Error('File size exceeds 5MB limit');
-    }
+    const prepared = await prepareTrainingRecordsUpload(file);
+    const { uploadBody, fileSize, contentType: preparedContentType, originalName } = prepared;
 
     const { contractorName, companyName } = await getContractorStorageContext(contractorId, companyId);
-    const fileType = normalizeFileType(file);
+    const fileType = normalizeFileType({ ...file, type: preparedContentType || file.type });
 
     // Generate readable file path: company/contractor/training_type/timestamp.ext
-    const fileExt = file.name.split('.').pop();
+    const fileExt = originalName.split('.').pop();
     const fileName = buildTrainingRecordStoragePath({
       companyName,
       contractorName,
@@ -269,7 +262,7 @@ export async function uploadTrainingRecord(
     console.log('📁 Uploading to storage:', fileName);
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('training-records')
-      .upload(fileName, file, { contentType: fileType });
+      .upload(fileName, uploadBody, { contentType: fileType });
 
     if (uploadError) {
       console.error('❌ Storage upload error:', uploadError);
@@ -288,9 +281,9 @@ export async function uploadTrainingRecord(
       .insert([{
         contractor_id: contractorId,
         training_type: trainingType,
-        file_name: file.name,
+        file_name: originalName,
         file_url: fileReference,
-        file_size: file.size,
+        file_size: fileSize,
         file_type: fileType,
         expiry_date: formatDateForDb(expiryDate),
         notes: notes || null,
@@ -807,22 +800,14 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
     if (file) {
       console.log('📤 Uploading new file for training record');
 
-      // Validate file type
-      if (!isValidFileType(file)) {
-        throw new Error('Only PDF and image files (JPG, PNG, GIF, WebP) are allowed');
-      }
-
-      // Check file size (max 5MB)
-      const maxSize = 5 * 1024 * 1024;
-      if (file.size > maxSize) {
-        throw new Error('File size exceeds 5MB limit');
-      }
+      const prepared = await prepareTrainingRecordsUpload(file);
+      const { uploadBody, fileSize, contentType: preparedContentType, originalName } = prepared;
 
       const { contractorName, companyName } = await getContractorStorageContext(record.contractor_id);
-      const fileType = normalizeFileType(file);
+      const fileType = normalizeFileType({ ...file, type: preparedContentType || file.type });
 
       // Generate readable file path: company/contractor/training_type/timestamp.ext
-      const fileExt = file.name.split('.').pop();
+      const fileExt = originalName.split('.').pop();
       const fileName = buildTrainingRecordStoragePath({
         companyName,
         contractorName,
@@ -834,7 +819,7 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
       console.log('📁 Uploading to storage:', fileName);
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('training-records')
-        .upload(fileName, file, { contentType: fileType });
+        .upload(fileName, uploadBody, { contentType: fileType });
 
       if (uploadError) {
         console.error('❌ Storage upload error:', uploadError);
@@ -860,8 +845,8 @@ export async function updateTrainingRecord(recordId, file = null, expiryDate = n
       }
 
       updateData.file_url = fileReference;
-      updateData.file_name = file.name;
-      updateData.file_size = file.size;
+      updateData.file_name = originalName;
+      updateData.file_size = fileSize;
       updateData.file_type = fileType;
 
       // Reset status to pending since new file uploaded

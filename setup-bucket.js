@@ -27,7 +27,7 @@ async function setupBucket() {
     // Create the bucket
     const { data, error } = await supabase.storage.createBucket('training-records', {
       public: false, // Private bucket - uploads must be authenticated
-      fileSizeLimit: 5242880, // 5MB limit
+      fileSizeLimit: 52428800, // 50MB limit
       allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp']
     });
 
@@ -55,7 +55,7 @@ async function setupBucket() {
     console.log('\nBucket Details:');
     console.log('  Name: training-records');
     console.log('  Public: false (private)');
-    console.log('  Max file size: 5MB');
+    console.log('  Max file size: 50MB');
     console.log('  Allowed types: PDF, JPEG, PNG, GIF, WebP');
 
   } catch (error) {

@@ -41,6 +41,7 @@ import {
   sortTrainingMatricesAlphabetically,
   sortTrainingRecordsAlphabetically,
 } from '../utils/trainingRecordsDisplay';
+import { TRAINING_RECORDS_MAX_UPLOAD_MB } from '../utils/prepareTrainingRecordsUpload';
 
 const TRAINING_RECORD_STATUS_FILTERS = [
   { value: 'all', label: 'All statuses' },
@@ -962,7 +963,9 @@ export default function TrainingRecordsScreen({
                 <Text style={{ fontSize: 12, color: selectedFile ? '#10B981' : '#6B7280', marginBottom: 4 }}>
                   {selectedFile ? '✓ ' + selectedFile.name : '📎 Tap to attach file'}
                 </Text>
-                <Text style={{ fontSize: 11, color: '#9CA3AF' }}>PDF and image files only</Text>
+                <Text style={{ fontSize: 11, color: '#9CA3AF' }}>
+                  PDF and image files only (max {TRAINING_RECORDS_MAX_UPLOAD_MB}MB)
+                </Text>
               </TouchableOpacity>
             </View>
 
