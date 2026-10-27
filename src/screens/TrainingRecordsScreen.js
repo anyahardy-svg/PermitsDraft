@@ -984,7 +984,7 @@ export default function TrainingRecordsScreen({
                   {selectedFile ? '✓ ' + selectedFile.name : '📎 Tap to attach file'}
                 </Text>
                 <Text style={{ fontSize: 11, color: '#9CA3AF' }}>
-                  PDF and image files (max {TRAINING_RECORDS_MAX_UPLOAD_MB}MB). Large files are compressed automatically before upload.
+                  PDF and image files up to {TRAINING_RECORDS_MAX_UPLOAD_MB}MB. Photos are compressed automatically before upload.
                 </Text>
               </TouchableOpacity>
             </View>
