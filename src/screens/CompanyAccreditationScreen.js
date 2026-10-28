@@ -34,7 +34,6 @@ import {
   isTypeDContractor,
   getContractorTypeLabel,
   hasSafetyAccreditationSystemSelected,
-  hasAnyAccreditationSystemSelected,
   DEFAULT_CONTRACTOR_TYPE,
 } from '../utils/contractorAccreditationRequirements';
 import { mergeSiteIds } from '../utils/siteIds';
@@ -3072,10 +3071,7 @@ export default function CompanyAccreditationScreen({
   const contractorType = company?.contractor_type || DEFAULT_CONTRACTOR_TYPE;
   const isTypeDAccreditation = isTypeDContractor(contractorType);
   const contractorTypeLabel = getContractorTypeLabel(contractorType);
-  const anyAccreditationSystemSelected = hasAnyAccreditationSystemSelected(accreditedSystems);
   const safetyAccreditationSelected = hasSafetyAccreditationSystemSelected(accreditedSystems);
-  const showSection4Policies =
-    !anyAccreditationSystemSelected || isTypeDAccreditation;
   const iso9001Selected = accreditedSystems.iso_9001_certified?.checked || false;
   const iso14001Selected = accreditedSystems.iso_14001_certified?.checked || false;
 
@@ -5562,11 +5558,6 @@ export default function CompanyAccreditationScreen({
               <Text style={{ fontSize: 14, color: '#78350F', lineHeight: 21, marginBottom: 6 }}>
                 {`Company type is ${contractorTypeLabel}. This is not the Type D (Low Risk) short form.`}
               </Text>
-              {!showSection4Policies && (
-                <Text style={{ fontSize: 14, color: '#78350F', lineHeight: 21, marginBottom: 4 }}>
-                  • Section 4 (Policies) is hidden because you selected accreditation systems in Section 3. Policy evidence is expected through those programmes instead.
-                </Text>
-              )}
               {safetyAccreditationSelected && (
                 <Text style={{ fontSize: 14, color: '#78350F', lineHeight: 21, marginBottom: 4 }}>
                   • Sections 5–19 are hidden because a pre-qualification (e.g. Totika, SiteWise) is selected in Section 3. Those manual assessment sections only apply without those selections.
@@ -5595,9 +5586,8 @@ export default function CompanyAccreditationScreen({
             </View>
           )}
 
-          {/* SECTION 4: Policies - show for Type D, otherwise only when no accreditation systems selected */}
-          {showSection4Policies && (
-            <>
+          {/* SECTION 4: Policies — always visible (including when Section 3 accreditation is selected) */}
+          <>
               <TouchableOpacity
                 onPress={() => toggleSection(4)}
                 style={{
@@ -5758,7 +5748,6 @@ export default function CompanyAccreditationScreen({
                 </View>
               )}
             </>
-          )}
 
               {/* Sections 5-19 (Dynamic Rendering - hide sections 5-19 when safety accreditations are checked) */}
               {!isTypeDAccreditation && renderSections__719()}

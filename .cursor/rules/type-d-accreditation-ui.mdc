@@ -33,9 +33,7 @@ Default in code when `contractor_type` is missing is **`B`** (`DEFAULT_CONTRACTO
 
 ## Section 4 (Policies)
 
-For Type D, Section 4 is **always** shown (`isTypeDAccreditation`).
-
-For non–Type D, Section 4 is hidden when any Section 3 accreditation checkbox is checked.
+Section 4 is **always** shown for all contractor types, including when Section 3 accreditation systems (e.g. safety pre-qual) are selected.
 
 ## Do not confuse with save policy
 
