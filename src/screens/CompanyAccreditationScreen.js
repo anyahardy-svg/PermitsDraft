@@ -2660,6 +2660,87 @@ export default function CompanyAccreditationScreen({
     );
   };
 
+  const policyHasUploadedFile = (policyData) => {
+    const url = policyData?.url;
+    return typeof url === 'string' ? url.trim().length > 0 : !!url;
+  };
+
+  const renderPolicyDocumentRow = (policyKey, policyData, policyLabel) => {
+    const uploadKey = `policy-${policyKey}`;
+    const hasFile = policyHasUploadedFile(policyData);
+    const isUploading = uploadingDocumentKey === uploadKey;
+
+    if (isUploading) {
+      return (
+        <View style={{ paddingTop: 12, paddingBottom: 12, alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#3B82F6" style={{ marginBottom: 8 }} />
+          <Text style={{ fontSize: 18, color: '#3B82F6', fontWeight: '600' }}>⏳ Uploading {policyLabel}...</Text>
+        </View>
+      );
+    }
+
+    if (!hasFile) {
+      return (
+        <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', width: '100%' }}>
+          <View
+            style={{
+              marginBottom: 12,
+              paddingHorizontal: 10,
+              paddingVertical: 8,
+              backgroundColor: '#FFFBEB',
+              borderRadius: 4,
+              borderLeftWidth: 3,
+              borderLeftColor: '#F59E0B',
+            }}
+          >
+            <Text style={{ fontSize: 15, color: '#92400E', fontWeight: '600' }}>
+              Upload a PDF or image of this policy so reviewers can view it.
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#3B82F6',
+              paddingVertical: 12,
+              paddingHorizontal: 14,
+              borderRadius: 6,
+              alignItems: 'center',
+            }}
+            onPress={() => handleUploadPolicy(policyKey, policyLabel)}
+          >
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: '700', textAlign: 'center' }}>
+              📄 Upload document
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', width: '100%' }}>
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+          <TouchableOpacity
+            style={{ flex: 1, minWidth: 100, backgroundColor: '#10B981', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
+            onPress={() => openAccreditationDocument(policyData.url)}
+          >
+            <Text style={{ color: 'white', fontSize: 15, fontWeight: '600', textAlign: 'center' }}>📄 View</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ flex: 1, minWidth: 100, backgroundColor: '#EF4444', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
+            onPress={() => handleDeletePolicy(policyKey, policyLabel)}
+          >
+            <Text style={{ color: 'white', fontSize: 15, fontWeight: '600', textAlign: 'center' }}>🗑 Delete</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ flex: 1, minWidth: 100, backgroundColor: '#3B82F6', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center' }}
+            onPress={() => handleUploadPolicy(policyKey, policyLabel)}
+          >
+            <Text style={{ color: 'white', fontSize: 15, fontWeight: '600', textAlign: 'center' }}>📄 Replace</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   // Helper function to render evidence toggle button and UI (for backward compatibility)
   const renderEvidenceToggle = (sectionNum, itemKey, itemData, itemLabel) => {
     const evidenceUIKey = `section${sectionNum}-${itemKey}`;
@@ -5639,15 +5720,12 @@ export default function CompanyAccreditationScreen({
                       </Text>
                     </View>
 
-                    {policies.health_safety.exists && (
+                    {(policies.health_safety.exists || policyHasUploadedFile(policies.health_safety)) && (
                       <View style={{ paddingLeft: 36 }}>
-                        {renderDocumentToggle(
-                          'policy-health_safety',
+                        {renderPolicyDocumentRow(
+                          'health_safety',
                           policies.health_safety,
                           'Health and Safety Policy',
-                          () => handleUploadPolicy('health_safety', 'Health and Safety Policy'),
-                          () => handleDeletePolicy('health_safety', 'Health and Safety Policy'),
-                          'Document'
                         )}
                       </View>
                     )}
@@ -5670,15 +5748,12 @@ export default function CompanyAccreditationScreen({
                       </Text>
                     </View>
 
-                    {policies.environmental.exists && (
+                    {(policies.environmental.exists || policyHasUploadedFile(policies.environmental)) && (
                       <View style={{ paddingLeft: 36 }}>
-                        {renderDocumentToggle(
-                          'policy-environmental',
+                        {renderPolicyDocumentRow(
+                          'environmental',
                           policies.environmental,
                           'Environmental Policy',
-                          () => handleUploadPolicy('environmental', 'Environmental Policy'),
-                          () => handleDeletePolicy('environmental', 'Environmental Policy'),
-                          'Document'
                         )}
                       </View>
                     )}
@@ -5701,15 +5776,12 @@ export default function CompanyAccreditationScreen({
                       </Text>
                     </View>
 
-                    {policies.drug_alcohol.exists && (
+                    {(policies.drug_alcohol.exists || policyHasUploadedFile(policies.drug_alcohol)) && (
                       <View style={{ paddingLeft: 36 }}>
-                        {renderDocumentToggle(
-                          'policy-drug_alcohol',
+                        {renderPolicyDocumentRow(
+                          'drug_alcohol',
                           policies.drug_alcohol,
                           'Drug and Alcohol Policy',
-                          () => handleUploadPolicy('drug_alcohol', 'Drug and Alcohol Policy'),
-                          () => handleDeletePolicy('drug_alcohol', 'Drug and Alcohol Policy'),
-                          'Document'
                         )}
                       </View>
                     )}
@@ -5732,15 +5804,12 @@ export default function CompanyAccreditationScreen({
                       </Text>
                     </View>
 
-                    {policies.quality.exists && (
+                    {(policies.quality.exists || policyHasUploadedFile(policies.quality)) && (
                       <View style={{ paddingLeft: 36 }}>
-                        {renderDocumentToggle(
-                          'policy-quality',
+                        {renderPolicyDocumentRow(
+                          'quality',
                           policies.quality,
                           'Quality Policy',
-                          () => handleUploadPolicy('quality', 'Quality Policy'),
-                          () => handleDeletePolicy('quality', 'Quality Policy'),
-                          'Document'
                         )}
                       </View>
                     )}
