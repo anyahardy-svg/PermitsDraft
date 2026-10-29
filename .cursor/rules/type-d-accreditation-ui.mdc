@@ -35,6 +35,8 @@ Default in code when `contractor_type` is missing is **`B`** (`DEFAULT_CONTRACTO
 
 Section 4 is **always** shown for all contractor types, including when Section 3 accreditation systems (e.g. safety pre-qual) are selected.
 
+When a policy checkbox is checked but no file is stored yet, show **`Upload document`** (via `renderPolicyDocumentRow`). After upload, show **View / Delete / Replace** like other accreditation documents.
+
 ## Do not confuse with save policy
 
 See `accreditation-save-policy.mdc` — no background autosave on this form.
