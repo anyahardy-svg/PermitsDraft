@@ -14234,7 +14234,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         (async () => {
           try {
             console.log('🗑️ Deleting contractor:', id);
-            await deleteContractor(id);
+            await deleteContractor(id, loggedInAdmin?.id);
             console.log('✅ Contractor deleted successfully');
             const freshContractors = await listContractors();
             setContractors(freshContractors);

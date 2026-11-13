@@ -378,23 +378,26 @@ export const updateContractor = async (contractorId, updates) => {
   }
 };
 
-// Delete a contractor
-export const deleteContractor = async (contractorId) => {
+// Delete a contractor (admin / manager hub — uses contractor-data Edge; direct PostgREST delete is blocked by RLS).
+export const deleteContractor = async (contractorId, requestingAdminId) => {
   try {
-    if (shouldPreferContractorEdgeForAdmin()) {
-      return await withContractorDataFallback(
-        () => contractorDataDelete(contractorId),
-        async () => {
-          const { error } = await supabase.from('contractors').delete().eq('id', contractorId);
-          if (error) throw error;
-          return true;
-        },
-        { label: 'deleteContractor' },
-      );
+    const adminId = requestingAdminId || getRequestingAdminId();
+    const useEdge = Boolean(adminId) || shouldPreferContractorEdgeForAdmin();
+
+    if (useEdge) {
+      try {
+        return await contractorDataDelete(contractorId, adminId || undefined);
+      } catch (edgeError) {
+        const msg = edgeError?.message || String(edgeError);
+        throw new Error(
+          msg.includes('permission denied') || /42501/i.test(msg)
+            ? 'Delete failed: the contractors table is protected. Sign in again as admin and ensure the contractor-data Edge Function is deployed.'
+            : msg || 'Failed to delete contractor',
+        );
+      }
     }
-    const { error } = await supabase.from('contractors').delete().eq('id', contractorId);
-    if (error) throw error;
-    return true;
+
+    throw new Error('Sign in as an admin to delete contractors.');
   } catch (error) {
     console.error('Error deleting contractor:', error.message);
     throw error;
