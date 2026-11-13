@@ -10,7 +10,7 @@ function getNzYmd(date: Date = new Date()): string {
   }).format(date);
 }
 
-const VERSION = "2026-03-23-v7";
+const VERSION = "2026-03-28-v8";
 const IN_QUERY_BATCH_SIZE = 200;
 const PAGE_SIZE = 1000;
 
@@ -892,6 +892,12 @@ Deno.serve(async (req) => {
       if (!contractorId) {
         return jsonResponse({ success: false, error: "Missing contractor id" }, 400);
       }
+      await supabase.from("permits").delete().eq("contractor_id", contractorId);
+      await supabase.from("contractor_inductions").delete().eq("contractor_id", contractorId);
+      await supabase.from("contractor_induction_progress").delete().eq(
+        "contractor_id",
+        contractorId,
+      );
       const { error } = await supabase.from("contractors").delete().eq("id", contractorId);
       if (error) {
         return jsonResponse({ success: false, error: error.message }, 400);
