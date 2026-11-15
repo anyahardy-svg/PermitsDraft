@@ -10807,9 +10807,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 `Cancel = Keep contractors (unlink from company)`
               );
               
-              await deleteCompany(id, { deleteContractors });
+              await deleteCompany(id, { deleteContractors }, loggedInAdmin?.id);
             } else {
-              await deleteCompany(id);
+              await deleteCompany(id, {}, loggedInAdmin?.id);
             }
             
             console.log('✅ Company deleted successfully');

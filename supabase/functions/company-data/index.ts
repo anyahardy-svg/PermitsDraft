@@ -13,7 +13,7 @@ function getNzYmd(date: Date = new Date()): string {
 /** Keep in sync with src/utils/contractorAccreditationRequirements.js */
 const DEFAULT_CONTRACTOR_TYPE = "B";
 
-const VERSION = "2026-09-28-v12";
+const VERSION = "2026-03-28-v13";
 const PAGE_SIZE = 1000;
 const IN_QUERY_BATCH_SIZE = 200;
 
@@ -673,6 +673,10 @@ Deno.serve(async (req) => {
       if (options.deleteContractors && contractorIds.length > 0) {
         await supabase.from("permits").delete().in("contractor_id", contractorIds);
         await supabase.from("contractor_inductions").delete().in("contractor_id", contractorIds);
+        await supabase.from("contractor_induction_progress").delete().in(
+          "contractor_id",
+          contractorIds,
+        );
         await supabase.from("contractors").delete().eq("company_id", companyId);
       } else if (contractorIds.length > 0) {
         await supabase.from("permits").update({ contractor_id: null }).in("contractor_id", contractorIds);

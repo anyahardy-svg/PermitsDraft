@@ -487,23 +487,31 @@ async function deleteCompanyDirect(companyId, options = {}) {
   return true;
 }
 
-// Delete a company with options for handling linked contractors
-export const deleteCompany = async (companyId, options = {}) => {
+// Delete a company (admin — company-data Edge; direct PostgREST delete is blocked by RLS).
+export const deleteCompany = async (companyId, options = {}, requestingAdminId) => {
   try {
     if (!companyId) {
       console.warn('⚠️ deleteCompany called with null/undefined companyId');
       return null;
     }
 
-    if (shouldPreferCompanyEdgeForAdmin()) {
-      return await withCompanyDataFallback(
-        () => companyDataDelete(companyId, options),
-        () => deleteCompanyDirect(companyId, options),
-        { label: 'deleteCompany' },
-      );
+    const adminId = requestingAdminId || getRequestingAdminId();
+    const useEdge = Boolean(adminId) || shouldPreferCompanyEdgeForAdmin();
+
+    if (useEdge) {
+      try {
+        return await companyDataDelete(companyId, options, adminId || undefined);
+      } catch (edgeError) {
+        const msg = edgeError?.message || String(edgeError);
+        throw new Error(
+          msg.includes('permission denied') || /42501/i.test(msg)
+            ? 'Delete failed: the companies table is protected. Sign in again as admin and ensure the company-data Edge Function is deployed.'
+            : msg || 'Failed to delete company',
+        );
+      }
     }
 
-    return await deleteCompanyDirect(companyId, options);
+    throw new Error('Sign in as an admin to delete companies.');
   } catch (error) {
     console.error('Error deleting company:', error.message);
     throw error;
