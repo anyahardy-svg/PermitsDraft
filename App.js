@@ -3494,7 +3494,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [editingCompany, setEditingCompany] = useState(false);
   const [companyFormExpanded, setCompanyFormExpanded] = useState(false);
   const [companyContactDetailsExpanded, setCompanyContactDetailsExpanded] = useState(false);
-  const [currentCompany, setCurrentCompany] = useState({ 
+  const [currentCompany, setCurrentCompany] = useState({
     id: '', 
     name: '', 
     businessUnitIds: [], 
@@ -11450,7 +11450,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           {/* Form Section — collapsed by default so Companies Database stays primary */}
           <View style={styles.section}>
             <TouchableOpacity
-              style={styles.sectionHeader}
+              style={[
+                styles.sectionHeader,
+                Platform.OS === 'web' ? { cursor: 'pointer' } : null,
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: companyFormExpanded }}
               onPress={() => setCompanyFormExpanded((expanded) => !expanded)}
             >
               <Text style={styles.sectionTitle}>
@@ -11567,7 +11572,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     paddingVertical: 12,
                     paddingHorizontal: 12,
                     backgroundColor: '#F9FAFB',
+                    ...(Platform.OS === 'web' ? { cursor: 'pointer' } : null),
                   }}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: companyContactDetailsExpanded }}
                   onPress={() => setCompanyContactDetailsExpanded((expanded) => !expanded)}
                 >
                   <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151' }}>
