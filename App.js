@@ -3423,6 +3423,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [sitesForBusinessUnits, setSitesForBusinessUnits] = useState([]);
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [editingContractor, setEditingContractor] = useState(false);
+  const [showContractorForm, setShowContractorForm] = useState(false);
   const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], completedInductionIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
   const establishContractorAppSession = useCallback((contractorInfo) => {
     if (!contractorInfo?.companyId) {
@@ -3472,6 +3473,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [contractorCompletedInductions, setContractorCompletedInductions] = useState({});
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [editingCompany, setEditingCompany] = useState(false);
+  const [showCompanyForm, setShowCompanyForm] = useState(false);
   const [currentCompany, setCurrentCompany] = useState({ 
     id: '', 
     name: '', 
@@ -3874,12 +3876,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         permitIssuersScrollRef.current?.scrollTo({ y: 0 });
       }, 0);
     }
-    if (editingContractor && contractorsScrollRef.current) {
+    if ((editingContractor || showContractorForm) && contractorsScrollRef.current) {
       setTimeout(() => {
         contractorsScrollRef.current?.scrollTo({ y: 0 });
       }, 0);
     }
-    if (editingCompany && companiesScrollRef.current) {
+    if ((editingCompany || showCompanyForm) && companiesScrollRef.current) {
       setTimeout(() => {
         companiesScrollRef.current?.scrollTo({ y: 0 });
       }, 0);
@@ -3889,7 +3891,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         sitesScrollRef.current?.scrollTo({ y: 0 });
       }, 0);
     }
-  }, [editingPermitIssuer, editingContractor, editingCompany, editingSite]);
+  }, [editingPermitIssuer, editingContractor, editingCompany, editingSite, showCompanyForm, showContractorForm]);
 
   // Handle initialAdminRoute changes
   useEffect(() => {
@@ -10711,6 +10713,37 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   }, [currentScreen, loggedInAdmin?.id]);
 
   const renderManageCompanies = () => {
+    const emptyCompanyForm = {
+      id: '',
+      name: '',
+      businessUnitIds: [],
+      contactName: '',
+      contactSurname: '',
+      contactEmail: '',
+      contactPhone: '',
+      publicLiabilityExpiry: '',
+      motorVehicleInsuranceExpiry: '',
+      reviewDate: '',
+      accreditedDate: '',
+      contractor_type: DEFAULT_CONTRACTOR_TYPE,
+      inRadar: true,
+      assignedManagerId: '',
+      assignedHsPersonId: '',
+    };
+    const companyFormVisible = editingCompany || showCompanyForm;
+
+    const closeCompanyForm = () => {
+      setEditingCompany(false);
+      setShowCompanyForm(false);
+      setCurrentCompany(emptyCompanyForm);
+      setSelectedCompany(null);
+    };
+
+    const openAddCompanyForm = () => {
+      closeCompanyForm();
+      setShowCompanyForm(true);
+    };
+
     const handleAddCompany = async () => {
       if (!currentCompany.name) {
         Alert.alert('Missing Info', 'Please enter a company name.');
@@ -10748,6 +10781,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           await refreshTrainingRecordsStatus(currentCompany.id);
           
           setEditingCompany(false);
+          setShowCompanyForm(false);
           Alert.alert('Company Updated', 'Company has been updated successfully.');
         } else {
           const newCompany = await createCompany({ 
@@ -10774,9 +10808,10 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           
           console.log('✅ [COMPANY] New company created successfully:', newCompany);
           console.log('✅ [COMPANY] New company business_unit_ids:', newCompany.business_unit_ids);
+          setShowCompanyForm(false);
           Alert.alert('Company Added', 'New company has been added successfully.');
         }
-        setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: DEFAULT_CONTRACTOR_TYPE, inRadar: true, assignedManagerId: '', assignedHsPersonId: '' });
+        setCurrentCompany(emptyCompanyForm);
         setSelectedCompany(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to save company: ' + error.message);
@@ -11387,10 +11422,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingCompany(false); setSelectedCompany(null); }}>
+          <TouchableOpacity onPress={() => {
+            if (companyFormVisible) {
+              closeCompanyForm();
+              return;
+            }
+            setShowCompanyForm(false);
+            setCurrentScreen('admin');
+            setEditingCompany(false);
+            setSelectedCompany(null);
+          }}>
             <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>{editingCompany ? 'Edit Company' : 'Manage Companies'}</Text>
+          <Text style={styles.title}>
+            {editingCompany ? 'Edit Company' : showCompanyForm ? 'Add Company' : 'Manage Companies'}
+          </Text>
         </View>
         
         {/* Import Status Message - COMPANIES (MANAGE COMPANIES SCREEN) */}
@@ -11417,7 +11463,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         )}
         
         <ScrollView ref={companiesScrollRef} style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
-          {/* Form Section */}
+          {companyFormVisible && (
           <View style={styles.section}>
             <View style={styles.sectionContent}>
               <Text style={styles.label}>Company Name *</Text>
@@ -11605,22 +11651,24 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     : (editingCompany ? 'Update Company' : 'Add Company')}
                 </Text>
               </TouchableOpacity>
-              {editingCompany && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingCompany(false); setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: DEFAULT_CONTRACTOR_TYPE, inRadar: true }); setSelectedCompany(null); }}>
-                  <Text style={styles.addButtonText}>Cancel</Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity style={[styles.addButton, { backgroundColor: '#6B7280', marginTop: 8 }]} onPress={closeCompanyForm}>
+                <Text style={styles.addButtonText}>Cancel</Text>
+              </TouchableOpacity>
             </View>
           </View>
+          )}
 
-
-          {/* Companies List Section */}
-          <View style={{ marginTop: 24 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Companies Database</Text>
-              </View>
-              <TouchableOpacity style={{ backgroundColor: '#8B5CF6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginLeft: 8 }} onPress={() => { 
+          {!companyFormVisible && (
+          <View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 12, gap: 8 }}>
+              <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold', flexGrow: 1 }]}>Companies Database</Text>
+              <TouchableOpacity
+                style={{ backgroundColor: '#10B981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 }}
+                onPress={openAddCompanyForm}
+              >
+                <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>+ Add Company</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={{ backgroundColor: '#8B5CF6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 }} onPress={() => { 
                 setShowNewCompanyInvitationModal(true); 
                 setNewCompanyInvitationForm({
                   companyName: '',
@@ -11671,7 +11719,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             
             {companies.length === 0 ? (
               <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
-                <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>No companies added yet</Text>
+                <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>No companies yet. Tap “+ Add Company” to create one.</Text>
               </View>
             ) : (
               (() => {
@@ -11962,6 +12010,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                     assignedManagerId: company.assigned_manager_id || company.assignedManagerId || '',
                                     assignedHsPersonId: company.assigned_hs_person_id || company.assignedHsPersonId || '',
                                   };
+                                  setShowCompanyForm(false);
                                   setCurrentCompany(formattedCompany);
                                   setEditingCompany(true);
                                 }}
@@ -12018,6 +12067,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               })()
             )}
           </View>
+          )}
         </ScrollView>
 
         {/* Accreditation Modal - Full Screen Overlay */}
@@ -14053,6 +14103,36 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   // Manage Contractors Screen
   const renderManageContractors = () => {
+    const emptyContractorForm = {
+      id: '',
+      name: '',
+      email: '',
+      phone: '',
+      businessUnitIds: [],
+      services: [],
+      siteIds: [],
+      completedInductionIds: [],
+      company: '',
+      company_id: '',
+      inductionExpiry: '',
+      companyManuallyEntered: false,
+    };
+    const contractorFormVisible = editingContractor || showContractorForm;
+
+    const closeContractorForm = () => {
+      setEditingContractor(false);
+      setShowContractorForm(false);
+      setCurrentContractor(emptyContractorForm);
+      setSelectedContractor(null);
+      setShowCompanyDropdown(false);
+      setFilteredCompanies([]);
+    };
+
+    const openAddContractorForm = () => {
+      closeContractorForm();
+      setShowContractorForm(true);
+    };
+
     // Helper function to look up service names from IDs
     // Load all services on first render if not already loaded
     if (servicesForContractors.length === 0) {
@@ -14210,12 +14290,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
         if (editingContractor) {
           setEditingContractor(false);
+          setShowContractorForm(false);
           window.alert(`Contractor Updated: Contractor has been updated successfully.${assignedSuffix}`);
         } else {
+          setShowContractorForm(false);
           window.alert(`Contractor Added: New contractor has been added successfully.${assignedSuffix}`);
         }
 
-        setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], completedInductionIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
+        setCurrentContractor(emptyContractorForm);
         setSelectedContractor(null);
         setShowCompanyDropdown(false);
         setFilteredCompanies([]);
@@ -14843,10 +14925,21 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingContractor(false); setSelectedContractor(null); }}>
+          <TouchableOpacity onPress={() => {
+            if (contractorFormVisible) {
+              closeContractorForm();
+              return;
+            }
+            setShowContractorForm(false);
+            setCurrentScreen('admin');
+            setEditingContractor(false);
+            setSelectedContractor(null);
+          }}>
             <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>{editingContractor ? 'Edit Contractor' : 'Manage Contractors'}</Text>
+          <Text style={styles.title}>
+            {editingContractor ? 'Edit Contractor' : showContractorForm ? 'Add Contractor' : 'Manage Contractors'}
+          </Text>
         </View>
         
         {/* Import Status Message - CONTRACTORS (MANAGE CONTRACTORS SCREEN) */}
@@ -14873,7 +14966,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         )}
         
         <ScrollView ref={contractorsScrollRef} style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
-          {/* Form Section */}
+          {contractorFormVisible && (
           <View style={styles.section}>
             <View style={styles.sectionContent}>
               <Text style={styles.label}>Contractor Name *</Text>
@@ -15245,18 +15338,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     : (editingContractor ? 'Update Contractor' : 'Add Contractor')}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], completedInductionIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
+              <TouchableOpacity style={[styles.addButton, { backgroundColor: '#6B7280', marginTop: 8 }]} onPress={closeContractorForm}>
                 <Text style={styles.addButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
+          )}
 
-          {/* Contractors List Section */}
-          <View style={{ marginTop: 24, overflow: 'visible' }}>
+          {!contractorFormVisible && (
+          <View style={{ overflow: 'visible' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.label, { marginLeft: 0, fontSize: 16, fontWeight: 'bold' }]}>Contractors Database</Text>
               </View>
+              <TouchableOpacity
+                style={{ backgroundColor: '#F59E42', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginRight: 8 }}
+                onPress={openAddContractorForm}
+              >
+                <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>+ Add Contractor</Text>
+              </TouchableOpacity>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TouchableOpacity style={{ backgroundColor: '#3B82F6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 }} onPress={handleExportCSV}>
                   <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>Export CSV</Text>
@@ -15455,7 +15555,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
             {contractors.length === 0 ? (
               <View style={{ backgroundColor: 'white', borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 20, alignItems: 'center' }}>
-                <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>No contractors yet. Add one using the form above.</Text>
+                <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>No contractors yet. Tap “+ Add Contractor” to create one.</Text>
               </View>
             ) : (
               (() => {
@@ -15568,6 +15668,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                   setSitesForContractors([]);
                                 }
                                 
+                                setShowContractorForm(false);
                                 setSelectedContractor(contractor); 
                                 setEditingContractor(true); 
                                 setCurrentContractor(editedContractor); 
@@ -15590,6 +15691,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               })()
             )}
           </View>
+          </View>
+          )}
         </ScrollView>
       </View>
     );
