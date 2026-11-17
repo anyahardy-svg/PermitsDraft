@@ -35,6 +35,7 @@ import { sendAccreditationInvitation } from './src/api/sendgrid';
 import { sendAdminSetupEmail, sendAdminPasswordResetEmail } from './src/api/sendgrid';
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
 import { createContractor, listContractors, updateContractor, deleteContractor, findContractorInCompany } from './src/api/contractors';
+import { isAdminSessionActive, setRequestingAdminIdOverride } from './src/api/contractorData';
 import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSite, deleteSite } from './src/api/sites';
 import { listServicesForBusinessUnits, listAllServices, createService, updateService, deleteService, filterServicesForBusinessUnits } from './src/api/services';
 import { listBusinessUnits, createBusinessUnit, updateBusinessUnit, deleteBusinessUnit } from './src/api/business_units';
@@ -2518,16 +2519,16 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   // Admin session state - initialize from localStorage if available
   const [adminSessionActive, setAdminSessionActive] = useState(() => {
     try {
-      const savedSession = localStorage.getItem('adminSession');
-      const savedData = localStorage.getItem('adminData');
-      // Just check if both exist - device type validation will happen in useEffect
-      return !!(savedSession && savedData);
+      return isAdminSessionActive();
     } catch (e) {
       return false;
     }
   });
   const [loggedInAdmin, setLoggedInAdmin] = useState(() => {
     try {
+      if (!isAdminSessionActive()) {
+        return null;
+      }
       const savedData = localStorage.getItem('adminData');
       if (savedData) {
         return JSON.parse(savedData);
@@ -2646,6 +2647,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const handleAdminLogout = () => {
     setAdminSessionActive(false);
     setLoggedInAdmin(null);
+    setRequestingAdminIdOverride(null);
     setCurrentScreen('dashboard');
     setShowAdminLoginModal(false);
     // Clear admin session from localStorage
@@ -2671,6 +2673,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
   const handleAdminLoginSuccess = (adminData) => {
     setLoggedInAdmin(adminData);
+    setRequestingAdminIdOverride(adminData?.id || null);
     setAdminSessionActive(true);
     setShowAdminLoginModal(false);
     lastActivityTimeRef.current = Date.now(); // Reset activity timer
@@ -2746,6 +2749,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           // Restore the session
           setAdminSessionActive(sessionData.active !== false);
           setLoggedInAdmin(adminData);
+          setRequestingAdminIdOverride(adminData?.id || null);
           lastActivityTimeRef.current = sessionData.lastActivity || Date.now();
           setDeviceType('laptop');
           if (
@@ -2762,6 +2766,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           console.log('   Security measure: tablets always require fresh login');
           localStorage.removeItem('adminSession');
           localStorage.removeItem('adminData');
+          setAdminSessionActive(false);
+          setLoggedInAdmin(null);
+          setRequestingAdminIdOverride(null);
           setDeviceType('tablet');
         }
       } else {
@@ -2774,6 +2781,15 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       setDeviceType(getDeviceType());
     }
   }, []);
+
+  // Keep Edge `requestingAdminId` aligned with React admin state (localStorage can lag or be cleared).
+  useEffect(() => {
+    if (!adminSessionActive || !loggedInAdmin?.id) {
+      setRequestingAdminIdOverride(null);
+      return;
+    }
+    setRequestingAdminIdOverride(loggedInAdmin.id);
+  }, [adminSessionActive, loggedInAdmin?.id]);
 
   // Managers use the site hub only — keep them off /admin/* URLs
   useEffect(() => {
@@ -3290,7 +3306,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
 
     const loadAdminRoster = async () => {
       try {
-        const companiesData = await listCompanies();
+        const companiesData = await listCompanies(loggedInAdmin.id);
         if (cancelled) {
           return;
         }
@@ -3337,7 +3353,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           })();
         }, 500);
 
-        const contractorsData = await listContractors();
+        const contractorsData = await listContractors(loggedInAdmin.id);
         if (cancelled) {
           return;
         }

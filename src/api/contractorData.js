@@ -6,46 +6,46 @@
 import { supabase } from '../supabaseClient';
 import { invokeSupabaseEdge } from '../utils/invokeSupabaseEdge';
 
-export function getRequestingAdminId() {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  // Orphan adminData (no active adminSession) must not route kiosk/contractor flows through admin Edge or PostgREST.
-  if (!isAdminSessionActive()) {
-    return null;
-  }
-  try {
-    const raw = localStorage.getItem('adminData');
-    if (!raw) {
-      return null;
-    }
-    const parsed = JSON.parse(raw);
-    return parsed?.id || null;
-  } catch {
-    return null;
-  }
+/** Set from App.js when `loggedInAdmin` changes — Edge auth must not depend on localStorage alone. */
+let requestingAdminIdOverride = null;
+
+export function setRequestingAdminIdOverride(adminId) {
+  requestingAdminIdOverride = adminId ? String(adminId) : null;
 }
 
-export function isAdminSessionActive() {
+function readAdminIdFromLocalStorage() {
   if (typeof window === 'undefined') {
-    return false;
+    return null;
   }
   try {
     const session = localStorage.getItem('adminSession');
     const adminData = localStorage.getItem('adminData');
     if (!session || !adminData) {
-      return false;
+      return null;
     }
     const parsed = JSON.parse(session);
-    // Match App.js admin session: legacy sessions may omit `active`; only explicit false logs out.
     if (parsed?.active === false) {
-      return false;
+      return null;
     }
     const admin = JSON.parse(adminData);
-    return Boolean(admin?.id);
+    return admin?.id ? String(admin.id) : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function getRequestingAdminId() {
+  if (requestingAdminIdOverride) {
+    return requestingAdminIdOverride;
+  }
+  return readAdminIdFromLocalStorage();
+}
+
+export function isAdminSessionActive() {
+  if (requestingAdminIdOverride) {
+    return true;
+  }
+  return Boolean(readAdminIdFromLocalStorage());
 }
 
 async function invokeContractorData(payload) {
