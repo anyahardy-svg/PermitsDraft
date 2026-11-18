@@ -10741,6 +10741,31 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   }, [currentScreen, loggedInAdmin?.id]);
 
   const renderManageCompanies = () => {
+    const getCompanyAssignedAdminLabel = (adminId) => {
+      if (!adminId) return null;
+      const admin = companyAdminUsers.find((a) => a.id === adminId);
+      if (!admin) return 'Unknown admin';
+      return (admin.name && String(admin.name).trim()) || admin.email || 'Unknown admin';
+    };
+
+    const renderAssignedAdminCell = (adminId) => {
+      const missing = !adminId;
+      const label = missing ? null : getCompanyAssignedAdminLabel(adminId);
+      return (
+        <Text
+          style={{
+            fontSize: 13,
+            textAlign: 'center',
+            color: missing ? '#B45309' : '#1F2937',
+            fontWeight: missing ? '600' : '400',
+          }}
+          numberOfLines={2}
+        >
+          {missing ? 'Not assigned' : label}
+        </Text>
+      );
+    };
+
     const handleAddCompany = async () => {
       if (!currentCompany.name) {
         Alert.alert('Missing Info', 'Please enter a company name.');
@@ -11785,6 +11810,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                         <Text style={{ width: 250, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Company Name</Text>
                         <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Type</Text>
                         <Text style={{ width: 300, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, borderRightWidth: 1, borderRightColor: '#2563EB' }}>Business Units</Text>
+                        <Text style={{ width: 170, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Assigned Manager</Text>
+                        <Text style={{ width: 170, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Assigned H&amp;S</Text>
                         <Text style={{ width: 120, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Accreditation</Text>
                         <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Training Records</Text>
                         <Text style={{ width: 150, padding: 12, fontWeight: 'bold', color: 'white', fontSize: 14, textAlign: 'center', borderRightWidth: 1, borderRightColor: '#2563EB' }}>Training Matrices</Text>
@@ -11848,6 +11875,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             <Text style={{ width: 300, padding: 12, fontSize: 14, color: '#6B7280', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
                               {companyBUs}
                             </Text>
+                            <View style={{ width: 170, padding: 10, justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                              {renderAssignedAdminCell(company.assigned_manager_id || company.assignedManagerId)}
+                            </View>
+                            <View style={{ width: 170, padding: 10, justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}>
+                              {renderAssignedAdminCell(company.assigned_hs_person_id || company.assignedHsPersonId)}
+                            </View>
                             <TouchableOpacity 
                               style={{ width: 120, padding: 12, justifyContent: 'center', alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E5E7EB' }}
                               onPress={() => handleViewCompanyAccreditation(company)}
