@@ -683,6 +683,14 @@ Deno.serve(async (req) => {
         await supabase.from("contractors").update({ company_id: null }).eq("company_id", companyId);
       }
 
+      const { error: joinRequestsError } = await supabase
+        .from("contractor_join_requests")
+        .delete()
+        .eq("company_id", companyId);
+      if (joinRequestsError) {
+        return jsonResponse({ success: false, error: joinRequestsError.message }, 400);
+      }
+
       const { error } = await supabase.from("companies").delete().eq("id", companyId);
       if (error) {
         return jsonResponse({ success: false, error: error.message }, 400);
