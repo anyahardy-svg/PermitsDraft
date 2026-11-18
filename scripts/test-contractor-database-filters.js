@@ -1,5 +1,8 @@
 const assert = require('assert');
-const { contractorPassesAdminFilters } = require('../src/utils/contractorDatabaseFilters');
+const {
+  CONTRACTOR_FILTER_NO_COMPANY,
+  contractorPassesAdminFilters,
+} = require('../src/utils/contractorDatabaseFilters');
 
 const baseContractor = {
   id: '1',
@@ -25,6 +28,20 @@ assert.strictEqual(
     searchText: 'jane',
   }),
   true,
+);
+assert.strictEqual(
+  contractorPassesAdminFilters(
+    { ...baseContractor, company_id: null, companyId: null },
+    { companyFilter: CONTRACTOR_FILTER_NO_COMPANY },
+  ),
+  true,
+);
+assert.strictEqual(
+  contractorPassesAdminFilters(
+    { ...baseContractor, company_id: 'co-1' },
+    { companyFilter: CONTRACTOR_FILTER_NO_COMPANY },
+  ),
+  false,
 );
 assert.strictEqual(
   contractorPassesAdminFilters(baseContractor, {
