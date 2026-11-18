@@ -15378,7 +15378,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 borderColor: '#E5E7EB',
                 position: 'relative',
                 overflow: 'visible',
-                zIndex: showContractorCompanyFilterDropdown ? 100 : 1,
+                zIndex: showContractorCompanyFilterDropdown ? 2000 : 1,
               }}>
                 <Text style={[styles.label, { fontSize: 14, fontWeight: 'bold', marginBottom: 8 }]}>Search by Name or Email:</Text>
                 <TextInput
@@ -15426,6 +15426,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                           company.toLowerCase().includes(contractorCompanyFilterSearch.toLowerCase())
                         );
 
+                    const keepCompanyFilterInputFocusOnWeb = (event) => {
+                      if (Platform.OS === 'web' && event?.preventDefault) {
+                        event.preventDefault();
+                      }
+                    };
+
                     return (
                       <View style={{
                         position: 'absolute',
@@ -15454,6 +15460,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               backgroundColor: contractorCompanyFilter === 'All' ? '#EFF6FF' : 'white',
                             }}
                             activeOpacity={0.7}
+                            onMouseDown={keepCompanyFilterInputFocusOnWeb}
                             onPress={() => {
                               setContractorCompanyFilter('All');
                               setContractorCompanyFilterSearch('');
@@ -15470,6 +15477,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                               backgroundColor: contractorCompanyFilter === CONTRACTOR_FILTER_NO_COMPANY ? '#EFF6FF' : 'white',
                             }}
                             activeOpacity={0.7}
+                            onMouseDown={keepCompanyFilterInputFocusOnWeb}
                             onPress={() => {
                               setContractorCompanyFilter(CONTRACTOR_FILTER_NO_COMPANY);
                               setContractorCompanyFilterSearch(CONTRACTOR_FILTER_NO_COMPANY);
@@ -15488,6 +15496,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                                 backgroundColor: contractorCompanyFilter === company ? '#EFF6FF' : 'white',
                               }}
                               activeOpacity={0.7}
+                              onMouseDown={keepCompanyFilterInputFocusOnWeb}
                               onPress={() => {
                                 setContractorCompanyFilter(company);
                                 setContractorCompanyFilterSearch(company);
