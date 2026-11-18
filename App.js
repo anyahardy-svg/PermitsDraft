@@ -2531,7 +2531,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
       }
       const savedData = localStorage.getItem('adminData');
       if (savedData) {
-        return JSON.parse(savedData);
+        const admin = JSON.parse(savedData);
+        if (admin?.id) {
+          setRequestingAdminIdOverride(admin.id);
+        }
+        return admin;
       }
       return null;
     } catch (e) {
