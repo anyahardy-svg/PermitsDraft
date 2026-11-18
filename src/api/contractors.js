@@ -232,11 +232,11 @@ async function listContractorsForStandaloneInduction() {
 }
 
 // Get all contractors with company details
-export const listContractors = async () => {
+export const listContractors = async (requestingAdminId) => {
   try {
-    if (shouldPreferContractorEdgeForAdmin()) {
+    if (shouldPreferContractorEdgeForAdmin() || requestingAdminId) {
       const transformed = await withContractorDataFallback(
-        () => contractorDataListAll().then(mapEdgeRowsToApp),
+        () => contractorDataListAll(requestingAdminId).then(mapEdgeRowsToApp),
         () => listContractorsDirect(),
         { label: 'listContractors' },
       );

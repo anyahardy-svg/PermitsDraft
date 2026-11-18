@@ -225,11 +225,11 @@ const listCompaniesDirect = async () => {
 };
 
 // Get all companies (paginated to exceed PostgREST 1000-row limit)
-export const listCompanies = async () => {
+export const listCompanies = async (requestingAdminId) => {
   try {
-    if (shouldPreferCompanyEdgeForAdmin()) {
+    if (shouldPreferCompanyEdgeForAdmin() || requestingAdminId) {
       return await withCompanyDataFallback(
-        () => companyDataListAll().then(mapEdgeRowsToApp),
+        () => companyDataListAll(requestingAdminId).then(mapEdgeRowsToApp),
         () => listCompaniesDirect(),
         { label: 'listCompanies' },
       );
