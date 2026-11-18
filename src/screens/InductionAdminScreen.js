@@ -436,6 +436,29 @@ export default function InductionAdminScreen({ onBack, styles }) {
     ? inductions.filter(ind => Array.isArray(ind.business_unit_ids) && ind.business_unit_ids.includes(filterByBU))
     : inductions;
 
+  const getInductionBusinessUnitLabel = (ind) => {
+    if (!ind.business_unit_ids?.length) return 'None';
+    return businessUnits
+      .filter((bu) => ind.business_unit_ids.includes(bu.id))
+      .map((bu) => bu.name)
+      .join(', ');
+  };
+
+  const getInductionServiceLabel = (ind) => {
+    if (!ind.service_id) return '—';
+    return services.find((s) => s.id === ind.service_id)?.name || '—';
+  };
+
+  const getInductionMediaLabel = (ind) => {
+    if (ind.pdf_file_name) return `📑 ${ind.pdf_file_name}`;
+    if (ind.video_url) {
+      return ind.video_duration ? `📹 ${ind.video_duration} min` : '📹 Video';
+    }
+    return '—';
+  };
+
+  const TABLE_MIN_WIDTH = 1000;
+
   if (loading) {
     return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" /></View>;
   }
@@ -481,26 +504,104 @@ export default function InductionAdminScreen({ onBack, styles }) {
         </ScrollView>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
         {filteredInductions.length === 0 ? (
-          <Text style={{ textAlign: 'center', color: '#9CA3AF', marginTop: 20 }}>No inductions</Text>
+          <Text style={{ textAlign: 'center', color: '#9CA3AF', marginTop: 20, paddingHorizontal: 16 }}>No inductions</Text>
         ) : (
-          filteredInductions.map(ind => (
-            <View key={ind.id} style={{ backgroundColor: 'white', padding: 16, borderRadius: 8, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#3B82F6' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937', flex: 1 }}>{ind.induction_name}</Text>
-                {ind.is_compulsory && <Text style={{ fontSize: 11, fontWeight: '700', color: 'white', backgroundColor: '#DC2626', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 }}>REQUIRED</Text>}
+          <ScrollView horizontal showsHorizontalScrollIndicator>
+            <View style={{ padding: 16 }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  backgroundColor: '#F3F4F6',
+                  borderTopLeftRadius: 8,
+                  borderTopRightRadius: 8,
+                  borderBottomWidth: 2,
+                  borderBottomColor: '#D1D5DB',
+                  paddingVertical: 10,
+                  paddingHorizontal: 8,
+                  minWidth: TABLE_MIN_WIDTH,
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 220, paddingRight: 8 }}>Induction</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 200, paddingRight: 8 }}>Applies to</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 140, paddingRight: 8 }}>Service</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 220, paddingRight: 8 }}>Media</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 90, paddingRight: 8 }}>Status</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1F2937', width: 130 }}>Actions</Text>
               </View>
-              <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 8 }}>Applies to: {ind.business_unit_ids?.length > 0 ? businessUnits.filter(bu => ind.business_unit_ids.includes(bu.id)).map(bu => bu.name).join(', ') : 'None'}</Text>
-              {ind.service_id && <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Service: {services.find(s => s.id === ind.service_id)?.name}</Text>}
-              {ind.video_url && <Text style={{ fontSize: 11, color: '#0EA5E9', marginTop: 8 }}>📹 {ind.video_duration ? `${ind.video_duration} min` : 'Video'}</Text>}
-              {ind.pdf_file_name && <Text style={{ fontSize: 11, color: '#10B981', marginTop: 4 }}>📑 {ind.pdf_file_name}</Text>}
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-                <TouchableOpacity onPress={() => handleEditInduction(ind)} style={{ flex: 1, backgroundColor: '#E0E7FF', padding: 10, borderRadius: 6, alignItems: 'center' }}><Text style={{ color: '#3B82F6', fontWeight: '600', fontSize: 13 }}>Edit</Text></TouchableOpacity>
-                <TouchableOpacity onPress={() => handleDeleteInduction(ind)} style={{ flex: 1, backgroundColor: '#FEE2E2', padding: 10, borderRadius: 6, alignItems: 'center' }}><Text style={{ color: '#DC2626', fontWeight: '600', fontSize: 13 }}>Delete</Text></TouchableOpacity>
-              </View>
+              {filteredInductions.map((ind, idx) => (
+                <View
+                  key={ind.id}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: idx % 2 === 0 ? 'white' : '#F9FAFB',
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#E5E7EB',
+                    paddingVertical: 10,
+                    paddingHorizontal: 8,
+                    minWidth: TABLE_MIN_WIDTH,
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937', width: 220, paddingRight: 8 }} numberOfLines={2}>
+                    {ind.induction_name}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#6B7280', width: 200, paddingRight: 8 }} numberOfLines={3}>
+                    {getInductionBusinessUnitLabel(ind)}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#6B7280', width: 140, paddingRight: 8 }} numberOfLines={2}>
+                    {getInductionServiceLabel(ind)}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: ind.pdf_file_name ? '#10B981' : ind.video_url ? '#0EA5E9' : '#9CA3AF',
+                      width: 220,
+                      paddingRight: 8,
+                    }}
+                    numberOfLines={2}
+                  >
+                    {getInductionMediaLabel(ind)}
+                  </Text>
+                  <View style={{ width: 90, paddingRight: 8 }}>
+                    {ind.is_compulsory !== false ? (
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          fontWeight: '700',
+                          color: 'white',
+                          backgroundColor: '#DC2626',
+                          paddingHorizontal: 6,
+                          paddingVertical: 3,
+                          borderRadius: 4,
+                          alignSelf: 'flex-start',
+                        }}
+                      >
+                        REQUIRED
+                      </Text>
+                    ) : (
+                      <Text style={{ fontSize: 11, color: '#6B7280' }}>Optional</Text>
+                    )}
+                  </View>
+                  <View style={{ width: 130, flexDirection: 'row', gap: 6 }}>
+                    <TouchableOpacity
+                      onPress={() => handleEditInduction(ind)}
+                      style={{ paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#DBEAFE', borderRadius: 4 }}
+                    >
+                      <Text style={{ fontSize: 11, color: '#0369A1', fontWeight: '600' }}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteInduction(ind)}
+                      style={{ paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#FEE2E2', borderRadius: 4 }}
+                    >
+                      <Text style={{ fontSize: 11, color: '#DC2626', fontWeight: '600' }}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
             </View>
-          ))
+          </ScrollView>
         )}
       </ScrollView>
 
