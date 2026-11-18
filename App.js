@@ -3492,7 +3492,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [contractorCompletedInductions, setContractorCompletedInductions] = useState({});
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [editingCompany, setEditingCompany] = useState(false);
-  const [currentCompany, setCurrentCompany] = useState({ 
+  const [companyFormExpanded, setCompanyFormExpanded] = useState(false);
+  const [companyContactDetailsExpanded, setCompanyContactDetailsExpanded] = useState(false);
+  const [currentCompany, setCurrentCompany] = useState({
     id: '', 
     name: '', 
     businessUnitIds: [], 
@@ -3899,10 +3901,14 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         contractorsScrollRef.current?.scrollTo({ y: 0 });
       }, 0);
     }
-    if (editingCompany && companiesScrollRef.current) {
-      setTimeout(() => {
-        companiesScrollRef.current?.scrollTo({ y: 0 });
-      }, 0);
+    if (editingCompany) {
+      setCompanyFormExpanded(true);
+      setCompanyContactDetailsExpanded(true);
+      if (companiesScrollRef.current) {
+        setTimeout(() => {
+          companiesScrollRef.current?.scrollTo({ y: 0 });
+        }, 0);
+      }
     }
     if (editingSite && sitesScrollRef.current) {
       setTimeout(() => {
@@ -10798,6 +10804,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         }
         setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: DEFAULT_CONTRACTOR_TYPE, inRadar: true, assignedManagerId: '', assignedHsPersonId: '' });
         setSelectedCompany(null);
+        setCompanyFormExpanded(false);
+        setCompanyContactDetailsExpanded(false);
       } catch (error) {
         Alert.alert('Error', 'Failed to save company: ' + error.message);
       } finally {
@@ -10848,6 +10856,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             
             setEditingCompany(false);
             setSelectedCompany(null);
+            setCompanyFormExpanded(false);
+            setCompanyContactDetailsExpanded(false);
             window.alert('Success: Company has been deleted.');
           } catch (error) {
             console.error('❌ Delete error:', error);
@@ -11407,7 +11417,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingCompany(false); setSelectedCompany(null); }}>
+          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingCompany(false); setSelectedCompany(null); setCompanyFormExpanded(false); setCompanyContactDetailsExpanded(false); }}>
             <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{editingCompany ? 'Edit Company' : 'Manage Companies'}</Text>
@@ -11437,8 +11447,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         )}
         
         <ScrollView ref={companiesScrollRef} style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
-          {/* Form Section */}
+          {/* Form Section — collapsed by default so Companies Database stays primary */}
           <View style={styles.section}>
+            <TouchableOpacity
+              style={[
+                styles.sectionHeader,
+                Platform.OS === 'web' ? { cursor: 'pointer' } : null,
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: companyFormExpanded }}
+              onPress={() => setCompanyFormExpanded((expanded) => !expanded)}
+            >
+              <Text style={styles.sectionTitle}>
+                {editingCompany
+                  ? `Edit: ${currentCompany.name || 'Company'}`
+                  : (companyFormExpanded ? 'Add Company' : '+ Add company')}
+              </Text>
+              <Text style={styles.expandIcon}>{companyFormExpanded ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {companyFormExpanded && (
             <View style={styles.sectionContent}>
               <Text style={styles.label}>Company Name *</Text>
               <TextInput 
@@ -11449,7 +11476,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               />
 
               <Text style={styles.label}>Business Units</Text>
-              <View style={{ marginBottom: 16 }}>
+              <View style={{ marginBottom: 16, maxHeight: 180, overflow: 'auto' }}>
                 {businessUnits.map(unit => {
                   const isSelected = (currentCompany.businessUnitIds || []).includes(unit.id);
                   return (
@@ -11536,75 +11563,100 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </select>
               </View>
 
-              <Text style={styles.label}>Contact Name</Text>
-              <TextInput 
-                style={styles.input} 
-                value={currentCompany.contactName || ''} 
-                onChangeText={text => setCurrentCompany({ ...currentCompany, contactName: text })} 
-                placeholder="Enter contact name" 
-              />
+              <View style={{ marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 6, overflow: 'hidden' }}>
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    backgroundColor: '#F9FAFB',
+                    ...(Platform.OS === 'web' ? { cursor: 'pointer' } : null),
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: companyContactDetailsExpanded }}
+                  onPress={() => setCompanyContactDetailsExpanded((expanded) => !expanded)}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151' }}>
+                    Contact &amp; insurance details
+                  </Text>
+                  <Text style={styles.expandIcon}>{companyContactDetailsExpanded ? '▲' : '▼'}</Text>
+                </TouchableOpacity>
+                {companyContactDetailsExpanded && (
+                  <View style={{ paddingHorizontal: 12, paddingBottom: 8, paddingTop: 4 }}>
+                    <Text style={styles.label}>Contact Name</Text>
+                    <TextInput 
+                      style={styles.input} 
+                      value={currentCompany.contactName || ''} 
+                      onChangeText={text => setCurrentCompany({ ...currentCompany, contactName: text })} 
+                      placeholder="Enter contact name" 
+                    />
 
-              <Text style={styles.label}>Contact Surname</Text>
-              <TextInput 
-                style={styles.input} 
-                value={currentCompany.contactSurname || ''} 
-                onChangeText={text => setCurrentCompany({ ...currentCompany, contactSurname: text })} 
-                placeholder="Enter contact surname" 
-              />
+                    <Text style={styles.label}>Contact Surname</Text>
+                    <TextInput 
+                      style={styles.input} 
+                      value={currentCompany.contactSurname || ''} 
+                      onChangeText={text => setCurrentCompany({ ...currentCompany, contactSurname: text })} 
+                      placeholder="Enter contact surname" 
+                    />
 
-              <Text style={styles.label}>Contact Email</Text>
-              <TextInput 
-                style={styles.input} 
-                value={currentCompany.contactEmail || ''} 
-                onChangeText={text => setCurrentCompany({ ...currentCompany, contactEmail: text })} 
-                placeholder="Enter contact email" 
-                keyboardType="email-address"
-              />
+                    <Text style={styles.label}>Contact Email</Text>
+                    <TextInput 
+                      style={styles.input} 
+                      value={currentCompany.contactEmail || ''} 
+                      onChangeText={text => setCurrentCompany({ ...currentCompany, contactEmail: text })} 
+                      placeholder="Enter contact email" 
+                      keyboardType="email-address"
+                    />
 
-              <Text style={styles.label}>Contact Phone Number</Text>
-              <TextInput 
-                style={styles.input} 
-                value={currentCompany.contactPhone || ''} 
-                onChangeText={text => setCurrentCompany({ ...currentCompany, contactPhone: text })} 
-                placeholder="Enter contact phone number" 
-                keyboardType="phone-pad"
-              />
+                    <Text style={styles.label}>Contact Phone Number</Text>
+                    <TextInput 
+                      style={styles.input} 
+                      value={currentCompany.contactPhone || ''} 
+                      onChangeText={text => setCurrentCompany({ ...currentCompany, contactPhone: text })} 
+                      placeholder="Enter contact phone number" 
+                      keyboardType="phone-pad"
+                    />
 
-              <Text style={styles.label}>Public Liability Expiry</Text>
-              <TextInput 
-                style={styles.input} 
-                value={currentCompany.publicLiabilityExpiry || ''} 
-                onChangeText={text => setCurrentCompany({ ...currentCompany, publicLiabilityExpiry: text })} 
-                placeholder="DD/MM/YYYY (e.g., 25/12/2026)" 
-                keyboardType="numeric"
-              />
+                    <Text style={styles.label}>Public Liability Expiry</Text>
+                    <TextInput 
+                      style={styles.input} 
+                      value={currentCompany.publicLiabilityExpiry || ''} 
+                      onChangeText={text => setCurrentCompany({ ...currentCompany, publicLiabilityExpiry: text })} 
+                      placeholder="DD/MM/YYYY (e.g., 25/12/2026)" 
+                      keyboardType="numeric"
+                    />
 
-              <Text style={styles.label}>Motor Vehicle Insurance Expiry</Text>
-              <TextInput 
-                style={styles.input} 
-                value={currentCompany.motorVehicleInsuranceExpiry || ''} 
-                onChangeText={text => setCurrentCompany({ ...currentCompany, motorVehicleInsuranceExpiry: text })} 
-                placeholder="DD/MM/YYYY (e.g., 25/12/2026)" 
-                keyboardType="numeric"
-              />
+                    <Text style={styles.label}>Motor Vehicle Insurance Expiry</Text>
+                    <TextInput 
+                      style={styles.input} 
+                      value={currentCompany.motorVehicleInsuranceExpiry || ''} 
+                      onChangeText={text => setCurrentCompany({ ...currentCompany, motorVehicleInsuranceExpiry: text })} 
+                      placeholder="DD/MM/YYYY (e.g., 25/12/2026)" 
+                      keyboardType="numeric"
+                    />
 
-              <Text style={styles.label}>Review Date</Text>
-              <TextInput 
-                style={styles.input} 
-                value={currentCompany.reviewDate || ''} 
-                onChangeText={text => setCurrentCompany({ ...currentCompany, reviewDate: text })} 
-                placeholder="DD/MM/YYYY (e.g., 25/12/2026)" 
-                keyboardType="numeric"
-              />
+                    <Text style={styles.label}>Review Date</Text>
+                    <TextInput 
+                      style={styles.input} 
+                      value={currentCompany.reviewDate || ''} 
+                      onChangeText={text => setCurrentCompany({ ...currentCompany, reviewDate: text })} 
+                      placeholder="DD/MM/YYYY (e.g., 25/12/2026)" 
+                      keyboardType="numeric"
+                    />
 
-              <Text style={styles.label}>Accredited Date</Text>
-              <TextInput 
-                style={styles.input} 
-                value={currentCompany.accreditedDate || ''} 
-                onChangeText={text => setCurrentCompany({ ...currentCompany, accreditedDate: text })} 
-                placeholder="DD/MM/YYYY (e.g., 25/12/2026)" 
-                keyboardType="numeric"
-              />
+                    <Text style={styles.label}>Accredited Date</Text>
+                    <TextInput 
+                      style={styles.input} 
+                      value={currentCompany.accreditedDate || ''} 
+                      onChangeText={text => setCurrentCompany({ ...currentCompany, accreditedDate: text })} 
+                      placeholder="DD/MM/YYYY (e.g., 25/12/2026)" 
+                      keyboardType="numeric"
+                    />
+                  </View>
+                )}
+              </View>
 
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
                 <Switch
@@ -11626,11 +11678,12 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 </Text>
               </TouchableOpacity>
               {editingCompany && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingCompany(false); setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: DEFAULT_CONTRACTOR_TYPE, inRadar: true }); setSelectedCompany(null); }}>
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingCompany(false); setCurrentCompany({ id: '', name: '', businessUnitIds: [], contactName: '', contactSurname: '', contactEmail: '', contactPhone: '', publicLiabilityExpiry: '', motorVehicleInsuranceExpiry: '', reviewDate: '', accreditedDate: '', contractor_type: DEFAULT_CONTRACTOR_TYPE, inRadar: true }); setSelectedCompany(null); setCompanyFormExpanded(false); setCompanyContactDetailsExpanded(false); }}>
                   <Text style={styles.addButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
             </View>
+            )}
           </View>
 
 
