@@ -482,6 +482,12 @@ async function deleteCompanyDirect(companyId, options = {}) {
     if (updateError) throw updateError;
   }
 
+  const { error: joinRequestsError } = await supabase
+    .from('contractor_join_requests')
+    .delete()
+    .eq('company_id', companyId);
+  if (joinRequestsError) throw joinRequestsError;
+
   const { error } = await supabase.from('companies').delete().eq('id', companyId);
   if (error) throw error;
   return true;
