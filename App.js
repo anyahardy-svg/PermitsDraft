@@ -34,7 +34,7 @@ import {
 import { sendAccreditationInvitation } from './src/api/sendgrid';
 import { sendAdminSetupEmail, sendAdminPasswordResetEmail } from './src/api/sendgrid';
 import { createPermitIssuer, listPermitIssuers, updatePermitIssuer, deletePermitIssuer } from './src/api/permit_issuers';
-import { createContractor, listContractors, updateContractor, deleteContractor, findContractorInCompany } from './src/api/contractors';
+import { createContractor, listContractors, updateContractor, deleteContractor, findContractorForCsvImport } from './src/api/contractors';
 import { isAdminSessionActive, setRequestingAdminIdOverride } from './src/api/contractorData';
 import { listSites, getSiteByName, getSitesByBusinessUnits, createSite, updateSite, deleteSite } from './src/api/sites';
 import { listServicesForBusinessUnits, listAllServices, createService, updateService, deleteService, filterServicesForBusinessUnits } from './src/api/services';
@@ -10102,6 +10102,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           }
           headerValues.push(current.trim().replace(/^"|"$/g, '').toLowerCase());
 
+          const idIdx = headerValues.findIndex(
+            (h) => h === 'id' || h === 'contractor_id' || h === 'contractor id',
+          );
           const nameIdx = headerValues.findIndex(h => h.includes('name'));
           const emailIdx = headerValues.findIndex(h => h.includes('email'));
           const phoneIdx = headerValues.findIndex(h => h.includes('phone'));
@@ -10207,7 +10210,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               const company = await upsertCompany({ name: companyName });
               if (!company) continue;
 
-              const existingContractor = findContractorInCompany(importContractorsCache, {
+              const contractorId = idIdx >= 0 ? values[idIdx] : null;
+              const existingContractor = findContractorForCsvImport(importContractorsCache, {
+                contractorId,
                 companyId: company.id,
                 email: email || null,
                 name: contractorName,
@@ -14465,6 +14470,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
               return -1;
             };
 
+            const idIdx = findColumnIndex([
+              h => h === 'id',
+              h => h === 'contractor_id',
+            ]);
+
             // Find column indices — support export headers and common spreadsheet variants
             const companyIdx = findColumnIndex([
               h => h === 'company',
@@ -14583,7 +14593,9 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                   
                   processedRowKeys.add(rowKey);
                   
+                  const importContractorId = idIdx >= 0 ? (values[idIdx] || '').trim() : '';
                   rowsToProcess.push({
+                    contractorId: importContractorId || null,
                     name,
                     email: email || null,
                     phone,
@@ -14702,7 +14714,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                 const formattedPhone = contractor.phone ? formatPhoneNumber(contractor.phone) : null;
                 const formattedName = formatNameToTitleCase(contractor.name);
 
-                const existingContractor = findContractorInCompany(importContractorsCache, {
+                const existingContractor = findContractorForCsvImport(importContractorsCache, {
+                  contractorId: contractor.contractorId,
                   companyId: company.id,
                   email: contractor.email,
                   name: formattedName,
@@ -14921,7 +14934,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         .filter(Boolean)
         .join('; ');
 
-      const headers = ['name', 'email', 'phone', 'company', 'services', 'completed_inductions', 'available_sites', 'induction_expiry', 'business_units'];
+      const headers = ['id', 'name', 'email', 'phone', 'company', 'services', 'completed_inductions', 'available_sites', 'induction_expiry', 'business_units'];
       const rows = filteredContractors.map(contractor => {
         const serviceNames = getServiceNames(contractor.serviceIds || []).join('; ');
         const completedInductionNames = getContractorCompletedInductionNames(contractor.id).join('; ');
@@ -14933,6 +14946,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         const inductionExpiry = formatInductionExpiryForCsv(inductionExpiryRaw);
 
         return [
+          contractor.id,
           contractor.name,
           contractor.email,
           formatPhoneNumber(contractor.phone),
