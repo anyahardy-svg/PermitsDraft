@@ -16,6 +16,8 @@ assert.match(source, /const \[companyFormExpanded, setCompanyFormExpanded\] = us
 assert.match(source, /const \[companyContactDetailsExpanded, setCompanyContactDetailsExpanded\] = useState\(false\)/);
 
 assert.match(manageCompanies, /\+ Add company/);
+assert.match(manageCompanies, /styles\.adminDatabaseAddHeader/);
+assert.match(manageCompanies, /styles\.adminDatabaseAddHeaderTitle/);
 assert.match(manageCompanies, /companyFormExpanded && \(/);
 assert.match(manageCompanies, /Contact &amp; insurance details/);
 assert.match(manageCompanies, /companyContactDetailsExpanded && \(/);
