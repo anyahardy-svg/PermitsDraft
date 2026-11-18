@@ -3443,6 +3443,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [sitesForBusinessUnits, setSitesForBusinessUnits] = useState([]);
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [editingContractor, setEditingContractor] = useState(false);
+  const [contractorFormExpanded, setContractorFormExpanded] = useState(false);
   const [currentContractor, setCurrentContractor] = useState({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], completedInductionIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false });
   const establishContractorAppSession = useCallback((contractorInfo) => {
     if (!contractorInfo?.companyId) {
@@ -3896,10 +3897,13 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         permitIssuersScrollRef.current?.scrollTo({ y: 0 });
       }, 0);
     }
-    if (editingContractor && contractorsScrollRef.current) {
-      setTimeout(() => {
-        contractorsScrollRef.current?.scrollTo({ y: 0 });
-      }, 0);
+    if (editingContractor) {
+      setContractorFormExpanded(true);
+      if (contractorsScrollRef.current) {
+        setTimeout(() => {
+          contractorsScrollRef.current?.scrollTo({ y: 0 });
+        }, 0);
+      }
     }
     if (editingCompany) {
       setCompanyFormExpanded(true);
@@ -11451,19 +11455,19 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           <View style={styles.section}>
             <TouchableOpacity
               style={[
-                styles.sectionHeader,
+                styles.adminDatabaseAddHeader,
                 Platform.OS === 'web' ? { cursor: 'pointer' } : null,
               ]}
               accessibilityRole="button"
               accessibilityState={{ expanded: companyFormExpanded }}
               onPress={() => setCompanyFormExpanded((expanded) => !expanded)}
             >
-              <Text style={styles.sectionTitle}>
+              <Text style={styles.adminDatabaseAddHeaderTitle}>
                 {editingCompany
                   ? `Edit: ${currentCompany.name || 'Company'}`
                   : (companyFormExpanded ? 'Add Company' : '+ Add company')}
               </Text>
-              <Text style={styles.expandIcon}>{companyFormExpanded ? '▲' : '▼'}</Text>
+              <Text style={styles.adminDatabaseAddHeaderIcon}>{companyFormExpanded ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {companyFormExpanded && (
             <View style={styles.sectionContent}>
@@ -14292,6 +14296,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         setSelectedContractor(null);
         setShowCompanyDropdown(false);
         setFilteredCompanies([]);
+        setContractorFormExpanded(false);
       } catch (error) {
         console.error('❌ Contractor save error:', error);
         window.alert('Error: Failed to save contractor: ' + error.message);
@@ -14313,6 +14318,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             setContractors(freshContractors);
             setEditingContractor(false);
             setSelectedContractor(null);
+            setContractorFormExpanded(false);
             window.alert('Success: Contractor has been deleted.');
           } catch (error) {
             console.error('❌ Delete error:', error);
@@ -14916,7 +14922,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingContractor(false); setSelectedContractor(null); }}>
+          <TouchableOpacity onPress={() => { setCurrentScreen('admin'); setEditingContractor(false); setSelectedContractor(null); setContractorFormExpanded(false); }}>
             <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{editingContractor ? 'Edit Contractor' : 'Manage Contractors'}</Text>
@@ -14946,8 +14952,25 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         )}
         
         <ScrollView ref={contractorsScrollRef} style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
-          {/* Form Section */}
+          {/* Form Section — collapsed by default so Contractors Database stays primary */}
           <View style={styles.section}>
+            <TouchableOpacity
+              style={[
+                styles.adminDatabaseAddHeader,
+                Platform.OS === 'web' ? { cursor: 'pointer' } : null,
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: contractorFormExpanded }}
+              onPress={() => setContractorFormExpanded((expanded) => !expanded)}
+            >
+              <Text style={styles.adminDatabaseAddHeaderTitle}>
+                {editingContractor
+                  ? `Edit: ${currentContractor.name || 'Contractor'}`
+                  : (contractorFormExpanded ? 'Add Contractor' : '+ Add contractor')}
+              </Text>
+              <Text style={styles.adminDatabaseAddHeaderIcon}>{contractorFormExpanded ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {contractorFormExpanded && (
             <View style={styles.sectionContent}>
               <Text style={styles.label}>Contractor Name *</Text>
               <TextInput style={styles.input} value={currentContractor.name} onChangeText={text => setCurrentContractor(prev => ({ ...prev, name: text }))} placeholder="Enter contractor name" />
@@ -15318,10 +15341,11 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                     : (editingContractor ? 'Update Contractor' : 'Add Contractor')}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], completedInductionIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false }); setSelectedContractor(null); setShowCompanyDropdown(false); }}>
+              <TouchableOpacity style={[styles.addButton, { backgroundColor: '#EF4444' }]} onPress={() => { setEditingContractor(false); setCurrentContractor({ id: '', name: '', email: '', phone: '', businessUnitIds: [], services: [], siteIds: [], completedInductionIds: [], company: '', company_id: '', inductionExpiry: '', companyManuallyEntered: false }); setSelectedContractor(null); setShowCompanyDropdown(false); setContractorFormExpanded(false); }}>
                 <Text style={styles.addButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
+            )}
           </View>
 
           {/* Contractors List Section */}
@@ -26978,6 +27002,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  adminDatabaseAddHeader: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
+  adminDatabaseAddHeaderTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  adminDatabaseAddHeaderIcon: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   dangerHeader: {
     backgroundColor: '#FEF2F2',
