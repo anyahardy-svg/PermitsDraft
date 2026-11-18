@@ -78,7 +78,10 @@ import {
   contractorSignInPath,
   shouldShowContractorAuthGuard,
 } from './src/utils/contractorRouteAuth';
-import { contractorPassesAdminFilters } from './src/utils/contractorDatabaseFilters';
+import {
+  CONTRACTOR_FILTER_NO_COMPANY,
+  contractorPassesAdminFilters,
+} from './src/utils/contractorDatabaseFilters';
 import {
   formatInductionExpiryForCsv,
   resolveContractorInductionExpiryForExport,
@@ -15458,6 +15461,22 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
                             }}
                           >
                             <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>All Companies</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={{
+                              padding: 12,
+                              borderBottomWidth: 1,
+                              borderBottomColor: '#E5E7EB',
+                              backgroundColor: contractorCompanyFilter === CONTRACTOR_FILTER_NO_COMPANY ? '#EFF6FF' : 'white',
+                            }}
+                            activeOpacity={0.7}
+                            onPress={() => {
+                              setContractorCompanyFilter(CONTRACTOR_FILTER_NO_COMPANY);
+                              setContractorCompanyFilterSearch(CONTRACTOR_FILTER_NO_COMPANY);
+                              setShowContractorCompanyFilterDropdown(false);
+                            }}
+                          >
+                            <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>{CONTRACTOR_FILTER_NO_COMPANY}</Text>
                           </TouchableOpacity>
                           {filteredContractorCompanyOptions.map(company => (
                             <TouchableOpacity

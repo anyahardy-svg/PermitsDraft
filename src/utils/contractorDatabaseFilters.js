@@ -1,3 +1,10 @@
+/** Sentinel value for Manage Contractors company dropdown — not a real company name. */
+export const CONTRACTOR_FILTER_NO_COMPANY = 'No company assigned';
+
+export function contractorHasAssignedCompany(contractor) {
+  return Boolean(contractor?.company_id || contractor?.companyId);
+}
+
 export function contractorPassesAdminFilters(contractor, {
   searchText = '',
   companyFilter = 'All',
@@ -10,8 +17,14 @@ export function contractorPassesAdminFilters(contractor, {
     || contractor.name?.toLowerCase().includes(normalizedSearch)
     || contractorEmail.toLowerCase().includes(normalizedSearch);
 
-  const matchesCompanyFilter = companyFilter === 'All'
-    || (contractor.companyName || contractor.company) === companyFilter;
+  let matchesCompanyFilter = true;
+  if (companyFilter === 'All') {
+    matchesCompanyFilter = true;
+  } else if (companyFilter === CONTRACTOR_FILTER_NO_COMPANY) {
+    matchesCompanyFilter = !contractorHasAssignedCompany(contractor);
+  } else {
+    matchesCompanyFilter = (contractor.companyName || contractor.company) === companyFilter;
+  }
 
   const businessUnitIds = contractor.businessUnitIds || contractor.business_unit_ids || [];
   const matchesBusinessUnitFilter = businessUnitFilter === 'All'
