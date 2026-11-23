@@ -22,6 +22,8 @@ import { jsPDF } from 'jspdf';
 import { supabase as supabaseClient } from './src/supabaseClient';
 import { getNzYmd } from './src/utils/nzDates';
 import { createPermit, listPermits, updatePermit, deletePermit } from './src/api/permits';
+import { resolveQuestionnaires } from './src/api/permitQuestionnaires';
+import { DEFAULT_PERMIT_QUESTIONNAIRES } from './src/permitQuestionnaire/defaults';
 import { getJseaTemplates, saveJseaTemplate, savePermitAsTemplate, getTemplates, filterJseaTemplatesForLoader } from './src/api/templates';
 import { uploadAttachment, uploadMultipleAttachments } from './src/api/attachments';
 import { createIsolationRegister, listIsolationRegisters, updateIsolationRegister, deleteIsolationRegister } from './src/api/isolationRegisters';
@@ -107,6 +109,7 @@ import {
 } from './src/utils/companyCsvImport';
 import InductionAdminScreen from './src/screens/InductionAdminScreen';
 import JseaAdminScreen from './src/screens/JseaAdminScreen';
+import PermitQuestionnaireAdminScreen from './src/screens/PermitQuestionnaireAdminScreen';
 import JseaEditorScreen from './src/screens/JseaEditorScreen';
 import JseaSummaryTable, { buildJseaSummaryGroups } from './src/components/JseaSummaryTable';
 import ContractorAdminScreen from './src/screens/ContractorAdminScreen';
@@ -805,364 +808,8 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
     { key: 'powerToolsFitForUse', label: 'Power tools', description: 'Defective or unsuitable power tools.' },
     { key: 'other', label: 'Other', description: 'Other hazards.' }
   ];
-  // Complete questionnaires for each specialized permit
-  const permitQuestionnaires = {
-    confinedSpace: [
-      { id: 'isolations', text: 'Are all isolations necessary completed?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'training', text: 'Are all workers entering the confined space trained and competent to perform the required task within the confined space as well as entering the confined space? NO CONFINED SPACE TRAINING = NO ENTRY', type: 'yesno', required: true, controlsOn: 'no', blockingQuestion: true },
-      { id: 'medical_check', text: 'All workers checked for any potential medical, health, psychological conditions that might pose a risk, prior to entry.', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'atmosphere_testing', text: 'Is atmosphere testing required?', type: 'yesno', required: true },
-      { id: 'testing_gases', text: 'Which gases will be tested?', type: 'multi_checkbox', required: true, options: [
-        { label: 'O2', value: 'O2' },
-        { label: 'CO', value: 'CO' },
-        { label: 'H2S', value: 'H2S' },
-        { label: 'Combustibles', value: 'combustibles' },
-        { label: 'Other Toxic gases', value: 'other_toxic', textLabel: 'Specify other toxic gases' },
-        { label: 'Other asphyxiants', value: 'other_asphyxiants', textLabel: 'Specify other asphyxiants' }
-      ], dependsOn: 'atmosphere_testing', dependsOnValue: 'yes' },
-      { id: 'ventilation', text: 'Is ventilation of the confined space required?', type: 'yesno', controlsLabel: 'Describe controls' },
-      { id: 'engulfment', text: 'Is there a possibility of engulfment, drowning or overhead hazards?', type: 'yesno' },
-      { id: 'pressure', text: 'Is there a possibility of extreme suction, pressure or flow occurring while people are in this confined space?', type: 'yesno'},
-      { id: 'access_egress', text: 'Is the access and egress to the confined space restricted, difficult or hazardous?', type: 'yesno', required: false },
-      { id: 'barrier', text: 'Will a barrier always be placed over the access point when workers leave the area.', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'vehicles', text: 'Are vehicles or combustion engines likely to be a hazard?', type: 'yesno', required: false },
-      { id: 'harnesses', text: 'Are safety harnesses and a method of extraction required?', type: 'yesno', note: 'If yes, Review the Fall Arrest Equipment Checklist.' },
-      { id: 'communication_method', text: 'How will you communicate?', type: 'text', required: true, textLabel: 'Phone/Radio/Audible Signal/Visual Signal/Rope Signal' },
-      { id: 'safety_watch_name', text: 'Name', type: 'text', required: true, textLabel: 'Enter name' }
-    ],
-    hotWork: [
-      { id: 'workshop_alternative', text: 'Will the hot work be done in an approved hot work area such as the workshop?', type: 'yesno', required: true, noControls: true },
-
-      { id: 'flammable_materials', text: 'Are there flammable or combustible substances/material evident within 10m of the hot work?  Look for dry vegetation, containers, piping systems, drains, other equipment in the area, or directly above or below the area?', type: 'yesno', required: true, controlsLabel: 'Describe purging/removal/covering methods?' },
-      { id: 'fire_extinguishers', text: 'Adequate and suitable fire extinguishers available on the job? A minimum of 3.5kg CO2 or dry powder fire extinguishers must be on hand.', type: 'yesno', required: true, controlsLabel: 'What fire extinguishers do you have available?', controlsOn: 'no'},
-      { id: 'hot_marking', text: 'Are there other workers in the area?', type: 'yesno', required: false, note: 'All items must be marked HOT to warn others in the area', controlsLabel: 'How will you protect others from the Hot Work?' },
-      { id: 'flashback_arrestors', text: 'Are the correct flash back arrestors fitted to all gas bottles?', type: 'yesnona', required: true, blockingQuestion: true, blockingAnswer: 'no', noControls: true },
-
-
-      { id: 'ignition_conveyance', text: 'Is it possible for ignition sources from hot work to be conveyed by conveyors, ducting, airflow or wind to combustible materials?', type: 'yesno', required: true, dependsOn: 'workshop_alternative', dependsOnValue: 'no' },
-      { id: 'conveyors_nearby', text: 'Are there conveyors, rubber lined chutes and poly deck screens in the immediate area and/or below any hot work?', type: 'yesno', required: true, controlsLabel: 'Describe the protection measure taken?', dependsOn: 'workshop_alternative', dependsOnValue: 'no' },
-      { id: 'wet_surfaces', text: 'Does floors and surface areas need to be wetted down?', type: 'yesno', required: true, dependsOn: 'workshop_alternative', dependsOnValue: 'no' },
-      { id: 'flammable_gases', text: 'Are flammable gases present in the area?', type: 'yesno', required: true, controlsLabel: 'What gases were tested, and what were the results?', note: 'Gas test required if yes', dependsOn: 'workshop_alternative', dependsOnValue: 'no' },
-      { id: 'confined_space', text: 'Is hot work being undertaken in a confined space?', type: 'yesno', note: 'Confined Space permit also required if yes', dependsOn: 'workshop_alternative', dependsOnValue: 'no' },
-      { id: 'hdpe_welding', text: 'Is High Density Polyethylene pipe being welded using electrofusion?', type: 'yesno', controlsLabel: 'Describe blanking procedures and cooling time requirements', note: 'Blank off open end and follow manufacturer cooling times', dependsOn: 'workshop_alternative', dependsOnValue: 'no' },
-      { id: 'wash_down', text: 'On processing plants, wash down hose in place and pumps turned on before commencing hot work.', type: 'yesno', required: true,  controlsOn: 'no', dependsOn: 'workshop_alternative', dependsOnValue: 'no' },
-
-
-      { id: 'grinders', text: 'Are disk grinders being used?', type: 'yesno', noControls : true },
-            { id: 'grinder_ppe', text: 'What PPE is required for grinder use?', type: 'multi_checkbox', required: true, dependsOn: 'grinders', dependsOnValue: 'yes', options: [
-        { label: 'Double eye protection (visor and glasses)', value: 'double_eye_protect' },
-        { label: 'Other', value: 'other', textLabel: 'Specify other grinder PPE' }
-      ] },
-            { id: 'correct_grinder', text:  'Does the grinder have anti-kickback protection and a deadman switch?', type: 'yesno', controlsOn: 'no', dependsOn: 'grinders', dependsOnValue: 'yes', controlsLabel: 'Who will be using the grinder and what extra controls do you have in place?'},
-            { id: 'grinder_safety', text:  'Is the guard fitted and side handle in position?', type: 'yesno', controlsOn: 'no', dependsOn: 'grinders', dependsOnValue: 'yes', controlsLabel: 'Who will be using the grinder and what extra controls do you have in place?'},
-            { id: '9inch', text: 'Are 9 inch grinders being used?', type: 'yesno', controlsLabel: 'Who will be using the grinder and what extra controls do you have in place?', note: 'Only qualified tradesmen are allowed to use 9" grinders', dependsOn: 'grinders', dependsOnValue: 'yes' },
-      
-      { id: 'alarm_plan', text: 'Is there a plan to raise the alarm if needed?', type: 'yesno_text', required: true, yesLabel: 'Describe the emergency plan details', noLabel: 'Describe how this will be controlled', noControls: true },
-      { id: 'hw_safety_watch', text: 'Who is the safety watch person?', type: 'text', required: true },
-      { id: 'hw_safety_period', text: 'What is the safety watch period?', type: 'radio', options: ['30 minutes (low risk)', '60 minutes (high risk)'], required: true },
-      ],
-
-    electrical: [
-      { id: 'isolation_requirements', text: 'Isolation requirements completed? Test and prove all isolations. Personal locks to be used and in place during the job, as noted in Isolation Register.', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'signage', text: 'Signage required to be placed by job to warn of hazard?', type: 'yesno_text', textLabel: 'Describe signage type and placement', noControls: true },
-      { id: 'ladder_required', text: 'Will a ladder be required? If yes, non-metallic ladders to be used in switchyards and around live equipment.', type: 'yesno', required: true, noControls: true },
-      { id: 'electrical_ladder_condition', text: 'Is the ladder to be used in good condition?', type: 'yesno', required: true, dependsOn: 'ladder_required', dependsOnValue: 'yes', controlsOn: 'no', inlineOnly: true, note: 'Check: All rubber feet present; All rungs in good condition; All safety catches/locking bars intact; AS/NZS 1892 standard mark present and rated for weight' },
-      { id: 'electrical_ladder_non_metallic', text: 'Is the ladder non-metallic?', type: 'yesno', required: true, dependsOn: 'ladder_required', dependsOnValue: 'yes', controlsOn: 'no', inlineOnly: true, note: 'Non-metallic ladders required in switchyards and around live equipment' },
-      { id: 'electrical_ladder_angle', text: 'Is the angle of the ladder set up to a ratio of 4 up and 1 out?', type: 'yesno', required: true, dependsOn: 'ladder_required', dependsOnValue: 'yes', controlsOn: 'no', inlineOnly: true },
-      { id: 'electrical_ladder_level_ground', text: 'Is the ladder to be footed on level ground?', type: 'yesno', required: true, dependsOn: 'ladder_required', dependsOnValue: 'yes', controlsOn: 'no', inlineOnly: true },
-      { id: 'electrical_ladder_secured', text: 'Is the ladder secured against movement at the top and bottom? (Note: you must have someone hold the ladder at the bottom initially to set this up)', type: 'yesno', required: true, dependsOn: 'ladder_required', dependsOnValue: 'yes', controlsOn: 'no', inlineOnly: true },
-      { id: 'electrical_ladder_three_points', text: 'Will it be possible to maintain 3 points of contact at all times?', type: 'yesno', required: true, dependsOn: 'ladder_required', dependsOnValue: 'yes', controlsOn: 'no', inlineOnly: true },
-      { id: 'electrical_exclusion', text: 'Does an exlusion zone need to be set up?.', type: 'yesno', required: true, noControls: true },
-      { id: 'electrical_exclusion_photo', text: 'Exclusion zone photo', type: 'attachment', dependsOn: 'electrical_exclusion', dependsOnValue: 'yes', note: 'Attach photo of exclusion zone setup' },
-      { id: 'ppe', text: 'What PPE is required to be worn?', type: 'multi_checkbox', required: true, options: [
-        { label: 'CAL rated clothing', value: 'high_viz' },
-        { label: 'Flame Retardant Overalls/Clothing', value: 'flame_retardant' },
-        { label: 'Safety Boots', value: 'safety_boots' },
-        { label: 'Safety Glasses', value: 'safety_glasses' },
-        { label: 'CAL rated gloves', value: 'cal_gloves' },
-        { label: 'Other', value: 'other', textLabel: 'Specify other PPE' }
-      ] },
-      { id: 'oil_spillage', text: 'Oil spill kit available for work on transformers or oil filled switch gear.', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'competent_personnel', text: 'All personnel undertaking this work are suitably competent (or supervised) to perform the required tasks?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'environmental', text: 'Consider: Are there any environmental matters?', type: 'yesno_text', textLabel: 'If yes, describe environmental considerations and precautions', noControls: true },
-      { id: 'communication', text: 'All relevant personnel has been notified of the work that is being undertaken? Consider: Production, other site personnel, contractors and external agencies', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'job_completion', text: 'Job Completion: Any special requirements at the closure of the job, before handing permit back for sign off?', type: 'yesno_text', textLabel: 'Describe completion requirements', noControls: true }
-    ],
-    workingAtHeight: [
-      { id: 'trained_competent', text: 'Are all workers undertaking the task trained and competent in work at heights?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'fitness', text: 'Are all persons fit for work at height? No persons are suffering from any ailment, illness or physical condition that could put any person at risk during work at height.', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'equip_types', text: 'Which working at height equipment will be used?', type: 'multi_checkbox', required: true, options: [
-        { label: 'MEWP', value: 'mewp' },
-        { label: 'Scaffold', value: 'scaffold' },
-        { label: 'Ladders', value: 'ladder' },
-        { label: 'Other', value: 'other', textLabel: 'Specify other systems' },
-	{ label: 'No W@H equipment needed, access available', value: 'none' },
-      ]},
-
-
-	{ id: 'fall_prevention', text: 'Fall prevention methods that will be in place?', required: true },
-      	{ id: 'protection_system', text: 'Will fall protection systems be used?', type: 'yesnona', required: true, controlsOn: 'no' },
-      
-
-      { id: 'system_types', text: 'Which fall protection systems will be used?', type: 'multi_checkbox', required: true, options: [
-        { label: 'Total Restraint', value: 'total_restraint' },
-        { label: 'Fall Restraint', value: 'fall_restraint' },
-        { label: 'Work Positioning', value: 'work_positioning' },
-        { label: 'Limited Free Fall Arrest', value: 'limited_free_fall' },
-        { label: 'Free Fall Arrest', value: 'free_fall_arrest' },
-        { label: 'Physical Barriers', value: 'barriers' },
-        { label: 'Other', value: 'other', textLabel: 'Specify other systems' }
-      ], dependsOn: 'protection_system', dependsOnValue: 'yes' },
-      { id: 'protection_system_controls', text: 'Any other additional controls needed for this equipment?', type: 'text', dependsOn: 'protection_system', dependsOnValue: 'yes' },
-      { id: 'safety_equipment', text: 'What extra PPE is needed', type: 'multi_checkbox', required: true, options: [
-        { label: 'Harness', value: 'harness' },
-        { label: 'Lanyard', value: 'lanyard' },
-        { label: 'Working at Heights Helmet', value: 'wah_helmet' },
-        { label: 'Other', value: 'other', textLabel: 'Specify other PPE' }
-      ] },
-      { id: 'ladder_best_method', text: 'Is a ladder the best method to access the work area required? (Ladders should only be used for low-risk, short-duration tasks under 30 minutes)', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'ladder', controlsOn: 'no', inlineOnly: true, note: 'Do not: Go beyond the third rung from the top; Leave tools on the ladder; Allow overreach; Carry loads that will prevent three points of contact; Use with more than one person' },
-      { id: 'ladder_condition', text: 'Is the ladder to be used in good condition?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'ladder', controlsOn: 'no', inlineOnly: true, note: 'Check: All rubber feet present; All rungs in good condition; All safety catches/locking bars intact; AS/NZS 1892 standard mark present and rated for weight' },
-      { id: 'ladder_overhang', text: 'If being used as an access way, does the ladder overhang at least one metre beyond the step off point?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'ladder', controlsOn: 'no', inlineOnly: true },
-      { id: 'ladder_secured', text: 'Is the ladder secured against movement at the top and bottom? (Note: you must have someone hold the ladder at the bottom initially to set this up)', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'ladder', controlsOn: 'no', inlineOnly: true },
-      { id: 'ladder_level_ground', text: 'Is the ladder to be footed on level ground?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'ladder', controlsOn: 'no', inlineOnly: true },
-      { id: 'ladder_angle', text: 'Is the angle of the ladder set up to a ratio of 4 up and 1 out?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'ladder', controlsOn: 'no', inlineOnly: true },
-      { id: 'ladder_access_way', text: 'Is the ladder in a vehicle or pedestrian access way? (Put up temporary barriers - cones/tape/signage etc)', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'ladder', controlsOn: 'yes', inlineOnly: true },
-      { id: 'ladder_three_points', text: 'Will it be possible to maintain 3 points of contact at all times?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'ladder', controlsOn: 'no', inlineOnly: true },
-      { id: 'mewp_daily_check', text: 'Has a daily check been performed on the EWP?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'mewp', controlsOn: 'no', inlineOnly: true },
-      { id: 'mewp_operator_trained', text: 'Is the operator trained in the use of this elevating work platform?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'mewp', controlsOn: 'no', inlineOnly: true },
-      { id: 'mewp_inspected', text: 'Has the machine been inspected within the previous 6 months?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'mewp', controlsOn: 'no', inlineOnly: true },
-      { id: 'mewp_controls_identified', text: 'Are all the controls clearly identified with direction of movement and operate correctly when tested?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'mewp', controlsOn: 'no', inlineOnly: true },
-      { id: 'mewp_emergency_stop', text: 'Does the emergency stop operate when activated?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'mewp', controlsOn: 'no', inlineOnly: true },
-      { id: 'mewp_fluid_levels', text: 'Are fuel, water, oil and battery levels adequate?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'mewp', controlsOn: 'no', inlineOnly: true },
-      { id: 'mewp_no_damage', text: 'Is there any visible damage?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'mewp', inlineOnly: true },
-      { id: 'mewp_level_ground', text: 'Is the machine set up on level ground with stabilisers extended to the ground?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'mewp', controlsOn: 'no', inlineOnly: true },
-      { id: 'mewp_exclusion_zone', text: 'Is there a clear exclusion zone set up around the work area?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'mewp', controlsOn: 'no', inlineOnly: true },
-      { id: 'mewp_weight_limit', text: 'Will the weight be kept within the SWL? (A person and their tools calculated at being 100kgs)', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'mewp', controlsOn: 'no', inlineOnly: true },
-      { id: 'mewp_horn_check', text: 'If a self-propelled EWP is being used are the horn operating correctly?', type: 'yesno', dependsOn: 'equip_types', dependsOnValue: 'mewp', controlsOn: 'no', inlineOnly: true },
-      { id: 'scaffold_tag_safe', text: 'Does the scaffold have a tag to confirm it is safe for use?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'scaffold', controlsOn: 'no', inlineOnly: true },
-      { id: 'scaffold_guardrail_toe_board', text: 'All working platforms has a guardrail and toe board?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'scaffold', controlsOn: 'no', inlineOnly: true },
-      { id: 'scaffold_no_damage', text: 'Is there any visible damage to the scaffold?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'scaffold', controlsOn: 'yes', inlineOnly: true },
-      { id: 'scaffold_exclusion_zone', text: 'Is there a clear exclusion zone set up around the work area to prevent incidents from dropped objects?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'scaffold', controlsOn: 'no', inlineOnly: true },
-      { id: 'scaffold_weight_limit', text: 'Will the weight be kept within the SWL?', type: 'yesno', required: true, dependsOn: 'equip_types', dependsOnValue: 'scaffold', controlsOn: 'no', inlineOnly: true },
-      { id: 'harness_lanyard_inspected', text: 'All harnesses/lanyards/ropes etc. externally inspected in the last 6 months?', type: 'yesno', required: true, dependsOn: 'safety_equipment', dependsOnValue: ['harness', 'lanyard'] },
-      { id: 'anchor_points_certified', text: 'All anchor points certified and inspected in the last 12 months?', type: 'yesno', required: true, dependsOn: 'safety_equipment', dependsOnValue: ['harness', 'lanyard'] },
-      { id: 'harness_webbing', text: 'Webbing - No cuts, nicks, tears, fraying, abrasions, burns, mold, mildew, or chemical damage', type: 'yesno', dependsOn: 'safety_equipment', dependsOnValue: 'harness', inlineOnly: true },
-      { id: 'harness_stitching', text: 'Stitching - Not broken, burned, pulled, or missing threads', type: 'yesno', dependsOn: 'safety_equipment', dependsOnValue: 'harness', inlineOnly: true },
-      { id: 'harness_hardware', text: 'Hardware (D-Rings, Buckles, Pass-Thru) - Check for rust, cracks, corrosion, distortion, sharp edges, or deformation', type: 'yesno', dependsOn: 'safety_equipment', dependsOnValue: 'harness', inlineOnly: true },
-      { id: 'harness_impact_indicators', text: 'Impact indicators - Verify tags have not been deployed or torn', type: 'yesno', dependsOn: 'safety_equipment', dependsOnValue: 'harness', inlineOnly: true },
-      { id: 'harness_labels', text: 'Labels/Tags - Ensure labels are present and legible, providing manufacturer, model, and serial number', type: 'yesno', dependsOn: 'safety_equipment', dependsOnValue: 'harness', inlineOnly: true },
-      { id: 'harness_fit', text: 'Fit/Adjustment - Ensure straps and buckles operate smoothly and can be properly adjusted to the user', type: 'yesno', dependsOn: 'safety_equipment', dependsOnValue: 'harness', inlineOnly: true },
-      { id: 'harness_correct_size', text: 'Correct size harness for the person?', type: 'yesno', dependsOn: 'safety_equipment', dependsOnValue: 'harness', inlineOnly: true },
-      { id: 'lanyard_webbing', text: 'Webbing/Rope - Inspect for frays, tears, burns, cuts, and chemical/UV degradation', type: 'yesno', dependsOn: 'safety_equipment', dependsOnValue: 'lanyard', inlineOnly: true },
-      { id: 'lanyard_shock_absorber', text: 'Shock Absorber/Pack - Check the pouch for tearing, burning, or stitches that have already deployed', type: 'yesno', dependsOn: 'safety_equipment', dependsOnValue: 'lanyard', inlineOnly: true },
-      { id: 'lanyard_hardware', text: 'Hardware (Hooks/Carabiners) - Inspect for distortion, cracks, and ensuring gate mechanisms self-lock and close properly', type: 'yesno', dependsOn: 'safety_equipment', dependsOnValue: 'lanyard', inlineOnly: true },
-      { id: 'anchor_points', text: 'Specify the anchor point(s)', type: 'text', required: true },
-      { id: 'falling_objects', text: 'Provision made to prevent objects from falling below, such as tethering, kickrails etc.', type: 'yesno', controlsOn: 'no' },
-      { id: 'tool_count', text: 'Tool count completed before and after work?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'initial_tool_count', text: 'How many tools are you taking with you?', type: 'text', dependsOn: 'tool_count', dependsOnValue: ['yes', 'na'], textLabel: 'Enter number of tools' },
-      { id: 'overhead_lines', text: 'Will work at height be conducted within 4 meters of overhead lines? All work closer than 4 meters to overhead conductors must be authorized by the network operator.', type: 'yesno', required: true, note: 'Network operator approval required if within 4m' },
-      { id: 'network_operator_approval', text: 'Network operator approval', type: 'attachment', dependsOn: 'overhead_lines', dependsOnValue: 'yes', note: 'Attach network operator approval document' },
-      { id: 'emergency_retrieval', text: 'Describe emergency retrieval plan and suspension trauma relief procedures', type: 'text', dependsOn: 'safety_equipment', dependsOnValue: ['harness', 'lanyard'], textLabel: 'Describe emergency retrieval plan and suspension trauma relief procedures', required: true },
-      { id: 'safety_watch', text: 'Safety watch required? Safety Watch must be present if harness is in use.', type: 'yesno_text', textLabel: 'Name safety watch person and describe their specific duties', required: true },
-      { id: 'exclusion_zone_photo', text: 'Exclusion zone photo', type: 'attachment', dependsOn: ['mewp_exclusion_zone', 'scaffold_exclusion_zone'], dependsOnValue: 'yes', note: 'Attach photo of exclusion zone setup' }
-    ],
-    excavation: [
-      { id: 'before_you_dig', text: 'Before you dig notification completed?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'underground_services', text: 'Underground services identified and marked?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'shoring_required', text: 'Is shoring or slope protection required?', type: 'yesno_text', textLabel: 'Describe shoring/slope protection measures', noControls : true },
-      { id: 'competent_person', text: 'Name of competent person assigned to supervise excavation.', type: 'text', required: true, dependsOn: 'shoring_required', dependsOnValue: 'yes' },
-      { id: 'emergency_egress', text: 'Describe emergency plan for persons in excavation', type: 'text', required: true, dependsOn: 'shoring_required', dependsOnValue: 'yes', textLabel: 'Describe emergency plan for persons in excavation' }
-    ],
-    lifting: [
-      { id: 'environmental_conditions', text: 'Are the environmental conditions suitable for this activity? (lifts should not proceed if wind exceeds 35 knots, 60 MPH, or 15m/h)', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'supervisors_oversight', text: 'Are the supervisors in place to oversee work competently?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'lighting_provided', text: 'Has adequate lighting been provided for workers? (if natural light is inadequate)', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'exclusion_zone', text: 'Has an exclusion zone been established around the area during preparation and lift?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'exclusion_zone_photo', text: 'Exclusion zone photo', type: 'attachment', dependsOn: 'exclusion_zone', dependsOnValue: 'yes', note: 'Attach photo of exclusion zone setup' },
-      { id: 'personnel_trained', text: 'Are all personnel trained and competent in their respective equipment (i.e., crane driver, dogman, rigger, safety observer etc.)?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'safe_working_load', text: 'Is the lift within 80% of the crane/hiab safe working load limit?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'complex_lift_procedure', text: 'If over 60% or a complex lift (more people, 2 or more cranes etc), has a Lifting Procedure been signed off by the Crane Controller or Lift Supervisor?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'equipment_isolated', text: 'Have all affected plant and equipment been isolated prior to lift?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'manufacturer_specs', text: 'Is the lift within the manufacturer\'s specifications for the hoist, sling and chains?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'loads_secured', text: 'Are loads adequately secured to ensure they are stable during lift and are all hooks etc. certified?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'communication', text: 'Does the dogman/rigger and crane operator able to have visual contact or a defined means of communication? (a designated radio channel is required for a blind lift)', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'lifting_equipment_certified', text: 'Have all lifting equipment, slings and chains been checked and certified to carry load?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'tag_lines', text: 'Are tag lines or piles available to control the load and swing?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'boom_positioning', text: 'Is the crew aware that the boom and loads are not to be left positioned over live work areas when left unattended?', type: 'yesno', required: true, controlsOn: 'no' }
-    ],
-    blastingMarking: [
-      { id: 'marking_hazards_controlled', text: 'Are you aware of any bench condition and face edge hazards and are they controlled?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'marking_lv_parking', text: 'Light vehicles remain in designated LV parking area?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'marking_standoff_established', text: 'Minimum 2m stand-off distance from the face established? (If not, RM needs to approve)', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'marking_standoff_increased', text: 'Does the stand-off distance need to be increased?', type: 'yesno_text', textLabel: 'To how many meters:', noControls: true, dependsOn: 'marking_standoff_established', dependsOnValue: 'yes' },
-      { id: 'marking_standoff_marked', text: 'Minimum stand-off distance marked with dazzle, markers, cones, fence posts?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'marking_bund_break', text: 'Safe break in bund for drill rig established?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'marking_bund_marked', text: 'Break in bund marked with cones?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'marking_weather_checked', text: 'Weather checked to avoid significant weather events?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'marking_edge_protection', text: 'Edge protection marked on drill plan?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'marking_plan_approved', text: 'Drill Plan reviewed and approved by Permit Issuer?', type: 'yesno', required: true },
-      { id: 'marking_drill_plan_file', text: 'Attach Drill Plan', type: 'attachment', note: 'Attach the drill plan document' },
-    ],
-    blastingDrilling: [
-      { id: 'drilling_inspection_completed', text: 'Drill rig daily inspection sheet completed prior to start-up?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'drilling_ground_conditions', text: 'Are ground conditions suitable to prevent drill rigs toppling over?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'drilling_oriented_toppling', text: 'Is the drill rig oriented to prevent falling over edge if it should topple over ?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'drilling_oriented_distance', text: 'Is the drill rig oriented to maximize distance from face?', type: 'yesno', required: true, controlsOn: 'no' },  
-      { id: 'drilling_normal_area', text: 'Is drilling completed in an area where geotechnical information is known?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'drilling_plan_received', text: 'Drill Plan and instructions received from the marker?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'drilling_log_attached', text: 'Drill log completed and attached?', type: 'yesno', required: true, controlsOn: 'no' },
-    ],
-    blastingExecution: [
-      { id: 'licensed_shot_firer', text: 'Name of licensed shot firer assigned.', type: 'text', required: true },
-      { id: 'blasting_staff_notified', text: 'Staff notified of intended time/date/location of blast and which radio channel to use?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'blasting_third_parties_consulted', text: 'Third parties/members of the public consulted/notified?', type: 'yesno', required: true, controlsOn: 'no'},
-      { id: 'blasting_third_parties_evacuated', text: 'Third parties/members of the public evacuated if not in the public safety zone?', type: 'yesno', required: true, controlsOn: 'no'},
-      { id: 'blasting_access_bench_clear', text: 'Access to bench clear and the Authority to Load inspection completed?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'blasting_geological_changes', text: 'There are known geological changes or faults that may impact on the blast?', type: 'yesno', required: true },
-      { id: 'blasting_drill_reviewed', text: 'Drill log and bore track results reviewed and discussed with driller?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'blasting_burden_bore_tracked', text: 'Has front rows been bore-tracked?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'blasting_burden_front_face', text: 'Minimum burden of front face hole bore tracking is (m)', type: 'text', required: true, noControls: true, dependsOn: 'blasting_burden_bore_tracked', dependsOnValue: 'yes' },
-      { id: 'blasting_burden_consistent', text: 'Is the actual burden consistent with design burden?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'blasting_safety_factor', text: 'Can a safety factor 4x be achieved for personnel positioned in the all in firing position?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'blasting_safety_factor_plant', text: 'Can a safety factor 2x be achieved for personnel positioned for all plant and equipment', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'blasting_manager_signoff_required', text: 'Regional Manager Sign-Off Required: Safety requirements not met', type: 'section', dependsOn: ['blasting_burden_bore_tracked', 'blasting_burden_consistent', 'blasting_safety_factor', 'blasting_safety_factor_plant'], dependsOnValue: ['no', 'no', 'no', 'no'] },
-      { id: 'blasting_manager_name', text: 'Regional Manager Name', type: 'text', required: true, dependsOn: ['blasting_burden_bore_tracked', 'blasting_burden_consistent'], dependsOnValue: ['no', 'no'] },
-      { id: 'blasting_manager_signoff_file', text: 'Regional Manager Sign-Off Document', type: 'attachment', note: 'Attach signed approval from Regional Manager', dependsOn: ['blasting_burden_bore_tracked', 'blasting_burden_consistent', 'blasting_safety_factor', 'blasting_safety_factor_plant'], dependsOnValue: ['no', 'no', 'no', 'no'] },
-      { id: 'blasting_safe_distance_personnel', text: 'Safe distance for personnel on site is', type: 'text', textLabel: '_____ m', required: true },
-      { id: 'blasting_safe_distance_plant', text: 'Safe location distance for plant/equipment/vehicles is', type: 'text', textLabel: '_____ m', required: true },
-      { id: 'blasting_firing_direction', text: 'Firing direction understood?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'blasting_monitors_set_up', text: 'Have the blast monitors been set up?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'blasting_site_plan', text: 'Site Plan completed with and discussed with Permit Issuer?', type: 'yesno', required: true, controlsOn: 'n' },
-      { id: 'blasting_holes_below_midc', text: 'Are holes below or equal to their Maximum instantaneous Design Charge?', type: 'yesno_text', textLabel: 'If no, note the numbers and comment', textLabelOn: 'no', required: true, noControls: true },
-      { id: 'blasting_personnel_accounted', text: 'Visitors/Contractors/Personnel/Plant/Equipment on site all accounted for and in agreed safety zone?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'blasting_shotfirer_position', text: 'Shotfirer in the established firing position, not in line of sight of the blast?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'blasting_mgm_signoff_required', text: 'Blasting Company Operations Manager Sign-Off Required: Safety requirements not met', type: 'section', dependsOn: ['blasting_shotfirer_position'], dependsOnValue: ['no'] },
-      { id: 'blasting_mgm_name', text: 'Operations Manager Name', type: 'text', required: true, dependsOn: ['blasting_shotfirer_position'], dependsOnValue: ['no'] },
-      { id: 'blasting_mgm_signoff_file', text: 'Regional Manager Sign-Off Document', type: 'attachment', note: 'Attach signed approval from Regional Manager', dependsOn: ['blasting_shotfirer_position'], dependsOnValue: ['no'] },
-      { id: 'blasting_fumex_settled', text: 'Fumex and dust have settled and dissipated before entering?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'blasting_faces_inspected', text: 'Faces inspected and deemed safe?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'blasting_all_holes_fired', text: 'All holes have fired?', type: 'yesno', required: true },
-      { id: 'blasting_all_clear', text: 'All clear given to proceed with normal operations?', type: 'yesno', required: true }
-    ],
-    plantServicing: [
-      { id: 'lockout_recorded', text: 'All people working on fixed plant have applied a lockout and lockouts and these are recorded in Isolations section the PTW', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'zero_energy_confirmed', text: 'A zero-energy state confirmed. (All electrical, hydraulic, pneumatic, mechanical systems de-energized.  Think about hoseburst protection systems, springs, rollaway, flywheels etc.)', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'workers_trained', text: 'All workers trained, competent and experienced at performing the repair task on the fixed plant.', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'manufacturer_manual', text: 'Is the repair being completed as per the Fixed Plant Manufacturers Workshop Manual where applicable or available?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'access_restricted', text: 'Access to the repair area is restricted for pedestrians and vehicles. Only workers engaged in the work and signed on to the permit and the permit issuer have access to the service area.', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'fluids_contained', text: 'Are all fluids and other waste materials contained and will it be removed by the end of the task.', type: 'yesnona', required: true, noControls: true, controlsOn: 'no' },
-      { id: 'hot_fluids_controls', text: 'Controls for release/draining of hot fluids in place - e.g. engine oil, hydraulic oils etc', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'pressurized_controls', text: 'Controls for venting of pressurized fluids or systems in place - e.g. hydraulic oil', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'flammable_controls', text: 'Controls for flammables in place - e.g. petrol, diesel', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'no_suspended_loads', text: 'Will anyone be under suspended loads?', type: 'yesno', required: true, blockingQuestion: true, blockingAnswer: 'yes', noControls: true },
-      { id: 'plant_operation', text: 'If the plant is to be started or moved by a contractor, are they trained and competent in the operation of the fixed plant, hold the correct licenses and be trained in the relevant Winstone Aggregates SOPs.', type: 'yesnona', required: true, controlsOn: 'no'},
-      { id: 'safe_access_height', text: 'Is there safe access to the work area?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'heavy_lifting_controls', text: 'Controls in place for heavy lifting that might be involved.', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'additional_permits', text: 'Are all associated permits completed?  eg. Hot Work, Working at Height, Lifting with Cranes or Hiabs etc.', type: 'yesnona', required: true, controlsOn: 'no'},
-      { id: 'tools_equipment', text: 'All tools, equipment used fit for purpose, safe, certified where necessary. Any custom-built items verified.', type: 'yesnona', required: true, controlsOn: 'no' }
-    ],
-
-    mobilePlantServicing: [
-      { id: 'lockout_recorded', text: 'All people working on mobile plant have applied a lockout and lockouts and these are recorded in Isolations section the PTW', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'zero_energy_confirmed', text: 'A zero-energy state confirmed. (All electrical, hydraulic, pneumatic, mechanical systems de-energized.  Think about hoseburst protection systems, springs, rollaway, flywheels etc.)', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'workers_trained', text: 'All workers trained, competent and experienced at performing the repair task on the mobile plant.', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'manufacturer_manual', text: 'Is the repair being completed as per the Mobile Plant Manufacturers Workshop Manual where applicable or available?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'access_restricted', text: 'Access to the repair area is restricted for pedestrians and vehicles. Only workers engaged in the work and signed on to the permit and the permit issuer have access to the service area.', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'fluids_contained', text: 'Are all fluids and other waste materials contained and will it be removed by the end of the task.', type: 'yesnona', required: true, noControls: true, controlsOn: 'no' },
-      { id: 'hot_fluids_controls', text: 'Controls for release/draining of hot fluids in place - e.g. engine oil, hydraulic oils etc', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'pressurized_controls', text: 'Controls for venting of pressurized fluids or systems in place - e.g. hydraulic oil', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'flammable_controls', text: 'Controls for flammables in place - e.g. petrol, diesel', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'no_suspended_loads', text: 'Will anyone be under suspended loads?', type: 'yesno', required: true, blockingQuestion: true, blockingAnswer: 'yes', noControls: true },
-      { id: 'plant_operation', text: 'If the mobile plant is to be started or moved by a contractor, are they trained and competent in the operation of the mobile plant, hold the correct licenses and be trained in the relevant Winstone Aggregates SOPs.', type: 'yesnona', required: true, controlsOn: 'no'},
-      { id: 'safe_access_height', text: 'Is there safe access to the work area?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'heavy_lifting_controls', text: 'Controls in place for heavy lifting that might be involved.', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'additional_permits', text: 'Are all associated permits completed?  eg. Hot Work, Working at Height, Lifting with Cranes or Hiabs etc.', type: 'yesnona', required: true, controlsOn: 'no'},
-      { id: 'tools_equipment', text: 'All tools, equipment used fit for purpose, safe, certified where necessary. Any custom-built items verified.', type: 'yesnona', required: true, controlsOn: 'no' },
-      
-      { id: 'approved_area', text: 'Mobile Plant repair being done in approved servicing area.', type: 'yesnona', required: true, noControls: true },
-      { id: 'traffic_diversion_required', text: 'Traffic Diversion required?', type: 'yesno', dependsOn: 'approved_area', dependsOnValue: 'no', controlsOn: 'no' },
-      
-      { id: 'traffic_areas_described', text: 'Have all staff been informed of the areas of the site that will be affected?', type: 'yesno', required: true, inlineOnly: true, dependsOn: 'traffic_diversion_required', dependsOnValue: 'yes', controlsOn: 'no' },
-      { id: 'traffic_period_described', text: 'Have all staff been informed of the likely period of time that site traffic will be disrupted?', type: 'yesno', required: true, inlineOnly: true, dependsOn: 'traffic_diversion_required', dependsOnValue: 'yes', controlsOn: 'no' },
-      { id: 'traffic_conflicting_checked', text: 'Have you checked for conflicting work or activity on site roads?', type: 'yesno', required: true, inlineOnly: true, dependsOn: 'traffic_diversion_required', dependsOnValue: 'yes', controlsOn: 'no' },
-      { id: 'traffic_emergency_exits', text: 'Will access to emergency exits, or emergency equipment and services be blocked?', type: 'yesno', required: true, inlineOnly: true, dependsOn: 'traffic_diversion_required', dependsOnValue: 'yes' },
-      { id: 'traffic_deliveries_communicated', text: 'Have you communicated the likely impact on site deliveries, customer traffic to site?', type: 'yesno', required: true, inlineOnly: true, dependsOn: 'traffic_diversion_required', dependsOnValue: 'yes', controlsOn: 'no' },
-      { id: 'traffic_route_checked', text: 'Have you checked the planned route of travel is appropriate for the load size and weight? (E.g. gradient, width, surface etc.)', type: 'yesnona', required: true, inlineOnly: true, dependsOn: 'traffic_diversion_required', dependsOnValue: 'yes', controlsOn: 'no' },
-      { id: 'traffic_barriers_planned', text: 'Have you clearly marked the area using barriers, cones and signs etc.?', type: 'yesno', required: true, inlineOnly: true, dependsOn: 'traffic_diversion_required', dependsOnValue: 'yes', controlsOn: 'no' },
-      { id: 'traffic_pedestrian_hazards', text: 'Will all pedestrians be safe from traffic inside the marked barriers?', type: 'yesno', required: true, inlineOnly: true, dependsOn: 'traffic_diversion_required', dependsOnValue: 'yes', controlsOn: 'no' },
-      
-      { id: 'tire_safety', text: 'Safety systems in place for inflating tyres.', type: 'yesnona', required: true, noControls: true, controlsOn: 'no'},
-      { id: 'batteries_protected', text: 'Batteries protected from arcing.', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'wheels_removed', text: 'Will any wheels be removed during this work?', type: 'yesno', required: true, noControls: true },
-      
-      { id: 'chocks_used', text: 'Suitable chocks being used to prevent movement?', type: 'yesnona', required: true, noControls: true, dependsOn: 'wheels_removed', dependsOnValue: 'yes', controlsOn: 'no' },
-      { id: 'retorque_sop', text: 'Aware of retorqueing required on all heavy vehicles after tyre wheel removal?', type: 'yesnona', required: true, noControls: true, dependsOn: 'wheels_removed', dependsOnValue: 'yes', controlsOn: 'no' },
-      { id: 'wheel_torque_level', text: 'Correct Wheel torque level known', type: 'text', required: true, noControls: true, textLabel: 'Nm', dependsOn: 'wheels_removed', dependsOnValue: 'yes', controlsOn: 'no' },
-      { id: 'retorque_record', text: 'Wheel Retorque Record Completed', type: 'yesnona', required: true, noControls: true, dependsOn: 'wheels_removed', dependsOnValue: 'yes', controlsOn: 'no' },
-      
-      { id: 'hydraulic_raising', text: 'Will Hydraulic Bins, Buckets or Booms need to be raised?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'overhead_check', text: 'Are there any overhead structures/powerlines and wires present?', type: 'yesnona', required: true, noControls: true, dependsOn: 'hydraulic_raising', dependsOnValue: 'yes' },
-      { id: 'bins_empty', text: 'Was bins checked to ensure they are empty?', type: 'yesnona', required: true, noControls: true, dependsOn: 'hydraulic_raising', dependsOnValue: 'yes', controlsOn: 'no' },
-      { id: 'locks_used', text: 'Approved locks used for securing raised attachments', type: 'yesnona', required: true, noControls: true, dependsOn: 'hydraulic_raising', dependsOnValue: 'yes', controlsOn: 'no' },
-      { id: 'pins_props', text: 'Approved pins or props in place before anyone can work under raised attachments/bins/buckets', type: 'yesnona', required: true, noControls: true, dependsOn: 'hydraulic_raising', dependsOnValue: 'yes', controlsOn: 'no' },
-      { id: 'no_person_raised_bucket', text: 'Will any person work in or be carried in a raised bucket of mobile plant?', type: 'yesnona', required: true, noControls: true, dependsOn: 'hydraulic_raising', dependsOnValue: 'yes', blockingQuestion: true, blockingAnswer: 'yes' }
-    ],
-
-
-
-
-    stripping: [
-      { id: 'environmental_clearance', text: 'Environmental consents followed?', type: 'yesno', required: true, controlsOn: 'no'  },
-      { id: 'archaeology_survey', text: 'Archaeological survey conditions/restrictions followed?', type: 'yesnona', controlsOn: 'no' },
-      { id: 'equipment_inspection', text: 'Stripping equipment pre-start inspections completed daily?', type: 'yesno', required: true, controlsOn: 'no'  },
-      { id: 'dust_control', text: 'Dust suppression measures in place?', type: 'yesno', required: true, controlsOn: 'no'  },
-      { id: 'traffic_management', text: 'Traffic management plan still relevant and correct?', type: 'yesno', required: true, controlsOn: 'no'  },
-      { id: 'overhead_wires', text: 'Overhead wires identified and adequately controlled?', type: 'yesnona', required: true, controlsOn: 'no'  },
-      { id: 'speed_limits', text: 'Speed limits defined?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'two_way_traffic', text: '2-way traffic controlled?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'light_vehicle_access', text: 'Light vehicle access controlled?', type: 'yesnona', required: true, controlsOn: 'no'  },
-      { id: 'rt_calling_points', text: 'R/T calling points identified?', type: 'yesnona', required: true, controlsOn: 'no'  },
-      { id: 'emergency_run_off', text: 'Emergency run off areas provided if needed?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'haul_roads_bunded', text: 'All haul roads and faces adequately bunded?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'haul_road_gradient', text: 'Gradient of all haul roads appropriate for vehicles used?', type: 'yesnona', required: true, controlsOn: 'no'},
-      { id: 'passing_points', text: 'Passing points defined on any single lane sections?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'road_maintenance', text: 'Road maintenance adequate?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'pushing_material_controls', text: 'Controls in place if pushing material over faces?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'tipping_procedures', text: 'Tipping procedures followed correctly?', type: 'yesnona', required: true, controlsOn: 'no'},
-      { id: 'plant_operators_trained', text: 'All mobile plant operators adequately trained and supervised?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'operator_sign_in', text: 'All operators signed in on site daily?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'stripping_comms', text: 'There is an agreed plan of communication in case of emergency?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'adverse_weather_controls', text: 'Controls in place to manage hazards arising from environmental conditions (rain/fog/frost/sun)?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'stripping_quarry_interaction', text: 'Access to stripping area, and interaction with quarry vehicles managed?', type: 'yesnona', required: true, controlsOn: 'no' }      
-    ],
-
-    surveying: [
-      { id: 'survey_plan', text: 'Survey plan and methodology approved?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'qualified_surveyor', text: 'Name of Qualified surveyor assigned to task', type: 'text', required: true },
-      { id: 'equipment_calibration', text: 'Survey equipment calibration current?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'site_access', text: 'Safe site access routes established?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'communication', text: 'What is the communication plan while pedestrian is on site?', type: 'text', textLabel: 'Describe communication method and frequency', required: true },
-      { id: 'site_plan_advising', text: 'Surveyor given site plan advising of location of all stockpiles and agreed access routes?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'vehicle_flashing_beacon', text: 'Surveyor\'s vehicle fitted with flashing beacon and flag?', type: 'yesnona', required: true, controlsOn: 'no'},
-      { id: 'rt_communication', text: 'Surveyor has R/T, is aware of correct channel to use in relevant areas of site, site R/T protocol and need for all calls to be acknowledged?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'driving_procedures', text: 'Surveyor is inducted to site procedures for driving to site stockyards (i.e. give way to mobile plant, flashing light on, one way systems, using R/T calls etc)?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'quarry_vehicles_advised', text: 'All relevant quarry vehicles to be advised of surveyor activity before commencing?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'drone_preference', text: 'Is the surveying being done by drone to prevent pedestrian access around stockpiles?', type: 'yesnona', required: true, controlsOn: 'no' },
-
-      { id: 'stockpile_surveying', text: 'Stockpile Surveying', type: 'section', note: 'Only complete this part if you need to access the stockpile on foot' },
-      { id: 'loader_operator_advised', text: 'Loader and Dump truck operator(s) advised via R/T of pedestrian presence prior to measuring each stockpile?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'vehicle_parking', text: 'Will the vehicle be parked in load out areas of stockpile to be measured, to restrict mobile plant access?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'haul_road_clear', text: 'Pedestrians will keep clear of haul roads or other areas heavy vehicles may be operating and work by stockpile only?', type: 'yesnona', required: true, controlsOn: 'no'  },
-      { id: 'avoid_loaded_stockpile', text: 'Surveyor understands not to approach any stockpile currently being loaded on to by dumper, or from by loader - wait in vehicle until the mobile plant has moved clear?', type: 'yesnona', required: true, controlsOn: 'no' },
-      { id: 'undercut_faces_clear', text: 'Surveyor aware of what an undercut stockpile face is, and to keep clear and notify any undercuts to QM?', type: 'yesnona', required: true, controlsOn: 'no' },
-
-      { id: 'pit_face_surveying', text: 'Pit and Face Surveying', type: 'section', note: 'Only complete this part if you need to access the pit on foot'  },
-      { id: 'no_unprotected_benches', text: 'Does all benches where access is needed have over edge protection?', type: 'yesno', required: true, controlsOn: 'no'  },
-      { id: 'no_edge_protection_standing', text: 'Is pedestrian aware that it is not allowed to stand on edge protection bunding?', type: 'yesno', required: true, controlsOn: 'no'  },
-      { id: 'face_stability', text: 'Faces has been inspected for stability before approaching closer than 3m to toe?', type: 'yesno', required: true, controlsOn: 'no' },
-      { id: 'avoid_operating_vehicles', text: 'Will pedestrians be entering areas where quarry vehicles are operating directly above or next to the pedestrian?', type: 'yesnona', required: true, controlsOn: 'no'  }
-    ]
-  };
+  // Specialized permit questionnaires (loaded from DB by BU/site; defaults in src/permitQuestionnaire/defaults.js)
+  const [permitQuestionnaires, setPermitQuestionnaires] = useState(DEFAULT_PERMIT_QUESTIONNAIRES);
   const initialSpecializedPermits = Object.fromEntries(specializedPermitTypes.map(p => [p.key, { required: false, controls: '', questionnaire: {} }]));
   const initialSingleHazards = Object.fromEntries(singleHazardTypes.map(h => [h.key, { present: false, controls: '' }]));
   const initialJSEA = { id: '', taskSteps: [], overallRiskRating: '', additionalPrecautions: '' }; // Used for editor state
@@ -3676,6 +3323,54 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
   const [siteNameToIdMap, setSiteNameToIdMap] = useState({});
   const [siteIdToNameMap, setSiteIdToNameMap] = useState({});
 
+  const questionnaireResolveSiteId = useMemo(() => {
+    if (formData?.site && siteNameToIdMap?.[formData.site]) {
+      return siteNameToIdMap[formData.site];
+    }
+    if (selectedPermit?.site_id) return selectedPermit.site_id;
+    if (selectedPermit?.siteId) return selectedPermit.siteId;
+    if (dashboardSelectedSite) return dashboardSelectedSite;
+    return null;
+  }, [formData?.site, siteNameToIdMap, selectedPermit, dashboardSelectedSite]);
+
+  useEffect(() => {
+    const siteRow = questionnaireResolveSiteId
+      ? sites.find((s) => s.id === questionnaireResolveSiteId)
+      : null;
+    const buId =
+      siteRow?.business_unit_id ||
+      siteRow?.businessUnitId ||
+      businessUnitId ||
+      null;
+
+    if (!buId) {
+      setPermitQuestionnaires(DEFAULT_PERMIT_QUESTIONNAIRES);
+      return undefined;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const merged = await resolveQuestionnaires(
+          buId,
+          questionnaireResolveSiteId,
+        );
+        if (!cancelled && merged) {
+          setPermitQuestionnaires(merged);
+        }
+      } catch (err) {
+        console.warn('Failed to load permit questionnaires:', err);
+        if (!cancelled) {
+          setPermitQuestionnaires(DEFAULT_PERMIT_QUESTIONNAIRES);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [questionnaireResolveSiteId, sites, businessUnitId]);
+
   // --- Render questionnaire for a specialized permit ---
   // This function is defined inside PermitManagementApp so it can access state variables via closure
   const renderQuestionnaire = (permitKey, formData, handleQuestionnaireResponse, permitQuestionnaires, styles) => {
@@ -4227,6 +3922,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'visitor-inductions': 'manage_visitor_inductions',
         'inductions': 'manage_inductions',
         'jsea-templates': 'manage_jsea_templates',
+        'permit-questionnaires': 'manage_permit_questionnaires',
         'business-units': 'manage_business_units',
         'suppliers': 'manage_suppliers',
         'accredited-companies': 'manage_accredited_companies',
@@ -4286,6 +3982,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
         'manage_visitor_inductions': '/admin/visitor-inductions/',
         'manage_inductions': '/admin/inductions/',
         'manage_jsea_templates': '/admin/jsea-templates/',
+        'manage_permit_questionnaires': '/admin/permit-questionnaires/',
         'manage_business_units': '/admin/business-units/',
         'manage_suppliers': '/admin/suppliers/',
         'manage_accredited_companies': '/admin/accredited-companies/',
@@ -4539,6 +4236,7 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
             'visitor-inductions': 'manage_visitor_inductions',
             'inductions': 'manage_inductions',
             'jsea-templates': 'manage_jsea_templates',
+        'permit-questionnaires': 'manage_permit_questionnaires',
             'business-units': 'manage_business_units',
             'suppliers': 'manage_suppliers',
             'accredited-companies': 'manage_accredited_companies',
@@ -25881,6 +25579,18 @@ const PermitManagementApp = ({ initialSiteId, onBackToKiosk, initialAdminRoute, 
           styles={styles}
         />
       );
+    case 'manage_permit_questionnaires':
+      if (!adminSessionActive) {
+        console.log('🔒 [SECURITY] Manage screen accessed without session - showing login');
+        setShowAdminLoginModal(true);
+        return renderDashboard();
+      }
+      return (
+        <PermitQuestionnaireAdminScreen
+          onBack={() => setCurrentScreen('admin')}
+          styles={styles}
+        />
+      );
     case 'contractorAuth':
       return (
         <ContractorAuthScreen
@@ -27679,6 +27389,7 @@ const AppRouter = ({ initialRoute }) => {
           'visitor-inductions': 'manage_visitor_inductions',
           'inductions': 'manage_inductions',
           'jsea-templates': 'manage_jsea_templates',
+        'permit-questionnaires': 'manage_permit_questionnaires',
           'business-units': 'manage_business_units',
           'suppliers': 'manage_suppliers',
           'accredited-companies': 'manage_accredited_companies',
