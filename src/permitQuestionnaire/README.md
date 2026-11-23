@@ -10,7 +10,7 @@ Until a BU has a **published** base set, the app uses bundled [`defaults.js`](de
 
 ## Admin UI
 
-Open **`/admin/permit-questionnaires/`** after logging into the admin panel (route is wired; dashboard tile not added to avoid unrelated UI changes).
+Open **Admin → Permit Questionnaires** on the dashboard, or go directly to **`/admin/permit-questionnaires/`** after admin login.
 
 ## CSV
 
