@@ -1,24 +1,42 @@
-# Permit questionnaires (specialized permits)
+# Specialised permit questions (flat sheet model)
 
-BU-wide **base** questions live in `permit_questionnaire_sets`. **Site-only extras** are additive rows in `permit_questionnaire_site_questions` and are merged at runtime.
+## One table: `permit_questions`
 
-## Database
+Each row is one question. **Admin → Permit Questionnaires** or CSV.
 
-Run [`migrations/add-permit-questionnaire-config.sql`](../../migrations/add-permit-questionnaire-config.sql) in Supabase.
+| Column (CSV) | Meaning |
+|--------------|---------|
+| specialised_permit | e.g. `Hot Work` |
+| question_number | Order (1, 2, 3 …) |
+| question_id | Stable key stored on permits (e.g. `workshop_alternative`) |
+| business_unit | e.g. `Winstone Aggregates` |
+| sites | `All Sites` or exact site name (e.g. `Hunua Quarry`) |
+| question | Question text |
+| question_type | See **questionTypes.js** (`QUESTION_TYPE_LABELS`, `OPTIONS_FORMAT`) |
+| options | See type guide in admin screen |
 
-Until a BU has a **published** base set, the app uses bundled [`defaults.js`](defaults.js) (same content as the former in-app definitions).
+### Question types (summary)
 
-## Admin UI
+| question_type | options column |
+|---------------|----------------|
+| yesno | `Yes; No` (optional) |
+| yesnona | `Yes; No; N/A` (optional) |
+| radio | `Choice A; Choice B` (required) |
+| multi_checkbox | JSON array of `{label, value}` |
+| text | empty (use text_label if needed) |
+| yesno_text | empty (use yes_label / no_label) |
+| contractor_lookup | `Lookup Contractors or overwrite` |
+| attachment | empty |
+| section | empty (heading only) |
 
-Open **Admin → Permit Questionnaires** on the dashboard, or go directly to **`/admin/permit-questionnaires/`** after admin login.
+Full detail: `src/permitQuestionnaire/questionTypes.js`
 
-## CSV
+## Setup
 
-Import/export from the admin screen. `scope` is `base` or `site_addition`. Empty `site_name` with `base` updates the BU questionnaire; `site_addition` requires `site_name`.
+1. Run `migrations/add-permit-questions-flat-table.sql`
+2. Seed: `node scripts/seed-permit-questions-from-defaults.mjs` (service role env)
+3. Edit via CSV or admin
 
-Example site-only row:
+Runtime falls back to `defaults.js` if no published rows exist for that business unit.
 
-```csv
-permit_type_key,business_unit_name,site_name,scope,question_id,sort_order,insert_after_question_id,text,type,required
-hotWork,Winstone Aggregates,Hunua Quarry,site_addition,site_hunua_extra_dust,1000,workshop_alternative,Any extra dust controls on this face?,yesno,true
-```
+Legacy tables `permit_questionnaire_sets` / `permit_questionnaire_site_questions` are no longer read by the app.
