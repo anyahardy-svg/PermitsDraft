@@ -358,4 +358,4 @@ export const DEFAULT_PERMIT_QUESTIONNAIRES = {
       { id: 'face_stability', text: 'Faces has been inspected for stability before approaching closer than 3m to toe?', type: 'yesno', required: true, controlsOn: 'no' },
       { id: 'avoid_operating_vehicles', text: 'Will pedestrians be entering areas where quarry vehicles are operating directly above or next to the pedestrian?', type: 'yesnona', required: true, controlsOn: 'no'  }
     ]
-  ;
+};
