@@ -86,6 +86,13 @@ export default function AdminDashboard({
             <Text style={styles.cardNumber}>📝</Text>
             <Text style={styles.cardLabel}>JSEA Templates</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.dashboardCard, { borderLeftColor: '#DC2626' }]}
+            onPress={() => onNavigate('manage_permit_questionnaires')}
+          >
+            <Text style={styles.cardNumber}>🔥</Text>
+            <Text style={styles.cardLabel}>Permit Questionnaires</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={[styles.dashboardCard, { borderLeftColor: '#14B8A6' }]} onPress={() => onNavigate('manage_business_units')}>
             <Text style={styles.cardNumber}>{businessUnitsCount}</Text>
             <Text style={styles.cardLabel}>Business Units</Text>
