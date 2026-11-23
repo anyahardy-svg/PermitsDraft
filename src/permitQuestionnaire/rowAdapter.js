@@ -106,7 +106,7 @@ export function runtimeQuestionToRow(q, ctx) {
   const type =
     q.id === 'hw_safety_watch' || q.id === 'competent_person' || q.id === 'safety_watch_name'
       ? 'contractor_lookup'
-      : q.type;
+      : q.type || 'text';
 
   return {
     permit_type_key: ctx.permitTypeKey,

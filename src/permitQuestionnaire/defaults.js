@@ -96,7 +96,7 @@ export const DEFAULT_PERMIT_QUESTIONNAIRES = {
       ]},
 
 
-	{ id: 'fall_prevention', text: 'Fall prevention methods that will be in place?', required: true },
+      { id: 'fall_prevention', text: 'Fall prevention methods that will be in place?', type: 'text', required: true },
       	{ id: 'protection_system', text: 'Will fall protection systems be used?', type: 'yesnona', required: true, controlsOn: 'no' },
       
 

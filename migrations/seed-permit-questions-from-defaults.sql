@@ -7246,7 +7246,7 @@ SELECT
   bu.id,
   NULL,
   'Fall prevention methods that will be in place?',
-  NULL,
+  'text',
   NULL,
   true,
   NULL,
