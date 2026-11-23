@@ -1,60 +1,45 @@
 import { supabase } from '../supabaseClient';
 import { DEFAULT_PERMIT_QUESTIONNAIRES } from '../permitQuestionnaire/defaults';
-import { mergeQuestionnaireMap, mergeQuestions } from '../permitQuestionnaire/merge';
-import { SPECIALIZED_PERMIT_TYPE_KEYS, validateQuestion } from '../permitQuestionnaire/schema';
+import { rowToRuntimeQuestion, runtimeQuestionToRow } from '../permitQuestionnaire/rowAdapter';
+import {
+  SPECIALIZED_PERMIT_TYPE_KEYS,
+  permitKeyFromLabel,
+  permitLabelFromKey,
+} from '../permitQuestionnaire/questionTypes';
 
 const isMissingTableError = (error) => {
   const code = error?.code || '';
   const msg = (error?.message || '').toLowerCase();
-  return code === '42P01' || msg.includes('does not exist') || msg.includes('permit_questionnaire');
+  return code === '42P01' || msg.includes('does not exist') || msg.includes('permit_questions');
 };
 
-// ---------------------------------------------------------------------------
-// Resolve (runtime)
-// ---------------------------------------------------------------------------
-
-async function fetchPublishedBaseByBu(businessUnitId) {
-  const { data, error } = await supabase
-    .from('permit_questionnaire_sets')
-    .select('permit_type_key, questions')
-    .eq('business_unit_id', businessUnitId)
-    .eq('is_published', true);
-
-  if (error) {
-    if (isMissingTableError(error)) return {};
-    throw error;
-  }
-  const map = {};
-  (data || []).forEach((row) => {
-    map[row.permit_type_key] = Array.isArray(row.questions) ? row.questions : [];
-  });
-  return map;
-}
-
-async function fetchPublishedSiteAdditions(businessUnitId, siteId) {
-  if (!siteId) return {};
-  const { data, error } = await supabase
-    .from('permit_questionnaire_site_questions')
-    .select('permit_type_key, question, sort_order, insert_after_question_id')
-    .eq('business_unit_id', businessUnitId)
-    .eq('site_id', siteId)
-    .eq('is_published', true)
-    .order('sort_order', { ascending: true });
-
-  if (error) {
-    if (isMissingTableError(error)) return {};
-    throw error;
-  }
-  const map = {};
-  (data || []).forEach((row) => {
-    if (!map[row.permit_type_key]) map[row.permit_type_key] = [];
-    map[row.permit_type_key].push(row);
-  });
-  return map;
-}
+/** CSV / spreadsheet column order */
+export const SHEET_COLUMNS = [
+  'specialised_permit',
+  'question_number',
+  'question_id',
+  'business_unit',
+  'sites',
+  'question',
+  'question_type',
+  'options',
+  'required',
+  'depends_on_question_id',
+  'depends_on_value',
+  'note',
+  'controls_label',
+  'controls_on',
+  'no_controls',
+  'blocking_question',
+  'blocking_answer',
+  'text_label',
+  'yes_label',
+  'no_label',
+  'inline_only',
+];
 
 /**
- * Merge DB base + site extras with bundled defaults for missing types.
+ * Load questions: All Sites rows + site-specific rows for current site, merged and sorted.
  */
 export async function resolveQuestionnaires(businessUnitId, siteId = null) {
   if (!businessUnitId) {
@@ -62,29 +47,49 @@ export async function resolveQuestionnaires(businessUnitId, siteId = null) {
   }
 
   try {
-    const [baseFromDb, siteExtras] = await Promise.all([
-      fetchPublishedBaseByBu(businessUnitId),
-      fetchPublishedSiteAdditions(businessUnitId, siteId),
-    ]);
+    let query = supabase
+      .from('permit_questions')
+      .select('*')
+      .eq('business_unit_id', businessUnitId)
+      .eq('is_published', true)
+      .order('question_number', { ascending: true });
 
-    const baseByType = {};
+    if (siteId) {
+      query = query.or(`site_id.is.null,site_id.eq.${siteId}`);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      if (isMissingTableError(error)) {
+        return { ...DEFAULT_PERMIT_QUESTIONNAIRES };
+      }
+      throw error;
+    }
+
+  const rows = data || [];
+    if (rows.length === 0) {
+      return { ...DEFAULT_PERMIT_QUESTIONNAIRES };
+    }
+
+    const byType = {};
+    rows.forEach((row) => {
+      if (!byType[row.permit_type_key]) byType[row.permit_type_key] = [];
+      byType[row.permit_type_key].push(row);
+    });
+
+    const result = {};
     SPECIALIZED_PERMIT_TYPE_KEYS.forEach((key) => {
-      if (baseFromDb[key]?.length) {
-        baseByType[key] = baseFromDb[key];
+      if (byType[key]?.length) {
+        const sorted = [...byType[key]].sort(
+          (a, b) => Number(a.question_number) - Number(b.question_number),
+        );
+        result[key] = sorted.map(rowToRuntimeQuestion);
       } else {
-        baseByType[key] = DEFAULT_PERMIT_QUESTIONNAIRES[key] || [];
+        result[key] = DEFAULT_PERMIT_QUESTIONNAIRES[key] || [];
       }
     });
 
-    const merged = mergeQuestionnaireMap(baseByType, siteExtras);
-
-    SPECIALIZED_PERMIT_TYPE_KEYS.forEach((key) => {
-      if (!merged[key]?.length && DEFAULT_PERMIT_QUESTIONNAIRES[key]) {
-        merged[key] = DEFAULT_PERMIT_QUESTIONNAIRES[key];
-      }
-    });
-
-    return merged;
+    return result;
   } catch (err) {
     console.warn('[permitQuestionnaires] resolve failed, using defaults:', err?.message || err);
     return { ...DEFAULT_PERMIT_QUESTIONNAIRES };
@@ -97,51 +102,41 @@ export async function resolveQuestionnaireForType(businessUnitId, siteId, permit
 }
 
 // ---------------------------------------------------------------------------
-// Admin CRUD — base sets
+// Admin — flat rows
 // ---------------------------------------------------------------------------
 
-export async function listBaseSets({ businessUnitId, permitTypeKey } = {}) {
+export async function listQuestionRows({ businessUnitId, permitTypeKey, siteId } = {}) {
   let query = supabase
-    .from('permit_questionnaire_sets')
+    .from('permit_questions')
     .select('*')
-    .order('permit_type_key', { ascending: true });
+    .order('permit_type_key')
+    .order('question_number', { ascending: true });
 
   if (businessUnitId) query = query.eq('business_unit_id', businessUnitId);
   if (permitTypeKey) query = query.eq('permit_type_key', permitTypeKey);
+  if (siteId === 'all') {
+    query = query.is('site_id', null);
+  } else if (siteId) {
+    query = query.eq('site_id', siteId);
+  }
 
   const { data, error } = await query;
   if (error) throw error;
   return { success: true, data: data || [] };
 }
 
-export async function saveBaseSet({
-  id,
-  permitTypeKey,
-  businessUnitId,
-  questions,
-  publish = false,
-}) {
+export async function upsertQuestionRow(row) {
   const payload = {
-    permit_type_key: permitTypeKey,
-    business_unit_id: businessUnitId,
-    questions: questions || [],
-    is_published: Boolean(publish),
+    ...row,
     updated_at: new Date().toISOString(),
   };
+  delete payload.id;
 
-  if (publish) {
-    await supabase
-      .from('permit_questionnaire_sets')
-      .update({ is_published: false })
-      .eq('permit_type_key', permitTypeKey)
-      .eq('business_unit_id', businessUnitId);
-  }
-
-  if (id) {
+  if (row.id) {
     const { data, error } = await supabase
-      .from('permit_questionnaire_sets')
+      .from('permit_questions')
       .update(payload)
-      .eq('id', id)
+      .eq('id', row.id)
       .select()
       .single();
     if (error) throw error;
@@ -149,7 +144,7 @@ export async function saveBaseSet({
   }
 
   const { data, error } = await supabase
-    .from('permit_questionnaire_sets')
+    .from('permit_questions')
     .insert(payload)
     .select()
     .single();
@@ -157,125 +152,11 @@ export async function saveBaseSet({
   return { success: true, data };
 }
 
-export async function publishBaseSet(id) {
-  const { data: row, error: fetchErr } = await supabase
-    .from('permit_questionnaire_sets')
-    .select('*')
-    .eq('id', id)
-    .single();
-  if (fetchErr) throw fetchErr;
-
-  await supabase
-    .from('permit_questionnaire_sets')
-    .update({ is_published: false })
-    .eq('permit_type_key', row.permit_type_key)
-    .eq('business_unit_id', row.business_unit_id);
-
-  const { data, error } = await supabase
-    .from('permit_questionnaire_sets')
-    .update({ is_published: true, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return { success: true, data };
-}
-
-// ---------------------------------------------------------------------------
-// Admin CRUD — site additions
-// ---------------------------------------------------------------------------
-
-export async function listSiteAdditions({ businessUnitId, siteId, permitTypeKey } = {}) {
-  let query = supabase
-    .from('permit_questionnaire_site_questions')
-    .select('*')
-    .order('sort_order', { ascending: true });
-
-  if (businessUnitId) query = query.eq('business_unit_id', businessUnitId);
-  if (siteId) query = query.eq('site_id', siteId);
-  if (permitTypeKey) query = query.eq('permit_type_key', permitTypeKey);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return { success: true, data: data || [] };
-}
-
-export async function saveSiteQuestion({
-  id,
-  permitTypeKey,
-  businessUnitId,
-  siteId,
-  question,
-  sortOrder,
-  insertAfterQuestionId,
-  publish = true,
-}) {
-  const qErrors = validateQuestion(question);
-  if (qErrors.length) {
-    return { success: false, error: qErrors.join('; ') };
-  }
-
-  const payload = {
-    permit_type_key: permitTypeKey,
-    business_unit_id: businessUnitId,
-    site_id: siteId,
-    question,
-    sort_order: sortOrder != null ? sortOrder : 1000,
-    insert_after_question_id: insertAfterQuestionId || null,
-    is_published: Boolean(publish),
-    updated_at: new Date().toISOString(),
-  };
-
-  if (id) {
-    const { data, error } = await supabase
-      .from('permit_questionnaire_site_questions')
-      .update(payload)
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    return { success: true, data };
-  }
-
-  const { data, error } = await supabase
-    .from('permit_questionnaire_site_questions')
-    .insert(payload)
-    .select()
-    .single();
-  if (error) throw error;
-  return { success: true, data };
-}
-
-export async function deleteSiteQuestion(id) {
-  const { error } = await supabase.from('permit_questionnaire_site_questions').delete().eq('id', id);
+export async function deleteQuestionRow(id) {
+  const { error } = await supabase.from('permit_questions').delete().eq('id', id);
   if (error) throw error;
   return { success: true };
 }
-
-// ---------------------------------------------------------------------------
-// CSV helpers
-// ---------------------------------------------------------------------------
-
-const CSV_HEADERS = [
-  'permit_type_key',
-  'business_unit_name',
-  'site_name',
-  'scope',
-  'question_id',
-  'sort_order',
-  'insert_after_question_id',
-  'text',
-  'type',
-  'required',
-  'depends_on',
-  'depends_on_value',
-  'note',
-  'controls_label',
-  'controls_on',
-  'no_controls',
-  'blocking_question',
-  'blocking_answer',
-];
 
 function escapeCsv(value) {
   const s = value == null ? '' : String(value);
@@ -309,32 +190,44 @@ function parseCsvLine(line) {
   return result;
 }
 
-function rowToQuestion(row) {
-  const question = {
-    id: row.question_id,
-    text: row.text,
-    type: row.type,
+function rowToSheetCells(row, businessUnitsById, sitesById) {
+  const buName = businessUnitsById[row.business_unit_id]?.name || '';
+  const siteName = row.site_id ? sitesById[row.site_id]?.name || '' : 'All Sites';
+  return {
+    specialised_permit: permitLabelFromKey(row.permit_type_key),
+    question_number: row.question_number,
+    question_id: row.question_id,
+    business_unit: buName,
+    sites: siteName,
+    question: row.question_text,
+    question_type: row.question_type,
+    options: row.options || '',
+    required: row.required ? 'true' : '',
+    depends_on_question_id: row.depends_on_question_id || '',
+    depends_on_value: row.depends_on_value ?? '',
+    note: row.note || '',
+    controls_label: row.controls_label || '',
+    controls_on: row.controls_on || '',
+    no_controls: row.no_controls ? 'true' : '',
+    blocking_question: row.blocking_question ? 'true' : '',
+    blocking_answer: row.blocking_answer || '',
+    text_label: row.text_label || '',
+    yes_label: row.yes_label || '',
+    no_label: row.no_label || '',
+    inline_only: row.inline_only ? 'true' : '',
   };
-  if (row.required === 'true' || row.required === '1' || row.required === 'yes') {
-    question.required = true;
-  }
-  if (row.depends_on) question.dependsOn = row.depends_on;
-  if (row.depends_on_value) question.dependsOnValue = row.depends_on_value;
-  if (row.note) question.note = row.note;
-  if (row.controls_label) question.controlsLabel = row.controls_label;
-  if (row.controls_on) question.controlsOn = row.controls_on;
-  if (row.no_controls === 'true' || row.no_controls === '1') question.noControls = true;
-  if (row.blocking_question === 'true' || row.blocking_question === '1') {
-    question.blockingQuestion = true;
-  }
-  if (row.blocking_answer) question.blockingAnswer = row.blocking_answer;
-  return question;
 }
 
-/**
- * @param {object} maps - { businessUnitsByName, sitesByName }
- */
-export async function importQuestionnaireCsv(csvText, maps, { dryRun = false } = {}) {
+export function exportQuestionsSheet(rows, businessUnitsById = {}, sitesById = {}) {
+  const lines = [SHEET_COLUMNS.join(',')];
+  rows.forEach((row) => {
+    const cells = rowToSheetCells(row, businessUnitsById, sitesById);
+    lines.push(SHEET_COLUMNS.map((h) => escapeCsv(cells[h])).join(','));
+  });
+  return lines.join('\n');
+}
+
+export async function importQuestionsSheet(csvText, maps, { dryRun = false } = {}) {
   const lines = csvText.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) {
     return { success: false, error: 'CSV must have a header and at least one row' };
@@ -342,8 +235,7 @@ export async function importQuestionnaireCsv(csvText, maps, { dryRun = false } =
 
   const headers = parseCsvLine(lines[0]).map((h) => h.trim());
   const errors = [];
-  const baseGroups = {};
-  const siteRows = [];
+  const payloads = [];
 
   for (let i = 1; i < lines.length; i++) {
     const cells = parseCsvLine(lines[i]);
@@ -352,44 +244,49 @@ export async function importQuestionnaireCsv(csvText, maps, { dryRun = false } =
       row[h] = (cells[idx] || '').trim();
     });
 
-    const bu = maps.businessUnitsByName[row.business_unit_name];
+    const bu = maps.businessUnitsByName[row.business_unit];
     if (!bu) {
-      errors.push(`Line ${i + 1}: unknown business unit "${row.business_unit_name}"`);
+      errors.push(`Line ${i + 1}: unknown business unit "${row.business_unit}"`);
       continue;
     }
 
-    const scope = (row.scope || 'base').toLowerCase();
-    const permitTypeKey = row.permit_type_key;
-    if (!permitTypeKey) {
-      errors.push(`Line ${i + 1}: missing permit_type_key`);
-      continue;
-    }
-
-    if (scope === 'site_addition') {
-      if (!row.site_name) {
-        errors.push(`Line ${i + 1}: site_addition requires site_name`);
-        continue;
-      }
-      const site = maps.sitesByName[row.site_name];
+    let siteId = null;
+    const sitesLabel = (row.sites || 'All Sites').trim();
+    if (sitesLabel.toLowerCase() !== 'all sites' && sitesLabel !== '') {
+      const site = maps.sitesByName[sitesLabel];
       if (!site) {
-        errors.push(`Line ${i + 1}: unknown site "${row.site_name}"`);
+        errors.push(`Line ${i + 1}: unknown site "${sitesLabel}"`);
         continue;
       }
-      siteRows.push({
-        businessUnitId: bu.id,
-        siteId: site.id,
-        permitTypeKey,
-        question: rowToQuestion(row),
-        sortOrder: row.sort_order ? Number(row.sort_order) : 1000,
-        insertAfterQuestionId: row.insert_after_question_id || null,
-      });
-    } else {
-      const key = `${bu.id}::${permitTypeKey}`;
-      if (!baseGroups[key]) {
-        baseGroups[key] = { businessUnitId: bu.id, permitTypeKey, questions: [] };
-      }
-      baseGroups[key].questions.push(rowToQuestion(row));
+      siteId = site.id;
     }
+
+    const permitKey = permitKeyFromLabel(row.specialised_permit);
+
+    payloads.push({
+      permit_type_key: permitKey,
+      question_number: Number(row.question_number),
+      question_id: row.question_id,
+      business_unit_id: bu.id,
+      site_id: siteId,
+      question_text: row.question,
+      question_type: row.question_type,
+      options: row.options || null,
+      required: row.required === 'true' || row.required === '1',
+      depends_on_question_id: row.depends_on_question_id || null,
+      depends_on_value: row.depends_on_value || null,
+      note: row.note || null,
+      controls_label: row.controls_label || null,
+      controls_on: row.controls_on || null,
+      no_controls: row.no_controls === 'true',
+      blocking_question: row.blocking_question === 'true',
+      blocking_answer: row.blocking_answer || null,
+      text_label: row.text_label || null,
+      yes_label: row.yes_label || null,
+      no_label: row.no_label || null,
+      inline_only: row.inline_only === 'true',
+      is_published: true,
+    });
   }
 
   if (errors.length) {
@@ -397,103 +294,55 @@ export async function importQuestionnaireCsv(csvText, maps, { dryRun = false } =
   }
 
   if (dryRun) {
-    return {
-      success: true,
-      dryRun: true,
-      baseSets: Object.values(baseGroups).length,
-      siteAdditions: siteRows.length,
-    };
+    return { success: true, dryRun: true, rowCount: payloads.length };
   }
 
-  for (const group of Object.values(baseGroups)) {
-    await saveBaseSet({
-      permitTypeKey: group.permitTypeKey,
-      businessUnitId: group.businessUnitId,
-      questions: group.questions,
-      publish: true,
-    });
+  for (const payload of payloads) {
+    let lookup = supabase
+      .from('permit_questions')
+      .select('id')
+      .eq('permit_type_key', payload.permit_type_key)
+      .eq('business_unit_id', payload.business_unit_id)
+      .eq('question_id', payload.question_id);
+
+    lookup = payload.site_id
+      ? lookup.eq('site_id', payload.site_id)
+      : lookup.is('site_id', null);
+
+    const { data: existing } = await lookup.maybeSingle();
+
+    if (existing?.id) {
+      const { error } = await supabase
+        .from('permit_questions')
+        .update({ ...payload, updated_at: new Date().toISOString() })
+        .eq('id', existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from('permit_questions').insert(payload);
+      if (error) throw error;
+    }
   }
 
-  for (const siteRow of siteRows) {
-    await saveSiteQuestion({
-      permitTypeKey: siteRow.permitTypeKey,
-      businessUnitId: siteRow.businessUnitId,
-      siteId: siteRow.siteId,
-      question: siteRow.question,
-      sortOrder: siteRow.sortOrder,
-      insertAfterQuestionId: siteRow.insertAfterQuestionId,
-      publish: true,
-    });
-  }
-
-  return { success: true, baseSets: Object.values(baseGroups).length, siteAdditions: siteRows.length };
+  return { success: true, rowCount: payloads.length };
 }
 
-export function exportQuestionnaireCsv({ baseSets = [], siteRows = [], businessUnitsById = {}, sitesById = {} }) {
-  const lines = [CSV_HEADERS.join(',')];
-
-  baseSets.forEach((set) => {
-    const buName = businessUnitsById[set.business_unit_id]?.name || set.business_unit_id;
-    (set.questions || []).forEach((q, index) => {
-      lines.push(
-        [
-          set.permit_type_key,
-          buName,
-          '',
-          'base',
-          q.id,
-          index,
-          '',
-          q.text,
-          q.type,
-          q.required ? 'true' : '',
-          q.dependsOn || '',
-          q.dependsOnValue ?? '',
-          q.note || '',
-          q.controlsLabel || '',
-          q.controlsOn || '',
-          q.noControls ? 'true' : '',
-          q.blockingQuestion ? 'true' : '',
-          q.blockingAnswer || '',
-        ].map(escapeCsv).join(','),
+/** Build rows from defaults.js for seeding (one BU, All Sites). */
+export function defaultQuestionsAsRows(businessUnitId, siteId = null) {
+  const rows = [];
+  SPECIALIZED_PERMIT_TYPE_KEYS.forEach((permitTypeKey) => {
+    const questions = DEFAULT_PERMIT_QUESTIONNAIRES[permitTypeKey] || [];
+    questions.forEach((q, index) => {
+      rows.push(
+        runtimeQuestionToRow(q, {
+          permitTypeKey,
+          questionNumber: index + 1,
+          businessUnitId,
+          siteId,
+        }),
       );
     });
   });
-
-  siteRows.forEach((row) => {
-    const buName = businessUnitsById[row.business_unit_id]?.name || row.business_unit_id;
-    const siteName = sitesById[row.site_id]?.name || row.site_id;
-    const q = row.question || {};
-    lines.push(
-      [
-        row.permit_type_key,
-        buName,
-        siteName,
-        'site_addition',
-        q.id,
-        row.sort_order ?? '',
-        row.insert_after_question_id || '',
-        q.text,
-        q.type,
-        q.required ? 'true' : '',
-        q.dependsOn || '',
-        q.dependsOnValue ?? '',
-        q.note || '',
-        q.controlsLabel || '',
-        q.controlsOn || '',
-        q.noControls ? 'true' : '',
-        q.blockingQuestion ? 'true' : '',
-        q.blockingAnswer || '',
-      ].map(escapeCsv).join(','),
-    );
-  });
-
-  return lines.join('\n');
+  return rows;
 }
 
-export async function previewMergedQuestionnaire(businessUnitId, siteId, permitTypeKey) {
-  const questions = await resolveQuestionnaireForType(businessUnitId, siteId, permitTypeKey);
-  return { success: true, questions };
-}
-
-export { mergeQuestions };
+export { permitLabelFromKey, permitKeyFromLabel };
