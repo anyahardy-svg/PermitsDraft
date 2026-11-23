@@ -1,6 +1,7 @@
 -- Seed permit_questions from defaults.js for EVERY business unit (All Sites).
+-- VERIFY: search this file for fall_prevention — the line after the question text must be: text
 -- Run AFTER migrations/add-permit-questions-flat-table.sql
--- Safe to re-run: clears All Sites rows per BU then re-inserts.
+-- Safe to re-run: clears All Sites rows then re-inserts.
 
 DELETE FROM permit_questions WHERE site_id IS NULL;
 

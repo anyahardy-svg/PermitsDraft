@@ -18,8 +18,9 @@ function sqlBool(v) {
 
 const lines = [];
 lines.push('-- Seed permit_questions from defaults.js for EVERY business unit (All Sites).');
+lines.push('-- VERIFY: search this file for fall_prevention — the line after the question text must be: text');
 lines.push('-- Run AFTER migrations/add-permit-questions-flat-table.sql');
-lines.push('-- Safe to re-run: clears All Sites rows per BU then re-inserts.');
+lines.push('-- Safe to re-run: clears All Sites rows then re-inserts.');
 lines.push('');
 lines.push('DELETE FROM permit_questions WHERE site_id IS NULL;');
 lines.push('');
@@ -49,7 +50,7 @@ SELECT
   bu.id,
   NULL,
   ${sqlEscape(row.question_text)},
-  ${sqlEscape(row.question_type)},
+  ${sqlEscape(row.question_type || 'text')},
   ${row.options ? sqlEscape(row.options) : 'NULL'},
   ${sqlBool(row.required)},
   ${row.depends_on_question_id ? sqlEscape(row.depends_on_question_id) : 'NULL'},
