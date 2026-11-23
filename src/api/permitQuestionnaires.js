@@ -126,17 +126,17 @@ export async function listQuestionRows({ businessUnitId, permitTypeKey, siteId }
 }
 
 export async function upsertQuestionRow(row) {
+  const { id, ...rest } = row;
   const payload = {
-    ...row,
+    ...rest,
     updated_at: new Date().toISOString(),
   };
-  delete payload.id;
 
-  if (row.id) {
+  if (id) {
     const { data, error } = await supabase
       .from('permit_questions')
       .update(payload)
-      .eq('id', row.id)
+      .eq('id', id)
       .select()
       .single();
     if (error) throw error;
