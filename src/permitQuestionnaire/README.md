@@ -31,11 +31,13 @@ Each row is one question. **Admin → Permit Questionnaires** or CSV.
 
 Full detail: `src/permitQuestionnaire/questionTypes.js`
 
-## Setup
+## Setup (no command prompt required)
 
-1. Run `migrations/add-permit-questions-flat-table.sql`
-2. Seed: `node scripts/seed-permit-questions-from-defaults.mjs` (service role env)
-3. Edit via CSV or admin
+1. Supabase **SQL Editor** → run `migrations/add-permit-questions-flat-table.sql`
+2. Same SQL Editor → run `migrations/seed-permit-questions-from-defaults.sql` (copies bundled defaults into one row per question for **each** business unit, All Sites)
+3. Edit via admin **Import/Export sheet** or SQL
+
+Optional: `node scripts/seed-permit-questions-from-defaults.mjs` instead of step 2 if you can run Node with service role env.
 
 Runtime falls back to `defaults.js` if no published rows exist for that business unit.
 
