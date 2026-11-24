@@ -50,6 +50,80 @@ const emptyForm = {
   is_published: true,
 };
 
+const TYPES_WITHOUT_OPTIONS = new Set([
+  'yesno',
+  'yesnona',
+  'yesno_text',
+  'text',
+  'section',
+  'attachment',
+  'contractor_lookup',
+]);
+
+function suggestQuestionId(text, existingIds) {
+  let base = text
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 48);
+  if (!base) base = 'new_question';
+  let id = base;
+  let n = 2;
+  const taken = existingIds || new Set();
+  while (taken.has(id)) {
+    id = `${base}_${n}`;
+    n += 1;
+  }
+  return id;
+}
+
+function dependsValueChoices(parentRow) {
+  if (!parentRow) return ['yes', 'no'];
+  const t = parentRow.question_type;
+  if (t === 'yesno') return ['yes', 'no'];
+  if (t === 'yesnona') return ['yes', 'no', 'n/a'];
+  if (t === 'radio') {
+    const raw = (parentRow.options || '').trim();
+    if (raw) {
+      return raw
+        .split(';')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+  }
+  return ['yes', 'no'];
+}
+
+function nextQuestionNumber(rows, afterRow = null) {
+  if (afterRow != null) {
+    return String(Number(afterRow.question_number) + 1);
+  }
+  const maxNum = rows.reduce((m, r) => Math.max(m, Number(r.question_number) || 0), 0);
+  return String(maxNum + 1);
+}
+
+function formFromRow(row, overrides = {}) {
+  return {
+    id: row.id,
+    permit_type_key: row.permit_type_key,
+    question_number: String(row.question_number),
+    question_id: row.question_id,
+    business_unit_id: row.business_unit_id,
+    site_id: row.site_id,
+    site_scope: row.site_id ? 'site' : 'all',
+    question_text: row.question_text,
+    question_type: row.question_type,
+    options: row.options || '',
+    required: Boolean(row.required),
+    depends_on_question_id: row.depends_on_question_id || '',
+    depends_on_value: row.depends_on_value || '',
+    note: row.note || '',
+    is_published: row.is_published !== false,
+    ...overrides,
+  };
+}
+
 function confirmDelete(message) {
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.confirm) {
     return Promise.resolve(window.confirm(message));
@@ -73,6 +147,49 @@ export default function PermitQuestionnaireAdminScreen({ onBack, styles }) {
   const [showTypeGuide, setShowTypeGuide] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [questionIdTouched, setQuestionIdTouched] = useState(false);
+  const [parentLookupQuery, setParentLookupQuery] = useState('');
+
+  const existingQuestionIds = useMemo(
+    () => new Set(rows.map((r) => r.question_id).filter(Boolean)),
+    [rows],
+  );
+
+  const parentRowForForm = useMemo(
+    () => rows.find((r) => r.question_id === form.depends_on_question_id) || null,
+    [rows, form.depends_on_question_id],
+  );
+
+  const dependsChoices = useMemo(
+    () => dependsValueChoices(parentRowForForm),
+    [parentRowForForm],
+  );
+
+  const rowsByQuestionId = useMemo(
+    () => Object.fromEntries(rows.map((r) => [r.question_id, r])),
+    [rows],
+  );
+
+  const parentQuestionCandidates = useMemo(() => {
+    const myNum = Number(form.question_number);
+    return rows
+      .filter((r) => {
+        if (form.id && r.id === form.id) return false;
+        if (form.question_id && r.question_id === form.question_id) return false;
+        if (Number.isFinite(myNum) && Number(r.question_number) >= myNum) return false;
+        return true;
+      })
+      .sort((a, b) => Number(a.question_number) - Number(b.question_number));
+  }, [rows, form.id, form.question_id, form.question_number]);
+
+  const filteredParentCandidates = useMemo(() => {
+    const q = parentLookupQuery.trim().toLowerCase();
+    if (!q) return parentQuestionCandidates;
+    return parentQuestionCandidates.filter((r) => {
+      const haystack = `#${r.question_number} ${r.question_id} ${r.question_text} ${QUESTION_TYPE_LABELS[r.question_type] || r.question_type}`.toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [parentQuestionCandidates, parentLookupQuery]);
 
   const businessUnitsById = useMemo(
     () => Object.fromEntries(businessUnits.map((b) => [b.id, b])),
@@ -164,39 +281,68 @@ export default function PermitQuestionnaireAdminScreen({ onBack, styles }) {
     }
   };
 
+  const pickParentQuestion = (parentRow) => {
+    setForm((f) => ({
+      ...f,
+      depends_on_question_id: parentRow.question_id,
+      depends_on_value:
+        f.depends_on_value ||
+        (parentRow.question_type === 'yesno' || parentRow.question_type === 'yesnona' ? 'yes' : ''),
+    }));
+  };
+
+  const clearParentQuestion = () => {
+    setForm((f) => ({ ...f, depends_on_question_id: '', depends_on_value: '' }));
+    setParentLookupQuery('');
+  };
+
   const openNewQuestion = () => {
-    const maxNum = rows.reduce((m, r) => Math.max(m, Number(r.question_number) || 0), 0);
+    setQuestionIdTouched(false);
+    setParentLookupQuery('');
     setForm({
       ...emptyForm,
       id: null,
       permit_type_key: filterPermit,
       business_unit_id: filterBu,
-      question_number: String(maxNum + 1),
+      question_number: nextQuestionNumber(rows),
       site_scope: 'all',
       site_id: null,
     });
     setEditModalVisible(true);
   };
 
-  const openEdit = (row) => {
+  const openFollowUp = (parentRow) => {
+    const parentType = parentRow.question_type;
+    const defaultWhen =
+      parentType === 'yesno' || parentType === 'yesnona' ? 'yes' : '';
+    setQuestionIdTouched(false);
+    setParentLookupQuery('');
     setForm({
-      id: row.id,
-      permit_type_key: row.permit_type_key,
-      question_number: String(row.question_number),
-      question_id: row.question_id,
-      business_unit_id: row.business_unit_id,
-      site_id: row.site_id,
-      site_scope: row.site_id ? 'site' : 'all',
-      question_text: row.question_text,
-      question_type: row.question_type,
-      options: row.options || '',
-      required: Boolean(row.required),
-      depends_on_question_id: row.depends_on_question_id || '',
-      depends_on_value: row.depends_on_value || '',
-      note: row.note || '',
-      is_published: row.is_published !== false,
+      ...emptyForm,
+      id: null,
+      permit_type_key: filterPermit,
+      business_unit_id: filterBu,
+      question_number: nextQuestionNumber(rows, parentRow),
+      site_scope: parentRow.site_id ? 'site' : 'all',
+      site_id: parentRow.site_id || null,
+      depends_on_question_id: parentRow.question_id,
+      depends_on_value: defaultWhen,
+      question_type: 'yesno',
     });
     setEditModalVisible(true);
+  };
+
+  const openEdit = (row) => {
+    setQuestionIdTouched(true);
+    setParentLookupQuery('');
+    setForm(formFromRow(row));
+    setEditModalVisible(true);
+  };
+
+  const suggestIdFromText = () => {
+    const id = suggestQuestionId(form.question_text, existingQuestionIds);
+    setForm((f) => ({ ...f, question_id: id }));
+    setQuestionIdTouched(true);
   };
 
   const handleSave = async () => {
@@ -370,15 +516,16 @@ export default function PermitQuestionnaireAdminScreen({ onBack, styles }) {
 
         <View style={[card, { padding: 0, overflow: 'hidden' }]}>
           <ScrollView horizontal>
-            <View style={{ minWidth: 900 }}>
+            <View style={{ minWidth: 1100 }}>
               <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderColor: '#E5E7EB' }}>
                 <Text style={{ ...th, flex: 0.4, minWidth: 48 }}>#</Text>
                 <Text style={{ ...th, flex: 0.9, minWidth: 100 }}>Sites</Text>
-                <Text style={{ ...th, flex: 2, minWidth: 220 }}>Question</Text>
-                <Text style={{ ...th, flex: 0.8, minWidth: 100 }}>Type</Text>
-                <Text style={{ ...th, flex: 1.2, minWidth: 140 }}>Options</Text>
-                <Text style={{ ...th, flex: 0.9, minWidth: 120 }}>Question ID</Text>
-                <Text style={{ ...th, flex: 1, minWidth: 140 }}>Actions</Text>
+                <Text style={{ ...th, flex: 2, minWidth: 200 }}>Question</Text>
+                <Text style={{ ...th, flex: 0.8, minWidth: 88 }}>Type</Text>
+                <Text style={{ ...th, flex: 1.3, minWidth: 180 }}>Depends on</Text>
+                <Text style={{ ...th, flex: 1.0, minWidth: 120 }}>Options</Text>
+                <Text style={{ ...th, flex: 0.8, minWidth: 100 }}>Question ID</Text>
+                <Text style={{ ...th, flex: 1, minWidth: 200 }}>Actions</Text>
               </View>
 
               {loading ? (
@@ -403,21 +550,56 @@ export default function PermitQuestionnaireAdminScreen({ onBack, styles }) {
                     <Text style={{ ...td, flex: 2, minWidth: 220 }} numberOfLines={3}>
                       {row.question_text}
                     </Text>
-                    <Text style={{ ...td, flex: 0.8, minWidth: 100 }}>{row.question_type}</Text>
-                    <Text style={{ ...td, flex: 1.2, minWidth: 140 }} numberOfLines={2}>
+                    <Text style={{ ...td, flex: 0.8, minWidth: 88 }}>
+                      {QUESTION_TYPE_LABELS[row.question_type] || row.question_type}
+                    </Text>
+                    <Text style={{ ...td, flex: 1.3, minWidth: 180 }} numberOfLines={3}>
+                      {row.depends_on_question_id ? (
+                        <>
+                          {(() => {
+                            const parent = rowsByQuestionId[row.depends_on_question_id];
+                            if (parent) {
+                              return `#${parent.question_number} ${parent.question_text}`;
+                            }
+                            return row.depends_on_question_id;
+                          })()}
+                          {row.depends_on_value ? (
+                            <Text style={{ color: '#059669', fontWeight: '600' }}>
+                              {' '}
+                              → {row.depends_on_value}
+                            </Text>
+                          ) : null}
+                        </>
+                      ) : (
+                        'Always'
+                      )}
+                    </Text>
+                    <Text style={{ ...td, flex: 1.0, minWidth: 120 }} numberOfLines={2}>
                       {row.options || '—'}
                     </Text>
-                    <Text style={{ ...td, flex: 0.9, minWidth: 120 }}>{row.question_id}</Text>
+                    <Text style={{ ...td, flex: 0.8, minWidth: 100 }}>{row.question_id}</Text>
                     <View
                       style={{
                         ...td,
                         flex: 1,
-                        minWidth: 140,
+                        minWidth: 200,
                         flexDirection: 'row',
+                        flexWrap: 'wrap',
                         alignItems: 'center',
-                        gap: 8,
+                        gap: 6,
                       }}
                     >
+                      <TouchableOpacity
+                        onPress={() => openFollowUp(row)}
+                        style={{
+                          backgroundColor: '#059669',
+                          paddingHorizontal: 8,
+                          paddingVertical: 6,
+                          borderRadius: 4,
+                        }}
+                      >
+                        <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>Follow-up</Text>
+                      </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => openEdit(row)}
                         style={{
@@ -466,26 +648,75 @@ export default function PermitQuestionnaireAdminScreen({ onBack, styles }) {
               padding: 16,
             }}
           >
-            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 12 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 8 }}>
               {form.id ? 'Edit question' : 'Add new question'}
             </Text>
+            {!form.id && (
+              <View
+                style={{
+                  backgroundColor: '#EFF6FF',
+                  padding: 10,
+                  borderRadius: 8,
+                  marginBottom: 12,
+                }}
+              >
+                <Text style={{ fontSize: 12, color: '#1E40AF', lineHeight: 18 }}>
+                  1. Write what the permit holder sees{'\n'}
+                  2. Pick a type (usually Yes / No){'\n'}
+                  3. To show it only after another answer, use “Show only when…” — or click{' '}
+                  <Text style={{ fontWeight: '700' }}>Follow-up</Text> on that row in the table.
+                </Text>
+              </View>
+            )}
 
-            <Text style={{ fontWeight: '600', marginBottom: 4 }}>Question number</Text>
+            <Text style={{ fontWeight: '600', marginBottom: 4 }}>Question text</Text>
             <TextInput
-              style={inputStyle}
-              value={form.question_number}
-              onChangeText={(t) => setForm((f) => ({ ...f, question_number: t }))}
-              keyboardType="decimal-pad"
+              style={[inputStyle, { minHeight: 72 }]}
+              multiline
+              value={form.question_text}
+              onChangeText={(t) => {
+                setForm((f) => {
+                  const next = { ...f, question_text: t };
+                  if (!f.id && !questionIdTouched && t.trim().length > 8) {
+                    next.question_id = suggestQuestionId(t, existingQuestionIds);
+                  }
+                  return next;
+                });
+              }}
+              placeholder="What should the permit ask?"
             />
 
-            <Text style={{ fontWeight: '600', marginBottom: 4 }}>Question ID (stable key)</Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 4,
+              }}
+            >
+              <Text style={{ fontWeight: '600' }}>
+                Internal ID {form.id ? '' : '(saved on permits)'}
+              </Text>
+              {!form.id && (
+                <TouchableOpacity onPress={suggestIdFromText}>
+                  <Text style={{ color: '#2563EB', fontSize: 12 }}>Regenerate from text</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             <TextInput
               style={inputStyle}
               value={form.question_id}
-              onChangeText={(t) => setForm((f) => ({ ...f, question_id: t }))}
+              onChangeText={(t) => {
+                setQuestionIdTouched(true);
+                setForm((f) => ({ ...f, question_id: t }));
+              }}
               editable={!form.id}
-              placeholder="e.g. workshop_alternative"
+              placeholder="e.g. grinders"
+              autoCapitalize="none"
             />
+            <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 10 }}>
+              Short snake_case name. Do not change after go-live — follow-up questions link to this.
+            </Text>
 
             <Text style={{ fontWeight: '600', marginBottom: 4 }}>Sites</Text>
             <View style={{ flexDirection: 'row', marginBottom: 8 }}>
@@ -530,75 +761,231 @@ export default function PermitQuestionnaireAdminScreen({ onBack, styles }) {
               </ScrollView>
             )}
 
-            <Text style={{ fontWeight: '600', marginBottom: 4 }}>Question text</Text>
-            <TextInput
-              style={[inputStyle, { minHeight: 72 }]}
-              multiline
-              value={form.question_text}
-              onChangeText={(t) => setForm((f) => ({ ...f, question_text: t }))}
-            />
-
-            <Text style={{ fontWeight: '600', marginBottom: 4 }}>Question type</Text>
-            <ScrollView horizontal style={{ marginBottom: 8 }}>
+            <Text style={{ fontWeight: '600', marginBottom: 4 }}>Answer type</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 }}>
               {QUESTION_TYPES.map((t) => (
                 <TouchableOpacity
                   key={t}
                   onPress={() => setForm((f) => ({ ...f, question_type: t }))}
                   style={{
-                    paddingHorizontal: 8,
-                    paddingVertical: 6,
+                    paddingHorizontal: 10,
+                    paddingVertical: 8,
                     marginRight: 6,
+                    marginBottom: 6,
                     borderRadius: 6,
                     backgroundColor: form.question_type === t ? '#7C3AED' : '#E5E7EB',
                   }}
                 >
                   <Text
-                    style={{ fontSize: 11, color: form.question_type === t ? '#fff' : '#111' }}
+                    style={{
+                      fontSize: 12,
+                      color: form.question_type === t ? '#fff' : '#111',
+                      fontWeight: form.question_type === t ? '600' : '400',
+                    }}
                   >
-                    {t}
+                    {QUESTION_TYPE_LABELS[t] || t}
                   </Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </View>
             <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 8 }}>
               {OPTIONS_FORMAT[form.question_type]}
+              {(() => {
+                const ex = QUESTION_TYPE_EXAMPLES.find((e) => e.question_type === form.question_type);
+                return ex?.example ? ` Example: ${ex.example}` : '';
+              })()}
             </Text>
 
-            <Text style={{ fontWeight: '600', marginBottom: 4 }}>Options</Text>
-            <TextInput
-              style={inputStyle}
-              multiline
-              value={form.options}
-              onChangeText={(t) => setForm((f) => ({ ...f, options: t }))}
-              placeholder="Yes; No or JSON for multi_checkbox"
-            />
+            {!TYPES_WITHOUT_OPTIONS.has(form.question_type) && (
+              <>
+                <Text style={{ fontWeight: '600', marginBottom: 4 }}>Choices</Text>
+                <TextInput
+                  style={inputStyle}
+                  multiline
+                  value={form.options}
+                  onChangeText={(t) => setForm((f) => ({ ...f, options: t }))}
+                  placeholder={
+                    form.question_type === 'radio'
+                      ? 'Option A; Option B; Option C'
+                      : 'JSON for checkboxes — or export a sample row and copy'
+                  }
+                />
+              </>
+            )}
 
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={{ fontWeight: '600', marginRight: 8 }}>Required</Text>
+              <Text style={{ fontWeight: '600', marginRight: 8 }}>Required answer</Text>
               <Switch
                 value={form.required}
                 onValueChange={(v) => setForm((f) => ({ ...f, required: v }))}
               />
             </View>
 
-            <Text style={{ fontWeight: '600', marginBottom: 4 }}>Depends on question ID (optional)</Text>
-            <TextInput
-              style={inputStyle}
-              value={form.depends_on_question_id}
-              onChangeText={(t) => setForm((f) => ({ ...f, depends_on_question_id: t }))}
-            />
-            <TextInput
-              style={inputStyle}
-              value={form.depends_on_value}
-              onChangeText={(t) => setForm((f) => ({ ...f, depends_on_value: t }))}
-              placeholder="depends_on_value e.g. yes or no"
-            />
+            <View
+              style={{
+                borderWidth: 1,
+                borderColor: form.depends_on_question_id ? '#A7F3D0' : '#E5E7EB',
+                borderRadius: 8,
+                padding: 10,
+                marginBottom: 12,
+                backgroundColor: form.depends_on_question_id ? '#F0FDF4' : '#FAFAFA',
+              }}
+            >
+              <Text style={{ fontWeight: '700', marginBottom: 4 }}>Show only when… (optional)</Text>
+              <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 8 }}>
+                Pick a question from this {SPECIALIZED_PERMIT_LABELS[filterPermit] || filterPermit}{' '}
+                list (only questions above this one in display order).
+              </Text>
+              {form.depends_on_question_id && parentRowForForm ? (
+                <View
+                  style={{
+                    backgroundColor: '#DCFCE7',
+                    padding: 8,
+                    borderRadius: 6,
+                    marginBottom: 8,
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '600' }}>Selected parent</Text>
+                  <Text style={{ fontSize: 12 }}>
+                    #{parentRowForForm.question_number} · {parentRowForForm.question_text}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                    ID: {parentRowForForm.question_id} ·{' '}
+                    {QUESTION_TYPE_LABELS[parentRowForForm.question_type] ||
+                      parentRowForForm.question_type}
+                  </Text>
+                </View>
+              ) : form.depends_on_question_id ? (
+                <Text style={{ fontSize: 11, color: '#B45309', marginBottom: 8 }}>
+                  Current parent ID “{form.depends_on_question_id}” is not in this list — search below
+                  to replace it.
+                </Text>
+              ) : null}
+              <View style={{ flexDirection: 'row', marginBottom: 8, gap: 8 }}>
+                <TouchableOpacity
+                  onPress={clearParentQuestion}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 6,
+                    backgroundColor: !form.depends_on_question_id ? '#D1FAE5' : '#F3F4F6',
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '600' }}>Always show</Text>
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                style={[inputStyle, { marginBottom: 6 }]}
+                value={parentLookupQuery}
+                onChangeText={setParentLookupQuery}
+                placeholder="Search questions on this permit…"
+                autoCapitalize="none"
+              />
+              <ScrollView
+                style={{
+                  maxHeight: 200,
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 6,
+                  marginBottom: 8,
+                }}
+                nestedScrollEnabled
+              >
+                {filteredParentCandidates.length === 0 ? (
+                  <Text style={{ padding: 12, color: '#6B7280', fontSize: 12 }}>
+                    {parentQuestionCandidates.length === 0
+                      ? 'No earlier questions yet — add the parent question first, or lower this display order.'
+                      : 'No matches — try another search.'}
+                  </Text>
+                ) : (
+                  filteredParentCandidates.map((r) => {
+                    const selected = form.depends_on_question_id === r.question_id;
+                    return (
+                      <TouchableOpacity
+                        key={r.id}
+                        onPress={() => pickParentQuestion(r)}
+                        style={{
+                          padding: 10,
+                          borderBottomWidth: 1,
+                          borderColor: '#F3F4F6',
+                          backgroundColor: selected ? '#BBF7D0' : '#fff',
+                        }}
+                      >
+                        <Text style={{ fontSize: 12, fontWeight: '700' }}>
+                          #{r.question_number}{' '}
+                          <Text style={{ fontWeight: '400', color: '#6B7280' }}>({r.question_id})</Text>
+                        </Text>
+                        <Text style={{ fontSize: 12 }} numberOfLines={2}>
+                          {r.question_text}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                          {QUESTION_TYPE_LABELS[r.question_type] || r.question_type}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+              </ScrollView>
+              {form.depends_on_question_id ? (
+                <>
+                  <Text style={{ fontSize: 12, fontWeight: '600', marginBottom: 6 }}>
+                    When the answer is
+                  </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 }}>
+                    {dependsChoices.map((v) => (
+                      <TouchableOpacity
+                        key={v}
+                        onPress={() => setForm((f) => ({ ...f, depends_on_value: v }))}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          marginRight: 6,
+                          marginBottom: 6,
+                          borderRadius: 6,
+                          backgroundColor:
+                            form.depends_on_value === v ? '#2563EB' : '#E5E7EB',
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: form.depends_on_value === v ? '#fff' : '#111',
+                            fontSize: 12,
+                            fontWeight: '600',
+                          }}
+                        >
+                          {v === 'n/a' ? 'N/A' : v.charAt(0).toUpperCase() + v.slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <TextInput
+                    style={inputStyle}
+                    value={form.depends_on_value}
+                    onChangeText={(t) => setForm((f) => ({ ...f, depends_on_value: t }))}
+                    placeholder="Or type exact value (e.g. ladder for equipment choice)"
+                  />
+                </>
+              ) : null}
+            </View>
 
+            <Text style={{ fontWeight: '600', marginBottom: 4 }}>Display order</Text>
+            <TextInput
+              style={inputStyle}
+              value={form.question_number}
+              onChangeText={(t) => setForm((f) => ({ ...f, question_number: t }))}
+              keyboardType="decimal-pad"
+            />
+            <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 10 }}>
+              Lower numbers appear higher on the permit. Follow-up uses parent number + 1; adjust if
+              two rows share the same slot.
+            </Text>
+
+            <Text style={{ fontWeight: '600', marginBottom: 4 }}>Note on permit (optional)</Text>
             <TextInput
               style={inputStyle}
               value={form.note}
               onChangeText={(t) => setForm((f) => ({ ...f, note: t }))}
-              placeholder="Note (optional)"
+              placeholder="Small grey text under the question"
             />
 
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
