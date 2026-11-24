@@ -13,6 +13,27 @@ export function escapeCsvValue(value) {
   return `"${str.replace(/"/g, '""')}"`;
 }
 
+function triggerCsvDownload(filename, csvContent) {
+  const blob = new Blob(['\uFEFF', csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/** Download a pre-built CSV string (e.g. from exportQuestionsSheet). */
+export function downloadCsvText(filename, csvContent) {
+  if (typeof document === 'undefined') {
+    return false;
+  }
+  triggerCsvDownload(filename, csvContent);
+  return true;
+}
+
 export function downloadCsv(filename, headers, rows) {
   if (typeof document === 'undefined') {
     return false;
@@ -23,15 +44,7 @@ export function downloadCsv(filename, headers, rows) {
     ...rows.map((row) => row.map(escapeCsvValue).join(',')),
   ].join('\n');
 
-  const blob = new Blob(['\uFEFF', csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  triggerCsvDownload(filename, csvContent);
   return true;
 }
 
