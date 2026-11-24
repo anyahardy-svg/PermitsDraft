@@ -30,7 +30,7 @@ import {
 } from '../permitQuestionnaire/questionTypes';
 import { listBusinessUnits } from '../api/business_units';
 import { listSites } from '../api/sites';
-import { downloadCsv } from '../utils/managerHubExport';
+import { downloadCsvText } from '../utils/managerHubExport';
 
 const emptyForm = {
   id: null,
@@ -240,8 +240,17 @@ export default function PermitQuestionnaireAdminScreen({ onBack, styles }) {
   }, [loadRows]);
 
   const handleExport = () => {
+    if (!rows.length) {
+      Alert.alert('Export', 'No questions loaded for this filter. Pick a business unit and permit type first.');
+      return;
+    }
     const csv = exportQuestionsSheet(rows, businessUnitsById, sitesById);
-    downloadCsv(`permit-questions-${filterPermit}.csv`, csv);
+    const buName = businessUnitsById[filterBu]?.name?.replace(/\s+/g, '-') || 'bu';
+    const filename = `permit-questions-${filterPermit}-${buName}.csv`;
+    const ok = downloadCsvText(filename, csv);
+    if (!ok) {
+      Alert.alert('Export', 'CSV download is only available in the web browser.');
+    }
   };
 
   const handleImport = async () => {
